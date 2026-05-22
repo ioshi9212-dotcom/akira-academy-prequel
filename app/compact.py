@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("DATA_DIR", "/data"))
 SEED = ["canon", "characters", "gpt", "state", "templates"]
 
-app = FastAPI(title=APP_NAME, version="0.2.1", servers=[{"url": BASE_URL}])
+app = FastAPI(title=APP_NAME, version="0.2.2", servers=[{"url": BASE_URL}])
 
 class FileUpdate(BaseModel):
     content: str
@@ -31,8 +31,10 @@ class HealthResponse(BaseModel):
 class RootResponse(BaseModel):
     app: str
     health: str
+    context: str
     compact_context: str
     files: str
+    repair_start_state: str
     openapi: str
 
 class FilesResponse(BaseModel):
@@ -64,6 +66,11 @@ class CompactContextResponse(BaseModel):
     academy_schedule: Any = None
     api_usage_note: str
     recommended_files: list[str] = Field(default_factory=list)
+
+class RepairResponse(BaseModel):
+    status: str
+    changed_files: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
 
 def safe(p: str) -> Path:
     path = Path(p)
@@ -110,6 +117,25 @@ def j(path: str) -> Any:
     except HTTPException:
         return None
 
+def write_json(path: str, data: Any) -> None:
+    save(path, json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+
+def context_payload() -> CompactContextResponse:
+    seed()
+    return CompactContextResponse(
+        current_state=j("state/current_state.json"),
+        relationships=j("state/relationships.json"),
+        reputation_state=j("state/reputation_state.json"),
+        power_state=j("state/power_state.json"),
+        rumors_state=j("state/rumors_state.json"),
+        knowledge_state=j("state/knowledge_state.json"),
+        inventory_state=j("state/inventory_state.json"),
+        future_locks_progress=j("state/future_locks_progress.json"),
+        academy_schedule=j("state/academy_schedule.json"),
+        api_usage_note="Use /api/v1/context or /api/v1/context/compact every turn. Both return compact context. Load large lore files through get_file only when needed.",
+        recommended_files=["gpt/engine_prompt.md", "gpt/scene_format.md", "characters/character_habits.md", "canon/academy_tone_and_visual_locks.md", "canon/energy_visibility_and_combat_rules.md", "canon/source_usage_rules.md", "canon/social_dynamics.md", "canon/timeline_1198_1206.md"],
+    )
+
 @app.on_event("startup")
 def startup():
     seed()
@@ -120,7 +146,7 @@ def health():
 
 @app.get("/", response_model=RootResponse)
 def root():
-    return RootResponse(app=APP_NAME, health="/health", compact_context="/api/v1/context/compact", files="/api/v1/files", openapi="/openapi.json")
+    return RootResponse(app=APP_NAME, health="/health", context="/api/v1/context", compact_context="/api/v1/context/compact", files="/api/v1/files", repair_start_state="/api/v1/repair/start-state", openapi="/openapi.json")
 
 @app.get("/api/v1/files", response_model=FilesResponse)
 def list_files():
@@ -154,19 +180,50 @@ def put_json(file_path: str, update: JsonUpdate):
     r = save(file_path, json.dumps(update.data, ensure_ascii=False, indent=2) + "\n")
     return SaveResponse(status="saved", path=r["path"], bytes=r["bytes"])
 
+@app.get("/api/v1/context", response_model=CompactContextResponse)
+def context():
+    return context_payload()
+
 @app.get("/api/v1/context/compact", response_model=CompactContextResponse)
 def compact_context():
+    return context_payload()
+
+@app.post("/api/v1/repair/start-state", response_model=RepairResponse)
+def repair_start_state():
     seed()
-    return CompactContextResponse(
-        current_state=j("state/current_state.json"),
-        relationships=j("state/relationships.json"),
-        reputation_state=j("state/reputation_state.json"),
-        power_state=j("state/power_state.json"),
-        rumors_state=j("state/rumors_state.json"),
-        knowledge_state=j("state/knowledge_state.json"),
-        inventory_state=j("state/inventory_state.json"),
-        future_locks_progress=j("state/future_locks_progress.json"),
-        academy_schedule=j("state/academy_schedule.json"),
-        api_usage_note="Use compact context every turn. Load large lore files through get_file only when needed.",
-        recommended_files=["gpt/engine_prompt.md", "gpt/scene_format.md", "characters/character_habits.md", "canon/academy_tone_and_visual_locks.md", "canon/energy_visibility_and_combat_rules.md", "canon/social_dynamics.md", "canon/timeline_1198_1206.md"],
-    )
+    changed = []
+    notes = []
+
+    current = j("state/current_state.json") or {}
+    inventory = j("state/inventory_state.json") or {}
+
+    active = current.setdefault("active_characters", [])
+    nearby = current.setdefault("nearby_characters", [])
+    if "akira" not in active:
+        active.append("akira")
+    if "livia_cross" not in active and "livia_cross" not in nearby:
+        nearby.append("livia_cross")
+        notes.append("Added livia_cross as nearby at academy start.")
+
+    current.setdefault("visible_inventory", [])
+    current.setdefault("nearby_items", [])
+    current.setdefault("current_scene_goal", "прибытие в Академию Астрейн и первые социальные контакты")
+    write_json("state/current_state.json", current)
+    changed.append("state/current_state.json")
+
+    akira_inv = inventory.setdefault("akira", {})
+    akira_inv.setdefault("visible_inventory", [])
+    akira_inv.setdefault("nearby_items", [])
+    akira_inv.setdefault("academy_issued_items", [])
+
+    for item in current.get("visible_inventory", []):
+        if item not in akira_inv["visible_inventory"]:
+            akira_inv["visible_inventory"].append(item)
+    for item in current.get("nearby_items", []):
+        if item not in akira_inv["nearby_items"]:
+            akira_inv["nearby_items"].append(item)
+
+    write_json("state/inventory_state.json", inventory)
+    changed.append("state/inventory_state.json")
+
+    return RepairResponse(status="repaired", changed_files=changed, notes=notes)
