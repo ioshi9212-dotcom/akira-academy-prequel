@@ -11,12 +11,20 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
 APP_NAME = "Akira Academy Prequel API"
+PUBLIC_BASE_URL = os.getenv(
+    "PUBLIC_BASE_URL",
+    "https://akira-academy-prequel-production.up.railway.app",
+).rstrip("/")
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = Path(os.getenv("DATA_DIR", "/data"))
 
 SEED_DIRS = ["canon", "characters", "gpt", "state", "templates"]
 
-app = FastAPI(title=APP_NAME, version="0.1.0")
+app = FastAPI(
+    title=APP_NAME,
+    version="0.1.0",
+    servers=[{"url": PUBLIC_BASE_URL, "description": "Railway production"}],
+)
 
 
 class FileUpdate(BaseModel):
@@ -75,6 +83,7 @@ def health() -> dict[str, Any]:
         "app": APP_NAME,
         "data_dir": str(DATA_DIR),
         "volume_seeded": (DATA_DIR / ".seeded").exists(),
+        "public_base_url": PUBLIC_BASE_URL,
     }
 
 
@@ -85,6 +94,7 @@ def root() -> dict[str, str]:
         "health": "/health",
         "context": "/api/v1/context",
         "files": "/api/v1/files",
+        "openapi": "/openapi.json",
     }
 
 
