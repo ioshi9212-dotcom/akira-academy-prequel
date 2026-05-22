@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("DATA_DIR", "/data"))
 SEED = ["canon", "characters", "gpt", "state", "templates"]
 
-app = FastAPI(title=APP_NAME, version="0.2.0", servers=[{"url": BASE_URL}])
+app = FastAPI(title=APP_NAME, version="0.2.1", servers=[{"url": BASE_URL}])
 
 class FileUpdate(BaseModel):
     content: str
@@ -71,16 +71,26 @@ def safe(p: str) -> Path:
         raise HTTPException(status_code=400, detail="Unsafe path")
     return path
 
+def copy_missing(src: Path, dst: Path) -> None:
+    if not src.exists():
+        return
+    if src.is_dir():
+        for item in src.rglob("*"):
+            if item.is_file():
+                rel = item.relative_to(src)
+                target = dst / rel
+                if not target.exists():
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(item, target)
+    elif not dst.exists():
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+
 def seed() -> None:
     DATA.mkdir(parents=True, exist_ok=True)
-    marker = DATA / ".seeded"
-    if marker.exists():
-        return
     for name in SEED:
-        src, dst = ROOT / name, DATA / name
-        if src.exists() and not dst.exists():
-            shutil.copytree(src, dst)
-    marker.write_text("seeded\n", encoding="utf-8")
+        copy_missing(ROOT / name, DATA / name)
+    (DATA / ".seeded").write_text("seeded\n", encoding="utf-8")
 
 def text(path: str) -> str:
     file = DATA / safe(path)
@@ -158,5 +168,5 @@ def compact_context():
         future_locks_progress=j("state/future_locks_progress.json"),
         academy_schedule=j("state/academy_schedule.json"),
         api_usage_note="Use compact context every turn. Load large lore files through get_file only when needed.",
-        recommended_files=["gpt/engine_prompt.md", "gpt/scene_format.md", "characters/character_habits.md", "canon/social_dynamics.md", "canon/timeline_1198_1206.md"],
+        recommended_files=["gpt/engine_prompt.md", "gpt/scene_format.md", "characters/character_habits.md", "canon/academy_tone_and_visual_locks.md", "canon/energy_visibility_and_combat_rules.md", "canon/social_dynamics.md", "canon/timeline_1198_1206.md"],
     )
