@@ -1,0 +1,109 @@
+{
+  "state_id": "relationships",
+  "scale": {
+    "affection": "0-100",
+    "trust": "0-100",
+    "tension": "0-100",
+    "jealousy": "0-100",
+    "respect": "0-100",
+    "curiosity": "0-100",
+    "resentment": "0-100"
+  },
+  "rules": [
+    "Отношения растут постепенно и только после сцен.",
+    "Один взгляд не даёт большой скачок.",
+    "Ревность, обида и слухи не исчезают без причины.",
+    "Связь Акиры и Райдена через цикл скрыта и не записывается как осознанное знание персонажей."
+  ],
+  "pairs": {
+    "akira__livia_cross": {
+      "affection": 12,
+      "trust": 8,
+      "tension": 0,
+      "jealousy": 0,
+      "respect": 5,
+      "curiosity": 8,
+      "resentment": 0,
+      "status": "подруги на старте / поступают вместе или быстро держатся рядом",
+      "notes": [
+        "Ливия — социальная и шумная подруга Акиры.",
+        "Возможна будущая ревность из-за внимания Хару и Райдена."
+      ]
+    },
+    "akira__haru_foster": {
+      "affection": 0,
+      "trust": 0,
+      "tension": 0,
+      "jealousy": 0,
+      "respect": 0,
+      "curiosity": 0,
+      "resentment": 0,
+      "status": "ещё не познакомились в текущем состоянии",
+      "notes": []
+    },
+    "akira__raiden_sterling": {
+      "affection": 0,
+      "trust": 0,
+      "tension": 0,
+      "jealousy": 0,
+      "respect": 0,
+      "curiosity": 0,
+      "resentment": 0,
+      "hidden_bond": "absolute_hidden_lore_not_conscious",
+      "status": "ещё не знакомы осознанно в текущем состоянии",
+      "notes": [
+        "Скрытая связь существует, но не является знанием персонажей."
+      ]
+    },
+    "raiden_sterling__haru_foster": {
+      "affection": 35,
+      "trust": 35,
+      "tension": 18,
+      "jealousy": 0,
+      "respect": 35,
+      "curiosity": 0,
+      "resentment": 5,
+      "status": "друзья с грубой динамикой",
+      "notes": [
+        "Могут спорить, толкаться, почти драться и оставаться друзьями.",
+        "Хару может грубо остановить Райдена, если тот перегибает."
+      ]
+    },
+    "livia_cross__raiden_sterling": {
+      "affection": 0,
+      "trust": 0,
+      "tension": 0,
+      "jealousy": 0,
+      "respect": 0,
+      "curiosity": 20,
+      "resentment": 0,
+      "status": "Ливия ещё не начала бегать за Райденом в сценах, но будущий интерес закреплён",
+      "notes": []
+    },
+    "livia_cross__haru_foster": {
+      "affection": 0,
+      "trust": 0,
+      "tension": 0,
+      "jealousy": 0,
+      "respect": 0,
+      "curiosity": 0,
+      "resentment": 0,
+      "status": "ещё не раскрыто сценами",
+      "notes": []
+    },
+    "raiden_sterling__samuel_sterling": {
+      "affection": 0,
+      "trust": 5,
+      "tension": 50,
+      "jealousy": 0,
+      "respect": 15,
+      "curiosity": 0,
+      "resentment": 45,
+      "status": "братья, сильное давление и семейная боль",
+      "notes": [
+        "Самуэль связан с направлением, где раньше была мать Райдена.",
+        "31 августа его появление должно задеть Райдена."
+      ]
+    }
+  }
+}
