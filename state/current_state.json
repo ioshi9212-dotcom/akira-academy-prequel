@@ -1,0 +1,35 @@
+{
+  "state_id": "current_state",
+  "story": "academy_prequel_1198",
+  "current_date": "1198-08-15",
+  "current_day_label": null,
+  "current_time": "late_morning",
+  "current_location_id": "academy_main_courtyard",
+  "current_location_text": "главный двор Академии Астрейн",
+  "weather": {
+    "summary": "уточнить в первой сцене",
+    "temperature_feel": null,
+    "details": []
+  },
+  "akira_state": {
+    "visible_state": "спокойна внешне",
+    "internal_state": "насторожена, собрана, оценивает новое место",
+    "body_state": "после дороги, но держит контроль",
+    "player_defined_state": null
+  },
+  "visible_inventory": [],
+  "nearby_items": [],
+  "active_characters": [
+    "akira"
+  ],
+  "nearby_characters": [],
+  "current_scene_goal": "прибытие в Академию Астрейн и первые социальные контакты",
+  "last_player_input": null,
+  "scene_count": 0,
+  "rules": [
+    "Не тянуть время по минутам без причины.",
+    "В шапке сцены писать только реальные предметы.",
+    "Акира автоматически замечает очевидные детали окружения.",
+    "Скрытый лор не раскрывать персонажам автоматически."
+  ]
+}
