@@ -17,7 +17,7 @@ DATA = Path(os.getenv("DATA_DIR", "/data"))
 SEED = ["canon", "characters", "gpt", "state", "templates"]
 SESSION_RE = re.compile(r"^[a-zA-Z0-9_-]{1,80}$")
 
-app = FastAPI(title=APP_NAME, version="0.3.0", servers=[{"url": BASE_URL}])
+app = FastAPI(title=APP_NAME, version="0.3.1", servers=[{"url": BASE_URL}])
 
 class FileUpdate(BaseModel):
     content: str
@@ -151,11 +151,11 @@ def save_text(path: str, content: str, session_id: str | None = None) -> dict[st
         touch_session(session_id)
     return {"path": path, "bytes": len(content.encode("utf-8"))}
 
-def read_json(path: str, session_id: str | None = None) -> Any:
+def read_json(path: str, session_id: str | None = None, default: Any = None) -> Any:
     try:
         return json.loads(read_text(path, session_id=session_id))
     except HTTPException:
-        return None
+        return default
 
 def write_json(path: str, data: Any, session_id: str | None = None) -> None:
     save_text(path, json.dumps(data, ensure_ascii=False, indent=2) + "\n", session_id=session_id)
@@ -193,8 +193,8 @@ def context_payload(session_id: str | None = None) -> CompactContextResponse:
 def repair_state(session_id: str | None = None) -> RepairResponse:
     seed()
     changed, notes = [], []
-    current = read_json("state/current_state.json", session_id) or {}
-    inventory = read_json("state/inventory_state.json", session_id) or {}
+    current = read_json("state/current_state.json", session_id, default={}) or {}
+    inventory = read_json("state/inventory_state.json", session_id, default={}) or {}
     active = current.setdefault("active_characters", [])
     nearby = current.setdefault("nearby_characters", [])
     if "akira" not in active:
@@ -317,3 +317,10 @@ def compact_context():
 @app.post("/api/v1/repair/start-state", response_model=RepairResponse)
 def repair_start_state():
     return repair_state()
+
+# Import extra session routes even when Railway starts app.compact:app.
+# This makes /turn-contract and /turn-result available without changing start command.
+try:
+    import app.session_routes  # noqa: F401
+except Exception:
+    pass
