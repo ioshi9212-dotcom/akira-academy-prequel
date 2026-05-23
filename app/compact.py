@@ -14,10 +14,16 @@ APP_NAME = "Akira Academy Prequel API"
 BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://akira-academy-prequel-production.up.railway.app").rstrip("/")
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("DATA_DIR", "/data"))
-SEED = ["canon", "characters", "gpt", "state", "templates"]
+
+# These folders are source-controlled rules/canon/cards.
+# They must refresh from the deployed repo on startup, even if /data already has older copies.
+SYNC_FROM_REPO = ["canon", "characters", "gpt", "templates"]
+
+# Runtime state is preserved in the volume and copied only when missing.
+STATE_SEED = ["state"]
 SESSION_RE = re.compile(r"^[a-zA-Z0-9_-]{1,80}$")
 
-app = FastAPI(title=APP_NAME, version="0.3.2", servers=[{"url": BASE_URL}])
+app = FastAPI(title=APP_NAME, version="0.3.4", servers=[{"url": BASE_URL}])
 
 class FileUpdate(BaseModel):
     content: str
@@ -118,9 +124,26 @@ def copy_missing(src: Path, dst: Path) -> None:
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
 
+def sync_from_repo(src: Path, dst: Path) -> None:
+    """Overwrite source-controlled files in /data without touching session runtime state."""
+    if not src.exists():
+        return
+    if src.is_dir():
+        for item in src.rglob("*"):
+            if item.is_file():
+                rel = item.relative_to(src)
+                target = dst / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(item, target)
+    else:
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+
 def seed() -> None:
     DATA.mkdir(parents=True, exist_ok=True)
-    for name in SEED:
+    for name in SYNC_FROM_REPO:
+        sync_from_repo(ROOT / name, DATA / name)
+    for name in STATE_SEED:
         copy_missing(ROOT / name, DATA / name)
     (DATA / "sessions").mkdir(parents=True, exist_ok=True)
     (DATA / ".seeded").write_text("seeded\n", encoding="utf-8")
@@ -172,6 +195,30 @@ def touch_session(session_id: str) -> None:
     meta["updated_at"] = datetime.utcnow().isoformat()
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
+def base_recommended_files() -> list[str]:
+    return [
+        "gpt/engine_prompt.md",
+        "gpt/scene_format.md",
+        "canon/novella_goal.md",
+        "canon/character_story_roles.md",
+        "canon/academy_rating_and_training.md",
+        "canon/academy_locations.md",
+        "canon/academy_tone_and_visual_locks.md",
+        "canon/energy_visibility_and_combat_rules.md",
+        "canon/source_usage_rules.md",
+        "canon/social_dynamics.md",
+        "canon/timeline_1198_1206.md",
+        "characters/main/akira.md",
+        "characters/main/livia_cross.md",
+        "characters/main/raiden_sterling.md",
+        "characters/main/haru_foster.md",
+        "characters/main/samuel_sterling.md",
+        "characters/main/ray_carter.md",
+        "characters/character_habits.md",
+        "characters/locks/livia_akira_friendship_lock.md",
+        "characters/locks/akira_no_passive_glitches_lock.md",
+    ]
+
 def context_payload(session_id: str | None = None) -> CompactContextResponse:
     seed()
     note = "Use this endpoint every turn. For separate games, always pass session_id and use session endpoints. Load large lore files through get_file only when needed."
@@ -187,7 +234,7 @@ def context_payload(session_id: str | None = None) -> CompactContextResponse:
         future_locks_progress=read_json("state/future_locks_progress.json", session_id),
         academy_schedule=read_json("state/academy_schedule.json", session_id),
         api_usage_note=note,
-        recommended_files=["gpt/engine_prompt.md", "gpt/scene_format.md", "characters/character_habits.md", "canon/academy_tone_and_visual_locks.md", "canon/energy_visibility_and_combat_rules.md", "canon/source_usage_rules.md", "canon/social_dynamics.md", "canon/timeline_1198_1206.md"],
+        recommended_files=base_recommended_files(),
     )
 
 def repair_state(session_id: str | None = None) -> RepairResponse:
@@ -225,10 +272,11 @@ def repair_state(session_id: str | None = None) -> RepairResponse:
 def output_format_contract() -> dict[str, Any]:
     return {
         "priority": "highest_for_scene_output",
-        "dialogue_format": "**Имя** — Реплика. (*короткая ремарка: тон, взгляд, пауза, жест*)",
+        "dialogue_format": "**Имя или видимый дескриптор** — Реплика. (*короткая ремарка: тон, взгляд, пауза, жест*)",
         "description_format": "*Описание действия, окружения или атмосферы отдельной строкой курсивом.*",
         "rules": [
-            "Every spoken line starts with bold speaker name.",
+            "Every spoken line starts with bold speaker name or visible descriptor.",
+            "Do not use names Akira has not heard or read yet.",
             "After speaker name use long dash.",
             "Dialogue text is plain.",
             "Optional stage note is short and italic in parentheses.",
@@ -237,6 +285,9 @@ def output_format_contract() -> dict[str, Any]:
             "Descriptions are separate italic paragraphs.",
             "No direct Akira thoughts inside the scene.",
             "Akira thoughts only in bottom block: Мысли Акиры.",
+            "Livia is Akira's close school friend for about six years, not a new roommate.",
+            "Raiden is always dark-haired.",
+            "No passive space or technical glitches around Akira without a direct reason.",
             "If output format is wrong, rewrite before sending."
         ],
         "ending_block": [
@@ -251,9 +302,9 @@ def output_format_contract() -> dict[str, Any]:
         ],
         "example": [
             "*Ветер протягивает по главному двору запах мокрого бетона и металла. Несколько студентов задерживают взгляд на белых волосах Акиры.*",
-            "**Ливия** — Только не говори, что ты опять хочешь кофе без сахара. (*закатывает глаза, но улыбается*)",
-            "**Хару** — О, новенькие. И сразу такие серьёзные? (*смотрит на Акиру с открытым интересом*)",
-            "**Райден** — Не стой на проходе. (*лениво, не поднимая голоса*)"
+            "**Ливия** — Кофе без сахара, да. Я помню. Я с тобой шесть лет страдаю. (*закатывает глаза*)",
+            "**Рыжий студент** — О, новенькие. И сразу такие серьёзные? (*смотрит на Акиру с открытым интересом*)",
+            "**Тёмноволосый парень у стены** — Не стой на проходе. (*лениво, не поднимая голоса*)"
         ]
     }
 
@@ -315,11 +366,31 @@ def session_turn_contract(session_id: str):
         "session_id": sid,
         "active_character_ids": active,
         "nearby_character_ids": nearby,
-        "required_files": ["gpt/engine_prompt.md", "gpt/scene_format.md", "characters/character_habits.md", "canon/energy_visibility_and_combat_rules.md"],
+        "required_files": base_recommended_files(),
         "output_format_contract": output_format_contract(),
         "allowed_new_facts_this_turn": ["neutral sensory details", "minor gestures", "small social reactions", "new named NPC only if saved after scene"],
-        "forbidden_new_facts_this_turn": ["future 1206 events as current 1198 facts", "hidden nature of Akira revealed without scene basis", "NPC knowledge from unseen scenes", "new items without state update", "dialogue without bold speaker names", "direct Akira thoughts inside scene text"],
-        "required_checks_before_answer": ["Load session context first.", "Obey output_format_contract exactly.", "Check knowledge_state before NPC claims.", "Check inventory_state before items.", "Rewrite before sending if format is wrong."],
+        "forbidden_new_facts_this_turn": [
+            "future 1206 events as current 1198 facts",
+            "hidden nature of Akira revealed without scene basis",
+            "NPC knowledge from unseen scenes",
+            "new items without state update",
+            "dialogue without bold speaker names",
+            "direct Akira thoughts inside scene text",
+            "Livia treated as new roommate/new acquaintance",
+            "Raiden described as light-haired",
+            "passive space or technical glitches around Akira without cause"
+        ],
+        "required_checks_before_answer": [
+            "Load session context first.",
+            "Obey output_format_contract exactly.",
+            "Read required_files before scene.",
+            "Check knowledge_state before NPC claims.",
+            "Check inventory_state before items.",
+            "Livia has known Akira for about six years and knows Jun, Ray, windows/edges, no relationships, and public space energy.",
+            "Raiden is strictly dark-haired.",
+            "No passive tech/space glitches around Akira without direct cause.",
+            "Rewrite before sending if format or locks are wrong."
+        ],
         "knowledge_table": {cid: knowledge.get(cid, {}) for cid in scene_chars},
         "inventory_contract": {"visible_inventory": current.get("visible_inventory", []), "nearby_items": current.get("nearby_items", []), "akira_inventory_state": (inventory.get("akira") or {})},
         "canon_locks": locks[:12]
