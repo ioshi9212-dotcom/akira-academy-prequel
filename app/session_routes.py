@@ -1,22 +1,12 @@
 from __future__ import annotations
 
-import json
+from copy import deepcopy
 from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.compact import (
-    app,
-    deep_merge,
-    ensure_session,
-    read_json,
-    recommended_files,
-    safe_session_id,
-    touch_session,
-    unique,
-    write_json,
-)
+from app.compact import app, ensure_session, read_json, safe_session_id, touch_session, write_json
 
 
 class TurnContractResponse(BaseModel):
@@ -64,6 +54,43 @@ MAIN_CHARACTER_FILES = {
     "ray_carter": "characters/main/ray_carter.md",
     "jun_carter": "characters/main/jun_carter.md",
 }
+
+
+BASE_REQUIRED_FILES = [
+    "gpt/engine_prompt.md",
+    "gpt/scene_format.md",
+    "state/memory_update_rules.md",
+    "characters/character_habits.md",
+    "canon/academy_tone_and_visual_locks.md",
+    "canon/energy_visibility_and_combat_rules.md",
+    "canon/source_usage_rules.md",
+    "canon/social_dynamics.md",
+    "canon/timeline_1198_1206.md",
+]
+
+
+def unique(values: list[str]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        if value and value not in result:
+            result.append(value)
+    return result
+
+
+def deep_merge(base: Any, patch: Any) -> Any:
+    if not isinstance(base, dict) or not isinstance(patch, dict):
+        return deepcopy(patch)
+    result = deepcopy(base)
+    for key, value in patch.items():
+        if isinstance(value, dict) and isinstance(result.get(key), dict):
+            result[key] = deep_merge(result[key], value)
+        elif isinstance(value, list) and isinstance(result.get(key), list):
+            for item in value:
+                if item not in result[key]:
+                    result[key].append(item)
+        else:
+            result[key] = deepcopy(value)
+    return result
 
 
 def character_file(character_id: str) -> str:
@@ -124,7 +151,7 @@ def session_turn_contract(session_id: str) -> TurnContractResponse:
         session_id=sid,
         active_character_ids=active,
         nearby_character_ids=nearby,
-        required_files=unique(files + recommended_files()),
+        required_files=unique(files + BASE_REQUIRED_FILES),
         allowed_new_facts_this_turn=[
             "neutral sensory details",
             "minor gestures, pauses, tone, clothing details",
