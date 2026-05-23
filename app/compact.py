@@ -1,8 +1,11 @@
 import json
 import os
+import re
 import shutil
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -12,14 +15,19 @@ BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://akira-academy-prequel-productio
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("DATA_DIR", "/data"))
 SEED = ["canon", "characters", "gpt", "state", "templates"]
+SESSION_RE = re.compile(r"^[a-zA-Z0-9_-]{1,80}$")
 
-app = FastAPI(title=APP_NAME, version="0.2.2", servers=[{"url": BASE_URL}])
+app = FastAPI(title=APP_NAME, version="0.3.0", servers=[{"url": BASE_URL}])
 
 class FileUpdate(BaseModel):
     content: str
 
 class JsonUpdate(BaseModel):
     data: Any
+
+class SessionCreateRequest(BaseModel):
+    session_id: str | None = None
+    title: str | None = None
 
 class HealthResponse(BaseModel):
     status: str
@@ -33,6 +41,7 @@ class RootResponse(BaseModel):
     health: str
     context: str
     compact_context: str
+    sessions: str
     files: str
     repair_start_state: str
     openapi: str
@@ -54,7 +63,18 @@ class JsonFileResponse(BaseModel):
     path: str
     data: Any
 
+class SessionInfo(BaseModel):
+    session_id: str
+    title: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    context: str
+
+class SessionsResponse(BaseModel):
+    sessions: list[SessionInfo] = Field(default_factory=list)
+
 class CompactContextResponse(BaseModel):
+    session_id: str | None = None
     current_state: Any = None
     relationships: Any = None
     reputation_state: Any = None
@@ -78,6 +98,11 @@ def safe(p: str) -> Path:
         raise HTTPException(status_code=400, detail="Unsafe path")
     return path
 
+def safe_session_id(session_id: str) -> str:
+    if not SESSION_RE.match(session_id):
+        raise HTTPException(status_code=400, detail="Unsafe session_id")
+    return session_id
+
 def copy_missing(src: Path, dst: Path) -> None:
     if not src.exists():
         return
@@ -97,44 +122,105 @@ def seed() -> None:
     DATA.mkdir(parents=True, exist_ok=True)
     for name in SEED:
         copy_missing(ROOT / name, DATA / name)
+    (DATA / "sessions").mkdir(parents=True, exist_ok=True)
     (DATA / ".seeded").write_text("seeded\n", encoding="utf-8")
 
-def text(path: str) -> str:
-    file = DATA / safe(path)
+def session_dir(session_id: str) -> Path:
+    return DATA / "sessions" / safe_session_id(session_id)
+
+def ensure_session(session_id: str) -> Path:
+    d = session_dir(session_id)
+    if not d.exists():
+        raise HTTPException(status_code=404, detail="Session not found")
+    return d
+
+def file_root(session_id: str | None = None) -> Path:
+    return ensure_session(session_id) if session_id else DATA
+
+def read_text(path: str, session_id: str | None = None) -> str:
+    file = file_root(session_id) / safe(path)
     if not file.exists() or not file.is_file():
         raise HTTPException(status_code=404, detail="File not found")
     return file.read_text(encoding="utf-8")
 
-def save(path: str, content: str) -> dict[str, Any]:
-    file = DATA / safe(path)
+def save_text(path: str, content: str, session_id: str | None = None) -> dict[str, Any]:
+    file = file_root(session_id) / safe(path)
     file.parent.mkdir(parents=True, exist_ok=True)
     file.write_text(content, encoding="utf-8")
+    if session_id:
+        touch_session(session_id)
     return {"path": path, "bytes": len(content.encode("utf-8"))}
 
-def j(path: str) -> Any:
+def read_json(path: str, session_id: str | None = None) -> Any:
     try:
-        return json.loads(text(path))
+        return json.loads(read_text(path, session_id=session_id))
     except HTTPException:
         return None
 
-def write_json(path: str, data: Any) -> None:
-    save(path, json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+def write_json(path: str, data: Any, session_id: str | None = None) -> None:
+    save_text(path, json.dumps(data, ensure_ascii=False, indent=2) + "\n", session_id=session_id)
 
-def context_payload() -> CompactContextResponse:
+def touch_session(session_id: str) -> None:
+    meta_path = session_dir(session_id) / "session.json"
+    meta = {}
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except Exception:
+            meta = {}
+    meta["session_id"] = session_id
+    meta["updated_at"] = datetime.utcnow().isoformat()
+    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+def context_payload(session_id: str | None = None) -> CompactContextResponse:
     seed()
+    note = "Use this endpoint every turn. For separate games, always pass session_id and use session endpoints. Load large lore files through get_file only when needed."
     return CompactContextResponse(
-        current_state=j("state/current_state.json"),
-        relationships=j("state/relationships.json"),
-        reputation_state=j("state/reputation_state.json"),
-        power_state=j("state/power_state.json"),
-        rumors_state=j("state/rumors_state.json"),
-        knowledge_state=j("state/knowledge_state.json"),
-        inventory_state=j("state/inventory_state.json"),
-        future_locks_progress=j("state/future_locks_progress.json"),
-        academy_schedule=j("state/academy_schedule.json"),
-        api_usage_note="Use /api/v1/context or /api/v1/context/compact every turn. Both return compact context. Load large lore files through get_file only when needed.",
+        session_id=session_id,
+        current_state=read_json("state/current_state.json", session_id),
+        relationships=read_json("state/relationships.json", session_id),
+        reputation_state=read_json("state/reputation_state.json", session_id),
+        power_state=read_json("state/power_state.json", session_id),
+        rumors_state=read_json("state/rumors_state.json", session_id),
+        knowledge_state=read_json("state/knowledge_state.json", session_id),
+        inventory_state=read_json("state/inventory_state.json", session_id),
+        future_locks_progress=read_json("state/future_locks_progress.json", session_id),
+        academy_schedule=read_json("state/academy_schedule.json", session_id),
+        api_usage_note=note,
         recommended_files=["gpt/engine_prompt.md", "gpt/scene_format.md", "characters/character_habits.md", "canon/academy_tone_and_visual_locks.md", "canon/energy_visibility_and_combat_rules.md", "canon/source_usage_rules.md", "canon/social_dynamics.md", "canon/timeline_1198_1206.md"],
     )
+
+def repair_state(session_id: str | None = None) -> RepairResponse:
+    seed()
+    changed, notes = [], []
+    current = read_json("state/current_state.json", session_id) or {}
+    inventory = read_json("state/inventory_state.json", session_id) or {}
+    active = current.setdefault("active_characters", [])
+    nearby = current.setdefault("nearby_characters", [])
+    if "akira" not in active:
+        active.append("akira")
+    if "livia_cross" not in active and "livia_cross" not in nearby:
+        nearby.append("livia_cross")
+        notes.append("Added livia_cross as nearby at academy start.")
+    current.setdefault("visible_inventory", [])
+    current.setdefault("nearby_items", [])
+    current.setdefault("current_scene_goal", "прибытие в Академию Астрейн и первые социальные контакты")
+    write_json("state/current_state.json", current, session_id)
+    changed.append("state/current_state.json")
+
+    akira_inv = inventory.setdefault("akira", {})
+    akira_inv.setdefault("visible_inventory", [])
+    akira_inv.setdefault("nearby_items", [])
+    akira_inv.setdefault("academy_issued_items", [])
+    for item in current.get("visible_inventory", []):
+        if item not in akira_inv["visible_inventory"]:
+            akira_inv["visible_inventory"].append(item)
+    for item in current.get("nearby_items", []):
+        if item not in akira_inv["nearby_items"]:
+            akira_inv["nearby_items"].append(item)
+    write_json("state/inventory_state.json", inventory, session_id)
+    changed.append("state/inventory_state.json")
+    return RepairResponse(status="repaired", changed_files=changed, notes=notes)
 
 @app.on_event("startup")
 def startup():
@@ -146,7 +232,49 @@ def health():
 
 @app.get("/", response_model=RootResponse)
 def root():
-    return RootResponse(app=APP_NAME, health="/health", context="/api/v1/context", compact_context="/api/v1/context/compact", files="/api/v1/files", repair_start_state="/api/v1/repair/start-state", openapi="/openapi.json")
+    return RootResponse(app=APP_NAME, health="/health", context="/api/v1/context", compact_context="/api/v1/context/compact", sessions="/api/v1/sessions", files="/api/v1/files", repair_start_state="/api/v1/repair/start-state", openapi="/openapi.json")
+
+@app.post("/api/v1/sessions", response_model=SessionInfo)
+def create_session(payload: SessionCreateRequest):
+    seed()
+    sid = safe_session_id(payload.session_id or f"session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}")
+    d = session_dir(sid)
+    if not d.exists():
+        d.mkdir(parents=True, exist_ok=True)
+        copy_missing(DATA / "state", d / "state")
+        meta = {"session_id": sid, "title": payload.title or "Academy Prequel Session", "created_at": datetime.utcnow().isoformat(), "updated_at": datetime.utcnow().isoformat()}
+        (d / "session.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    meta = read_json("session.json", sid) or {}
+    return SessionInfo(session_id=sid, title=meta.get("title"), created_at=meta.get("created_at"), updated_at=meta.get("updated_at"), context=f"/api/v1/sessions/{sid}/context")
+
+@app.get("/api/v1/sessions", response_model=SessionsResponse)
+def list_sessions():
+    seed()
+    items = []
+    for d in sorted((DATA / "sessions").iterdir() if (DATA / "sessions").exists() else []):
+        if d.is_dir() and (d / "session.json").exists():
+            meta = json.loads((d / "session.json").read_text(encoding="utf-8"))
+            items.append(SessionInfo(session_id=meta.get("session_id", d.name), title=meta.get("title"), created_at=meta.get("created_at"), updated_at=meta.get("updated_at"), context=f"/api/v1/sessions/{d.name}/context"))
+    return SessionsResponse(sessions=items)
+
+@app.get("/api/v1/sessions/{session_id}/context", response_model=CompactContextResponse)
+def session_context(session_id: str):
+    return context_payload(safe_session_id(session_id))
+
+@app.get("/api/v1/sessions/{session_id}/json/{file_path:path}", response_model=JsonFileResponse)
+def get_session_json(session_id: str, file_path: str):
+    data = json.loads(read_text(file_path, safe_session_id(session_id)))
+    return JsonFileResponse(path=file_path, data=data)
+
+@app.put("/api/v1/sessions/{session_id}/json/{file_path:path}", response_model=SaveResponse)
+def put_session_json(session_id: str, file_path: str, update: JsonUpdate):
+    sid = safe_session_id(session_id)
+    r = save_text(file_path, json.dumps(update.data, ensure_ascii=False, indent=2) + "\n", sid)
+    return SaveResponse(status="saved", path=r["path"], bytes=r["bytes"])
+
+@app.post("/api/v1/sessions/{session_id}/repair/start-state", response_model=RepairResponse)
+def repair_session_start_state(session_id: str):
+    return repair_state(safe_session_id(session_id))
 
 @app.get("/api/v1/files", response_model=FilesResponse)
 def list_files():
@@ -157,27 +285,25 @@ def list_files():
 @app.get("/api/v1/files/{file_path:path}", response_model=TextFileResponse)
 def get_file(file_path: str):
     seed()
-    return TextFileResponse(path=file_path, content=text(file_path))
+    return TextFileResponse(path=file_path, content=read_text(file_path))
 
 @app.put("/api/v1/files/{file_path:path}", response_model=SaveResponse)
 def put_file(file_path: str, update: FileUpdate):
     seed()
-    r = save(file_path, update.content)
+    r = save_text(file_path, update.content)
     return SaveResponse(status="saved", path=r["path"], bytes=r["bytes"])
 
 @app.get("/api/v1/json/{file_path:path}", response_model=JsonFileResponse)
 def get_json(file_path: str):
-    seed()
     try:
-        data = json.loads(text(file_path))
+        data = json.loads(read_text(file_path))
     except json.JSONDecodeError as exc:
         raise HTTPException(status_code=400, detail=f"Invalid JSON: {exc}") from exc
     return JsonFileResponse(path=file_path, data=data)
 
 @app.put("/api/v1/json/{file_path:path}", response_model=SaveResponse)
 def put_json(file_path: str, update: JsonUpdate):
-    seed()
-    r = save(file_path, json.dumps(update.data, ensure_ascii=False, indent=2) + "\n")
+    r = save_text(file_path, json.dumps(update.data, ensure_ascii=False, indent=2) + "\n")
     return SaveResponse(status="saved", path=r["path"], bytes=r["bytes"])
 
 @app.get("/api/v1/context", response_model=CompactContextResponse)
@@ -190,40 +316,4 @@ def compact_context():
 
 @app.post("/api/v1/repair/start-state", response_model=RepairResponse)
 def repair_start_state():
-    seed()
-    changed = []
-    notes = []
-
-    current = j("state/current_state.json") or {}
-    inventory = j("state/inventory_state.json") or {}
-
-    active = current.setdefault("active_characters", [])
-    nearby = current.setdefault("nearby_characters", [])
-    if "akira" not in active:
-        active.append("akira")
-    if "livia_cross" not in active and "livia_cross" not in nearby:
-        nearby.append("livia_cross")
-        notes.append("Added livia_cross as nearby at academy start.")
-
-    current.setdefault("visible_inventory", [])
-    current.setdefault("nearby_items", [])
-    current.setdefault("current_scene_goal", "прибытие в Академию Астрейн и первые социальные контакты")
-    write_json("state/current_state.json", current)
-    changed.append("state/current_state.json")
-
-    akira_inv = inventory.setdefault("akira", {})
-    akira_inv.setdefault("visible_inventory", [])
-    akira_inv.setdefault("nearby_items", [])
-    akira_inv.setdefault("academy_issued_items", [])
-
-    for item in current.get("visible_inventory", []):
-        if item not in akira_inv["visible_inventory"]:
-            akira_inv["visible_inventory"].append(item)
-    for item in current.get("nearby_items", []):
-        if item not in akira_inv["nearby_items"]:
-            akira_inv["nearby_items"].append(item)
-
-    write_json("state/inventory_state.json", inventory)
-    changed.append("state/inventory_state.json")
-
-    return RepairResponse(status="repaired", changed_files=changed, notes=notes)
+    return repair_state()
