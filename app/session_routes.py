@@ -14,6 +14,7 @@ class TurnContractResponse(BaseModel):
     active_character_ids: list[str] = Field(default_factory=list)
     nearby_character_ids: list[str] = Field(default_factory=list)
     required_files: list[str] = Field(default_factory=list)
+    output_format_contract: dict[str, Any] = Field(default_factory=dict)
     allowed_new_facts_this_turn: list[str] = Field(default_factory=list)
     forbidden_new_facts_this_turn: list[str] = Field(default_factory=list)
     required_checks_before_answer: list[str] = Field(default_factory=list)
@@ -67,6 +68,50 @@ BASE_REQUIRED_FILES = [
     "canon/social_dynamics.md",
     "canon/timeline_1198_1206.md",
 ]
+
+
+OUTPUT_FORMAT_CONTRACT = {
+    "priority": "highest_for_scene_output",
+    "description": "Use this format even if old chat context used another style.",
+    "scene_header_required": True,
+    "dialogue_format": "**Имя** — Реплика. (*короткая ремарка: тон, взгляд, пауза, жест*)",
+    "description_format": "*Описание действия, окружения или атмосферы отдельной строкой курсивом.*",
+    "rules": [
+        "Every spoken line must start with bold speaker name.",
+        "After speaker name use long dash.",
+        "Dialogue text is plain, not italic and not bold.",
+        "Optional short stage note goes after dialogue in italic parentheses.",
+        "Stage note must be short: tone, look, pause, gesture, tiny movement.",
+        "Do not put long actions in parentheses.",
+        "Do not put character thoughts in parentheses.",
+        "Descriptions and atmosphere go in separate italic paragraphs.",
+        "No direct Akira thoughts inside the scene text.",
+        "Akira thoughts only in the bottom block named 'Мысли Акиры'.",
+    ],
+    "ending_block": [
+        "━━━━━━━━━━━━━━━━━━━━",
+        "Что можно сделать:",
+        "1.",
+        "2.",
+        "3.",
+        "",
+        "Что Акира могла бы сказать:",
+        "— “...”",
+        "— “...”",
+        "",
+        "Мысли Акиры:",
+        "— ...",
+        "— ...",
+        "━━━━━━━━━━━━━━━━━━━━",
+    ],
+    "example": [
+        "*Ветер протягивает по главному двору запах мокрого бетона и металла. Несколько студентов задерживают взгляд на белых волосах Акиры.*",
+        "**Ливия** — Только не говори, что ты опять хочешь кофе без сахара. (*закатывает глаза, но улыбается*)",
+        "**Хару** — О, новенькие. И сразу такие серьёзные? (*смотрит на Акиру с открытым интересом*)",
+        "**Райден** — Не стой на проходе. (*лениво, не поднимая голоса*)",
+    ],
+    "self_check": "If the output is not in this format, rewrite it before sending.",
+}
 
 
 def unique(values: list[str]) -> list[str]:
@@ -152,6 +197,7 @@ def session_turn_contract(session_id: str) -> TurnContractResponse:
         active_character_ids=active,
         nearby_character_ids=nearby,
         required_files=unique(files + BASE_REQUIRED_FILES),
+        output_format_contract=OUTPUT_FORMAT_CONTRACT,
         allowed_new_facts_this_turn=[
             "neutral sensory details",
             "minor gestures, pauses, tone, clothing details",
@@ -169,16 +215,21 @@ def session_turn_contract(session_id: str) -> TurnContractResponse:
             "mixed dorm room with male student treated as normal",
             "mystical detective academy tone replacing raider training academy",
             "weapons solving Echo encounters without energy",
+            "dialogue without bold speaker names",
+            "scene descriptions not separated as italic paragraphs",
+            "direct Akira thoughts inside scene text",
         ],
         required_checks_before_answer=[
             "Load session context first.",
             "Load this turn contract.",
+            "Obey output_format_contract exactly.",
             "Check active and nearby character cards before writing lines.",
             "Check knowledge_state before every NPC claim.",
             "Check inventory_state before mentioning usable items.",
             "Use future locks as direction, not character knowledge.",
             "Energy in training must have visible physical signs.",
             "Do not write major choices for Akira.",
+            "Before sending, rewrite if dialogue format is wrong.",
             "After scene, call turn-result with real updates only.",
         ],
         knowledge_table={cid: knowledge.get(cid, {}) for cid in scene_chars},
