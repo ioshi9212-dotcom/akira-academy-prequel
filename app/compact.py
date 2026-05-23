@@ -17,7 +17,7 @@ DATA = Path(os.getenv("DATA_DIR", "/data"))
 SEED = ["canon", "characters", "gpt", "state", "templates"]
 SESSION_RE = re.compile(r"^[a-zA-Z0-9_-]{1,80}$")
 
-app = FastAPI(title=APP_NAME, version="0.3.1", servers=[{"url": BASE_URL}])
+app = FastAPI(title=APP_NAME, version="0.3.2", servers=[{"url": BASE_URL}])
 
 class FileUpdate(BaseModel):
     content: str
@@ -222,6 +222,41 @@ def repair_state(session_id: str | None = None) -> RepairResponse:
     changed.append("state/inventory_state.json")
     return RepairResponse(status="repaired", changed_files=changed, notes=notes)
 
+def output_format_contract() -> dict[str, Any]:
+    return {
+        "priority": "highest_for_scene_output",
+        "dialogue_format": "**Имя** — Реплика. (*короткая ремарка: тон, взгляд, пауза, жест*)",
+        "description_format": "*Описание действия, окружения или атмосферы отдельной строкой курсивом.*",
+        "rules": [
+            "Every spoken line starts with bold speaker name.",
+            "After speaker name use long dash.",
+            "Dialogue text is plain.",
+            "Optional stage note is short and italic in parentheses.",
+            "No long actions in parentheses.",
+            "No character thoughts in parentheses.",
+            "Descriptions are separate italic paragraphs.",
+            "No direct Akira thoughts inside the scene.",
+            "Akira thoughts only in bottom block: Мысли Акиры.",
+            "If output format is wrong, rewrite before sending."
+        ],
+        "ending_block": [
+            "━━━━━━━━━━━━━━━━━━━━",
+            "Что можно сделать:",
+            "1.", "2.", "3.", "",
+            "Что Акира могла бы сказать:",
+            "— “...”", "— “...”", "",
+            "Мысли Акиры:",
+            "— ...", "— ...",
+            "━━━━━━━━━━━━━━━━━━━━"
+        ],
+        "example": [
+            "*Ветер протягивает по главному двору запах мокрого бетона и металла. Несколько студентов задерживают взгляд на белых волосах Акиры.*",
+            "**Ливия** — Только не говори, что ты опять хочешь кофе без сахара. (*закатывает глаза, но улыбается*)",
+            "**Хару** — О, новенькие. И сразу такие серьёзные? (*смотрит на Акиру с открытым интересом*)",
+            "**Райден** — Не стой на проходе. (*лениво, не поднимая голоса*)"
+        ]
+    }
+
 @app.on_event("startup")
 def startup():
     seed()
@@ -260,6 +295,35 @@ def list_sessions():
 @app.get("/api/v1/sessions/{session_id}/context", response_model=CompactContextResponse)
 def session_context(session_id: str):
     return context_payload(safe_session_id(session_id))
+
+@app.get("/api/v1/sessions/{session_id}/turn-contract")
+def session_turn_contract(session_id: str):
+    sid = safe_session_id(session_id)
+    ensure_session(sid)
+    current = read_json("state/current_state.json", sid, default={}) or {}
+    knowledge = read_json("state/knowledge_state.json", sid, default={}) or {}
+    inventory = read_json("state/inventory_state.json", sid, default={}) or {}
+    future = read_json("state/future_locks_progress.json", sid, default={}) or {}
+    active = list(dict.fromkeys(current.get("active_characters", []) or []))
+    nearby = list(dict.fromkeys(current.get("nearby_characters", []) or []))
+    scene_chars = list(dict.fromkeys(active + nearby))
+    locks = []
+    for lock_id, lock in (future.get("locks") or {}).items():
+        if lock.get("status") in {"active", "scheduled", "not_started", "available_but_rare"}:
+            locks.append(f"{lock_id}: {lock.get('description', '')}")
+    return {
+        "session_id": sid,
+        "active_character_ids": active,
+        "nearby_character_ids": nearby,
+        "required_files": ["gpt/engine_prompt.md", "gpt/scene_format.md", "characters/character_habits.md", "canon/energy_visibility_and_combat_rules.md"],
+        "output_format_contract": output_format_contract(),
+        "allowed_new_facts_this_turn": ["neutral sensory details", "minor gestures", "small social reactions", "new named NPC only if saved after scene"],
+        "forbidden_new_facts_this_turn": ["future 1206 events as current 1198 facts", "hidden nature of Akira revealed without scene basis", "NPC knowledge from unseen scenes", "new items without state update", "dialogue without bold speaker names", "direct Akira thoughts inside scene text"],
+        "required_checks_before_answer": ["Load session context first.", "Obey output_format_contract exactly.", "Check knowledge_state before NPC claims.", "Check inventory_state before items.", "Rewrite before sending if format is wrong."],
+        "knowledge_table": {cid: knowledge.get(cid, {}) for cid in scene_chars},
+        "inventory_contract": {"visible_inventory": current.get("visible_inventory", []), "nearby_items": current.get("nearby_items", []), "akira_inventory_state": (inventory.get("akira") or {})},
+        "canon_locks": locks[:12]
+    }
 
 @app.get("/api/v1/sessions/{session_id}/json/{file_path:path}", response_model=JsonFileResponse)
 def get_session_json(session_id: str, file_path: str):
@@ -317,10 +381,3 @@ def compact_context():
 @app.post("/api/v1/repair/start-state", response_model=RepairResponse)
 def repair_start_state():
     return repair_state()
-
-# Import extra session routes even when Railway starts app.compact:app.
-# This makes /turn-contract and /turn-result available without changing start command.
-try:
-    import app.session_routes  # noqa: F401
-except Exception:
-    pass
