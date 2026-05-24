@@ -23,7 +23,7 @@ SYNC_FROM_REPO = ["canon", "characters", "gpt", "templates"]
 STATE_SEED = ["state"]
 SESSION_RE = re.compile(r"^[a-zA-Z0-9_-]{1,80}$")
 
-app = FastAPI(title=APP_NAME, version="0.3.4", servers=[{"url": BASE_URL}])
+app = FastAPI(title=APP_NAME, version="0.3.5", servers=[{"url": BASE_URL}])
 
 class FileUpdate(BaseModel):
     content: str
@@ -217,6 +217,11 @@ def base_recommended_files() -> list[str]:
         "characters/character_habits.md",
         "characters/locks/livia_akira_friendship_lock.md",
         "characters/locks/akira_no_passive_glitches_lock.md",
+        "characters/locks/akira_no_reused_player_lines_lock.md",
+        "characters/locks/akira_school_past_livia_dynamic_lock.md",
+        "characters/locks/akira_sleep_recovery_livia_guard_lock.md",
+        "characters/locks/raiden_lazy_mask_social_lock.md",
+        "characters/locks/haru_raiden_attraction_social_reactions_lock.md",
     ]
 
 def context_payload(session_id: str | None = None) -> CompactContextResponse:
@@ -287,6 +292,8 @@ def output_format_contract() -> dict[str, Any]:
             "Akira thoughts only in bottom block: Мысли Акиры.",
             "Livia is Akira's close school friend for about six years, not a new roommate.",
             "Raiden is always dark-haired.",
+            "Raiden does not patiently tolerate sticky female touches; trigger comes from stepmother history, but most people do not know that.",
+            "Haru flirts easily, but tires when people see only the charismatic red-haired image, not him.",
             "No passive space or technical glitches around Akira without a direct reason.",
             "If output format is wrong, rewrite before sending."
         ],
@@ -378,6 +385,9 @@ def session_turn_contract(session_id: str):
             "direct Akira thoughts inside scene text",
             "Livia treated as new roommate/new acquaintance",
             "Raiden described as light-haired",
+            "Raiden treated as literally lazy or absent from academy life",
+            "Raiden calmly accepting sticky female touches",
+            "Haru treated as a flat womanizer without the image-vs-real-person reason",
             "passive space or technical glitches around Akira without cause"
         ],
         "required_checks_before_answer": [
@@ -388,6 +398,7 @@ def session_turn_contract(session_id: str):
             "Check inventory_state before items.",
             "Livia has known Akira for about six years and knows Jun, Ray, windows/edges, no relationships, and public space energy.",
             "Raiden is strictly dark-haired.",
+            "Apply haru_raiden_attraction_social_reactions_lock: Haru flirts easily but tires of people seeing only the red-haired charismatic image; Raiden gets fear/looks/provocations and female touch triggers from stepmother history.",
             "No passive tech/space glitches around Akira without direct cause.",
             "Rewrite before sending if format or locks are wrong."
         ],
