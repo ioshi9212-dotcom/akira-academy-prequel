@@ -15,21 +15,17 @@ BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://akira-academy-prequel-productio
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("DATA_DIR", "/data"))
 
-# These folders are source-controlled rules/canon/cards.
-# They must refresh from the deployed repo on startup, even if /data already has older copies.
 SYNC_FROM_REPO = ["canon", "characters", "gpt", "templates"]
-
-# Runtime state is preserved in the volume and copied only when missing.
 STATE_SEED = ["state"]
 SESSION_RE = re.compile(r"^[a-zA-Z0-9_-]{1,80}$")
 
-app = FastAPI(title=APP_NAME, version="0.3.5", servers=[{"url": BASE_URL}])
+app = FastAPI(title=APP_NAME, version="0.3.6", servers=[{"url": BASE_URL}])
 
 class FileUpdate(BaseModel):
     content: str
 
 class JsonUpdate(BaseModel):
-    data: Any
+    data: object
 
 class SessionCreateRequest(BaseModel):
     session_id: str | None = None
@@ -67,7 +63,7 @@ class SaveResponse(BaseModel):
 
 class JsonFileResponse(BaseModel):
     path: str
-    data: Any
+    data: object
 
 class SessionInfo(BaseModel):
     session_id: str
@@ -81,15 +77,15 @@ class SessionsResponse(BaseModel):
 
 class CompactContextResponse(BaseModel):
     session_id: str | None = None
-    current_state: Any = None
-    relationships: Any = None
-    reputation_state: Any = None
-    power_state: Any = None
-    rumors_state: Any = None
-    knowledge_state: Any = None
-    inventory_state: Any = None
-    future_locks_progress: Any = None
-    academy_schedule: Any = None
+    current_state: object | None = None
+    relationships: object | None = None
+    reputation_state: object | None = None
+    power_state: object | None = None
+    rumors_state: object | None = None
+    knowledge_state: object | None = None
+    inventory_state: object | None = None
+    future_locks_progress: object | None = None
+    academy_schedule: object | None = None
     api_usage_note: str
     recommended_files: list[str] = Field(default_factory=list)
 
@@ -125,7 +121,6 @@ def copy_missing(src: Path, dst: Path) -> None:
         shutil.copy2(src, dst)
 
 def sync_from_repo(src: Path, dst: Path) -> None:
-    """Overwrite source-controlled files in /data without touching session runtime state."""
     if not src.exists():
         return
     if src.is_dir():
@@ -166,7 +161,7 @@ def read_text(path: str, session_id: str | None = None) -> str:
         raise HTTPException(status_code=404, detail="File not found")
     return file.read_text(encoding="utf-8")
 
-def save_text(path: str, content: str, session_id: str | None = None) -> dict[str, Any]:
+def save_text(path: str, content: str, session_id: str | None = None) -> dict:
     file = file_root(session_id) / safe(path)
     file.parent.mkdir(parents=True, exist_ok=True)
     file.write_text(content, encoding="utf-8")
@@ -174,13 +169,13 @@ def save_text(path: str, content: str, session_id: str | None = None) -> dict[st
         touch_session(session_id)
     return {"path": path, "bytes": len(content.encode("utf-8"))}
 
-def read_json(path: str, session_id: str | None = None, default: Any = None) -> Any:
+def read_json(path: str, session_id: str | None = None, default=None):
     try:
         return json.loads(read_text(path, session_id=session_id))
     except HTTPException:
         return default
 
-def write_json(path: str, data: Any, session_id: str | None = None) -> None:
+def write_json(path: str, data, session_id: str | None = None) -> None:
     save_text(path, json.dumps(data, ensure_ascii=False, indent=2) + "\n", session_id=session_id)
 
 def touch_session(session_id: str) -> None:
@@ -199,6 +194,7 @@ def base_recommended_files() -> list[str]:
     return [
         "gpt/engine_prompt.md",
         "gpt/scene_format.md",
+        "gpt/locks/no_empty_scenes_lock.md",
         "canon/novella_goal.md",
         "canon/character_story_roles.md",
         "canon/academy_rating_and_training.md",
@@ -214,6 +210,8 @@ def base_recommended_files() -> list[str]:
         "characters/main/haru_foster.md",
         "characters/main/samuel_sterling.md",
         "characters/main/ray_carter.md",
+        "characters/main/daniel_dante_weiss.md",
+        "characters/main/elias_seline_aster.md",
         "characters/character_habits.md",
         "characters/locks/livia_akira_friendship_lock.md",
         "characters/locks/akira_no_passive_glitches_lock.md",
@@ -274,7 +272,7 @@ def repair_state(session_id: str | None = None) -> RepairResponse:
     changed.append("state/inventory_state.json")
     return RepairResponse(status="repaired", changed_files=changed, notes=notes)
 
-def output_format_contract() -> dict[str, Any]:
+def output_format_contract() -> dict:
     return {
         "priority": "highest_for_scene_output",
         "dialogue_format": "**Имя или видимый дескриптор** — Реплика. (*короткая ремарка: тон, взгляд, пауза, жест*)",
@@ -290,6 +288,7 @@ def output_format_contract() -> dict[str, Any]:
             "Descriptions are separate italic paragraphs.",
             "No direct Akira thoughts inside the scene.",
             "Akira thoughts only in bottom block: Мысли Акиры.",
+            "No empty scenes: every scene needs a hook, conflict, conversation, observation, social reaction, rumor, consequence, or time skip.",
             "Livia is Akira's close school friend for about six years, not a new roommate.",
             "Raiden is always dark-haired.",
             "Raiden does not patiently tolerate sticky female touches; trigger comes from stepmother history, but most people do not know that.",
@@ -297,22 +296,6 @@ def output_format_contract() -> dict[str, Any]:
             "No passive space or technical glitches around Akira without a direct reason.",
             "If output format is wrong, rewrite before sending."
         ],
-        "ending_block": [
-            "━━━━━━━━━━━━━━━━━━━━",
-            "Что можно сделать:",
-            "1.", "2.", "3.", "",
-            "Что Акира могла бы сказать:",
-            "— “...”", "— “...”", "",
-            "Мысли Акиры:",
-            "— ...", "— ...",
-            "━━━━━━━━━━━━━━━━━━━━"
-        ],
-        "example": [
-            "*Ветер протягивает по главному двору запах мокрого бетона и металла. Несколько студентов задерживают взгляд на белых волосах Акиры.*",
-            "**Ливия** — Кофе без сахара, да. Я помню. Я с тобой шесть лет страдаю. (*закатывает глаза*)",
-            "**Рыжий студент** — О, новенькие. И сразу такие серьёзные? (*смотрит на Акиру с открытым интересом*)",
-            "**Тёмноволосый парень у стены** — Не стой на проходе. (*лениво, не поднимая голоса*)"
-        ]
     }
 
 @app.on_event("startup")
@@ -377,6 +360,7 @@ def session_turn_contract(session_id: str):
         "output_format_contract": output_format_contract(),
         "allowed_new_facts_this_turn": ["neutral sensory details", "minor gestures", "small social reactions", "new named NPC only if saved after scene"],
         "forbidden_new_facts_this_turn": [
+            "empty scenes where nothing happens and no line moves",
             "future 1206 events as current 1198 facts",
             "hidden nature of Akira revealed without scene basis",
             "NPC knowledge from unseen scenes",
@@ -393,9 +377,10 @@ def session_turn_contract(session_id: str):
         "required_checks_before_answer": [
             "Load session context first.",
             "Obey output_format_contract exactly.",
-            "Read required_files before scene.",
+            "Read required_files before scene, including gpt/locks/no_empty_scenes_lock.md.",
             "Check knowledge_state before NPC claims.",
             "Check inventory_state before items.",
+            "No empty scenes: if Akira goes for coffee/sleeps/walks, add a hook or compress to the next meaningful event.",
             "Livia has known Akira for about six years and knows Jun, Ray, windows/edges, no relationships, and public space energy.",
             "Raiden is strictly dark-haired.",
             "Apply haru_raiden_attraction_social_reactions_lock: Haru flirts easily but tires of people seeing only the red-haired charismatic image; Raiden gets fear/looks/provocations and female touch triggers from stepmother history.",
