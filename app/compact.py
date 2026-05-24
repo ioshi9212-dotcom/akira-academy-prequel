@@ -4,7 +4,6 @@ import re
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
@@ -15,21 +14,27 @@ BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://akira-academy-prequel-productio
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("DATA_DIR", "/data"))
 
+# Source-controlled folders refresh into /data on startup.
+# Runtime state/sessions are preserved in Railway volume.
 SYNC_FROM_REPO = ["canon", "characters", "gpt", "templates"]
 STATE_SEED = ["state"]
 SESSION_RE = re.compile(r"^[a-zA-Z0-9_-]{1,80}$")
 
-app = FastAPI(title=APP_NAME, version="0.3.6", servers=[{"url": BASE_URL}])
+app = FastAPI(title=APP_NAME, version="0.3.7", servers=[{"url": BASE_URL}])
+
 
 class FileUpdate(BaseModel):
     content: str
 
+
 class JsonUpdate(BaseModel):
     data: object
+
 
 class SessionCreateRequest(BaseModel):
     session_id: str | None = None
     title: str | None = None
+
 
 class HealthResponse(BaseModel):
     status: str
@@ -37,6 +42,7 @@ class HealthResponse(BaseModel):
     data_dir: str
     volume_seeded: bool
     public_base_url: str
+
 
 class RootResponse(BaseModel):
     app: str
@@ -48,22 +54,27 @@ class RootResponse(BaseModel):
     repair_start_state: str
     openapi: str
 
+
 class FilesResponse(BaseModel):
     data_dir: str
     files: list[str] = Field(default_factory=list)
 
+
 class TextFileResponse(BaseModel):
     path: str
     content: str
+
 
 class SaveResponse(BaseModel):
     status: str
     path: str
     bytes: int
 
+
 class JsonFileResponse(BaseModel):
     path: str
     data: object
+
 
 class SessionInfo(BaseModel):
     session_id: str
@@ -72,8 +83,10 @@ class SessionInfo(BaseModel):
     updated_at: str | None = None
     context: str
 
+
 class SessionsResponse(BaseModel):
     sessions: list[SessionInfo] = Field(default_factory=list)
+
 
 class CompactContextResponse(BaseModel):
     session_id: str | None = None
@@ -89,10 +102,12 @@ class CompactContextResponse(BaseModel):
     api_usage_note: str
     recommended_files: list[str] = Field(default_factory=list)
 
+
 class RepairResponse(BaseModel):
     status: str
     changed_files: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+
 
 def safe(p: str) -> Path:
     path = Path(p)
@@ -100,10 +115,12 @@ def safe(p: str) -> Path:
         raise HTTPException(status_code=400, detail="Unsafe path")
     return path
 
+
 def safe_session_id(session_id: str) -> str:
     if not SESSION_RE.match(session_id):
         raise HTTPException(status_code=400, detail="Unsafe session_id")
     return session_id
+
 
 def copy_missing(src: Path, dst: Path) -> None:
     if not src.exists():
@@ -120,6 +137,7 @@ def copy_missing(src: Path, dst: Path) -> None:
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
 
+
 def sync_from_repo(src: Path, dst: Path) -> None:
     if not src.exists():
         return
@@ -134,6 +152,7 @@ def sync_from_repo(src: Path, dst: Path) -> None:
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
 
+
 def seed() -> None:
     DATA.mkdir(parents=True, exist_ok=True)
     for name in SYNC_FROM_REPO:
@@ -143,8 +162,10 @@ def seed() -> None:
     (DATA / "sessions").mkdir(parents=True, exist_ok=True)
     (DATA / ".seeded").write_text("seeded\n", encoding="utf-8")
 
+
 def session_dir(session_id: str) -> Path:
     return DATA / "sessions" / safe_session_id(session_id)
+
 
 def ensure_session(session_id: str) -> Path:
     d = session_dir(session_id)
@@ -152,14 +173,17 @@ def ensure_session(session_id: str) -> Path:
         raise HTTPException(status_code=404, detail="Session not found")
     return d
 
+
 def file_root(session_id: str | None = None) -> Path:
     return ensure_session(session_id) if session_id else DATA
+
 
 def read_text(path: str, session_id: str | None = None) -> str:
     file = file_root(session_id) / safe(path)
     if not file.exists() or not file.is_file():
         raise HTTPException(status_code=404, detail="File not found")
     return file.read_text(encoding="utf-8")
+
 
 def save_text(path: str, content: str, session_id: str | None = None) -> dict:
     file = file_root(session_id) / safe(path)
@@ -169,14 +193,17 @@ def save_text(path: str, content: str, session_id: str | None = None) -> dict:
         touch_session(session_id)
     return {"path": path, "bytes": len(content.encode("utf-8"))}
 
+
 def read_json(path: str, session_id: str | None = None, default=None):
     try:
         return json.loads(read_text(path, session_id=session_id))
     except HTTPException:
         return default
 
+
 def write_json(path: str, data, session_id: str | None = None) -> None:
     save_text(path, json.dumps(data, ensure_ascii=False, indent=2) + "\n", session_id=session_id)
+
 
 def touch_session(session_id: str) -> None:
     meta_path = session_dir(session_id) / "session.json"
@@ -190,11 +217,15 @@ def touch_session(session_id: str) -> None:
     meta["updated_at"] = datetime.utcnow().isoformat()
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
+
+def existing_repo_files(pattern: str) -> list[str]:
+    return sorted(str(p.relative_to(ROOT)) for p in ROOT.glob(pattern) if p.is_file())
+
+
 def base_recommended_files() -> list[str]:
-    return [
+    core_files = [
         "gpt/engine_prompt.md",
         "gpt/scene_format.md",
-        "gpt/locks/no_empty_scenes_lock.md",
         "canon/novella_goal.md",
         "canon/character_story_roles.md",
         "canon/academy_rating_and_training.md",
@@ -204,23 +235,19 @@ def base_recommended_files() -> list[str]:
         "canon/source_usage_rules.md",
         "canon/social_dynamics.md",
         "canon/timeline_1198_1206.md",
-        "characters/main/akira.md",
-        "characters/main/livia_cross.md",
-        "characters/main/raiden_sterling.md",
-        "characters/main/haru_foster.md",
-        "characters/main/samuel_sterling.md",
-        "characters/main/ray_carter.md",
-        "characters/main/daniel_dante_weiss.md",
-        "characters/main/elias_seline_aster.md",
         "characters/character_habits.md",
-        "characters/locks/livia_akira_friendship_lock.md",
-        "characters/locks/akira_no_passive_glitches_lock.md",
-        "characters/locks/akira_no_reused_player_lines_lock.md",
-        "characters/locks/akira_school_past_livia_dynamic_lock.md",
-        "characters/locks/akira_sleep_recovery_livia_guard_lock.md",
-        "characters/locks/raiden_lazy_mask_social_lock.md",
-        "characters/locks/haru_raiden_attraction_social_reactions_lock.md",
     ]
+    dynamic_files = []
+    dynamic_files += existing_repo_files("gpt/locks/*.md")
+    dynamic_files += existing_repo_files("characters/main/*.md")
+    dynamic_files += existing_repo_files("characters/locks/*.md")
+    # Preserve order while removing duplicates and missing files.
+    result = []
+    for path in core_files + dynamic_files:
+        if path not in result and (ROOT / path).exists():
+            result.append(path)
+    return result
+
 
 def context_payload(session_id: str | None = None) -> CompactContextResponse:
     seed()
@@ -239,6 +266,7 @@ def context_payload(session_id: str | None = None) -> CompactContextResponse:
         api_usage_note=note,
         recommended_files=base_recommended_files(),
     )
+
 
 def repair_state(session_id: str | None = None) -> RepairResponse:
     seed()
@@ -272,6 +300,7 @@ def repair_state(session_id: str | None = None) -> RepairResponse:
     changed.append("state/inventory_state.json")
     return RepairResponse(status="repaired", changed_files=changed, notes=notes)
 
+
 def output_format_contract() -> dict:
     return {
         "priority": "highest_for_scene_output",
@@ -294,21 +323,25 @@ def output_format_contract() -> dict:
             "Raiden does not patiently tolerate sticky female touches; trigger comes from stepmother history, but most people do not know that.",
             "Haru flirts easily, but tires when people see only the charismatic red-haired image, not him.",
             "No passive space or technical glitches around Akira without a direct reason.",
-            "If output format is wrong, rewrite before sending."
+            "If output format is wrong, rewrite before sending.",
         ],
     }
+
 
 @app.on_event("startup")
 def startup():
     seed()
 
+
 @app.get("/health", response_model=HealthResponse)
 def health():
     return HealthResponse(status="ok", app=APP_NAME, data_dir=str(DATA), volume_seeded=(DATA / ".seeded").exists(), public_base_url=BASE_URL)
 
+
 @app.get("/", response_model=RootResponse)
 def root():
     return RootResponse(app=APP_NAME, health="/health", context="/api/v1/context", compact_context="/api/v1/context/compact", sessions="/api/v1/sessions", files="/api/v1/files", repair_start_state="/api/v1/repair/start-state", openapi="/openapi.json")
+
 
 @app.post("/api/v1/sessions", response_model=SessionInfo)
 def create_session(payload: SessionCreateRequest):
@@ -323,6 +356,7 @@ def create_session(payload: SessionCreateRequest):
     meta = read_json("session.json", sid) or {}
     return SessionInfo(session_id=sid, title=meta.get("title"), created_at=meta.get("created_at"), updated_at=meta.get("updated_at"), context=f"/api/v1/sessions/{sid}/context")
 
+
 @app.get("/api/v1/sessions", response_model=SessionsResponse)
 def list_sessions():
     seed()
@@ -333,9 +367,11 @@ def list_sessions():
             items.append(SessionInfo(session_id=meta.get("session_id", d.name), title=meta.get("title"), created_at=meta.get("created_at"), updated_at=meta.get("updated_at"), context=f"/api/v1/sessions/{d.name}/context"))
     return SessionsResponse(sessions=items)
 
+
 @app.get("/api/v1/sessions/{session_id}/context", response_model=CompactContextResponse)
 def session_context(session_id: str):
     return context_payload(safe_session_id(session_id))
+
 
 @app.get("/api/v1/sessions/{session_id}/turn-contract")
 def session_turn_contract(session_id: str):
@@ -372,7 +408,7 @@ def session_turn_contract(session_id: str):
             "Raiden treated as literally lazy or absent from academy life",
             "Raiden calmly accepting sticky female touches",
             "Haru treated as a flat womanizer without the image-vs-real-person reason",
-            "passive space or technical glitches around Akira without cause"
+            "passive space or technical glitches around Akira without cause",
         ],
         "required_checks_before_answer": [
             "Load session context first.",
@@ -385,17 +421,23 @@ def session_turn_contract(session_id: str):
             "Raiden is strictly dark-haired.",
             "Apply haru_raiden_attraction_social_reactions_lock: Haru flirts easily but tires of people seeing only the red-haired charismatic image; Raiden gets fear/looks/provocations and female touch triggers from stepmother history.",
             "No passive tech/space glitches around Akira without direct cause.",
-            "Rewrite before sending if format or locks are wrong."
+            "Rewrite before sending if format or locks are wrong.",
         ],
         "knowledge_table": {cid: knowledge.get(cid, {}) for cid in scene_chars},
-        "inventory_contract": {"visible_inventory": current.get("visible_inventory", []), "nearby_items": current.get("nearby_items", []), "akira_inventory_state": (inventory.get("akira") or {})},
-        "canon_locks": locks[:12]
+        "inventory_contract": {
+            "visible_inventory": current.get("visible_inventory", []),
+            "nearby_items": current.get("nearby_items", []),
+            "akira_inventory_state": (inventory.get("akira") or {}),
+        },
+        "canon_locks": locks[:12],
     }
+
 
 @app.get("/api/v1/sessions/{session_id}/json/{file_path:path}", response_model=JsonFileResponse)
 def get_session_json(session_id: str, file_path: str):
     data = json.loads(read_text(file_path, safe_session_id(session_id)))
     return JsonFileResponse(path=file_path, data=data)
+
 
 @app.put("/api/v1/sessions/{session_id}/json/{file_path:path}", response_model=SaveResponse)
 def put_session_json(session_id: str, file_path: str, update: JsonUpdate):
@@ -403,9 +445,11 @@ def put_session_json(session_id: str, file_path: str, update: JsonUpdate):
     r = save_text(file_path, json.dumps(update.data, ensure_ascii=False, indent=2) + "\n", sid)
     return SaveResponse(status="saved", path=r["path"], bytes=r["bytes"])
 
+
 @app.post("/api/v1/sessions/{session_id}/repair/start-state", response_model=RepairResponse)
 def repair_session_start_state(session_id: str):
     return repair_state(safe_session_id(session_id))
+
 
 @app.get("/api/v1/files", response_model=FilesResponse)
 def list_files():
@@ -413,16 +457,19 @@ def list_files():
     files = [str(p.relative_to(DATA)) for p in DATA.rglob("*") if p.is_file() and p.name != ".seeded"]
     return FilesResponse(data_dir=str(DATA), files=sorted(files))
 
+
 @app.get("/api/v1/files/{file_path:path}", response_model=TextFileResponse)
 def get_file(file_path: str):
     seed()
     return TextFileResponse(path=file_path, content=read_text(file_path))
+
 
 @app.put("/api/v1/files/{file_path:path}", response_model=SaveResponse)
 def put_file(file_path: str, update: FileUpdate):
     seed()
     r = save_text(file_path, update.content)
     return SaveResponse(status="saved", path=r["path"], bytes=r["bytes"])
+
 
 @app.get("/api/v1/json/{file_path:path}", response_model=JsonFileResponse)
 def get_json(file_path: str):
@@ -432,18 +479,22 @@ def get_json(file_path: str):
         raise HTTPException(status_code=400, detail=f"Invalid JSON: {exc}") from exc
     return JsonFileResponse(path=file_path, data=data)
 
+
 @app.put("/api/v1/json/{file_path:path}", response_model=SaveResponse)
 def put_json(file_path: str, update: JsonUpdate):
     r = save_text(file_path, json.dumps(update.data, ensure_ascii=False, indent=2) + "\n")
     return SaveResponse(status="saved", path=r["path"], bytes=r["bytes"])
 
+
 @app.get("/api/v1/context", response_model=CompactContextResponse)
 def context():
     return context_payload()
 
+
 @app.get("/api/v1/context/compact", response_model=CompactContextResponse)
 def compact_context():
     return context_payload()
+
 
 @app.post("/api/v1/repair/start-state", response_model=RepairResponse)
 def repair_start_state():
