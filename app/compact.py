@@ -313,7 +313,7 @@ def repair_state(session_id: str | None = None) -> RepairResponse:
     write_json("state/current_state.json", current, session_id)
     changed.append("state/current_state.json")
 
-       akira_inv = inventory.setdefault("akira", {})
+    akira_inv = inventory.setdefault("akira", {})
     akira_inv.setdefault("visible_inventory", [])
     akira_inv.setdefault("nearby_items", [])
     akira_inv.setdefault("academy_issued_items", [])
