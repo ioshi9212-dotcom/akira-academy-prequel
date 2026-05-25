@@ -20,7 +20,27 @@ SYNC_FROM_REPO = ["canon", "characters", "gpt", "templates"]
 STATE_SEED = ["state"]
 SESSION_RE = re.compile(r"^[a-zA-Z0-9_-]{1,80}$")
 
-app = FastAPI(title=APP_NAME, version="0.3.7", servers=[{"url": BASE_URL}])
+REL_METRICS = [
+    "affection",
+    "trust",
+    "tension",
+    "jealousy",
+    "respect",
+    "curiosity",
+    "resentment",
+]
+
+STATE_SECTION_MAP = [
+    ("state/current_state.json", ["current_state_changes", "current_state", "state_changes"]),
+    ("state/knowledge_state.json", ["knowledge_changes", "knowledge_state_changes", "knowledge_state"]),
+    ("state/reputation_state.json", ["reputation_changes", "reputation_state_changes", "reputation_state"]),
+    ("state/rumors_state.json", ["rumor_changes", "rumors_changes", "rumors_state_changes", "rumors_state"]),
+    ("state/inventory_state.json", ["inventory_changes", "inventory_state_changes", "inventory_state"]),
+    ("state/power_state.json", ["power_changes", "power_state_changes", "power_state"]),
+    ("state/future_locks_progress.json", ["future_locks_changes", "future_locks_progress_changes", "future_locks_progress"]),
+]
+
+app = FastAPI(title=APP_NAME, version="0.3.8", servers=[{"url": BASE_URL}])
 
 
 class FileUpdate(BaseModel):
@@ -34,6 +54,12 @@ class JsonUpdate(BaseModel):
 class SessionCreateRequest(BaseModel):
     session_id: str | None = None
     title: str | None = None
+
+
+class ApplyTurnResultRequest(BaseModel):
+    turn_file: str | None = None
+    data: object | None = None
+    dry_run: bool = False
 
 
 class HealthResponse(BaseModel):
@@ -52,6 +78,7 @@ class RootResponse(BaseModel):
     sessions: str
     files: str
     repair_start_state: str
+    apply_turn_result: str
     openapi: str
 
 
@@ -286,7 +313,7 @@ def repair_state(session_id: str | None = None) -> RepairResponse:
     write_json("state/current_state.json", current, session_id)
     changed.append("state/current_state.json")
 
-    akira_inv = inventory.setdefault("akira", {})
+       akira_inv = inventory.setdefault("akira", {})
     akira_inv.setdefault("visible_inventory", [])
     akira_inv.setdefault("nearby_items", [])
     akira_inv.setdefault("academy_issued_items", [])
@@ -328,6 +355,213 @@ def output_format_contract() -> dict:
     }
 
 
+def latest_turn_file(session_id: str) -> Path:
+    root = ensure_session(session_id)
+    candidates = []
+
+    for folder in [
+        root / "turn_results",
+        root / "turns",
+        DATA / "turn_results",
+    ]:
+        if folder.exists():
+            candidates += [p for p in folder.glob("turn_*.json") if p.is_file()]
+
+    if not candidates:
+        raise HTTPException(status_code=404, detail="No turn_results files found")
+
+    return sorted(candidates, key=lambda p: p.name)[-1]
+
+
+def read_turn_payload(session_id: str, req: ApplyTurnResultRequest) -> tuple[str, dict]:
+    if isinstance(req.data, dict):
+        return "inline", req.data
+
+    root = ensure_session(session_id)
+
+    if req.turn_file:
+        safe_name = Path(req.turn_file).name
+
+        candidates = [
+            root / safe(req.turn_file),
+            root / "turn_results" / safe_name,
+        ]
+
+        turn_path = next((p for p in candidates if p.exists() and p.is_file()), None)
+
+        if turn_path is None:
+            raise HTTPException(status_code=404, detail="Turn result file not found")
+    else:
+        turn_path = latest_turn_file(session_id)
+
+    try:
+        return str(turn_path.relative_to(root)), json.loads(turn_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid turn result JSON: {exc}") from exc
+
+
+def deep_merge(dst, src):
+    if not isinstance(src, dict):
+        return dst
+
+    if not isinstance(dst, dict):
+        dst = {}
+
+    for key, value in src.items():
+        if isinstance(value, dict):
+            dst[key] = deep_merge(dst.get(key, {}), value)
+
+        elif isinstance(value, list):
+            existing = dst.get(key, [])
+            if not isinstance(existing, list):
+                existing = []
+
+            for item in value:
+                if item not in existing:
+                    existing.append(item)
+
+            dst[key] = existing
+
+        else:
+            dst[key] = value
+
+    return dst
+
+
+def find_section(payload: dict, names: list[str]):
+    for name in names:
+        if name in payload:
+            return payload[name]
+
+    data = payload.get("data")
+    if isinstance(data, dict):
+        for name in names:
+            if name in data:
+                return data[name]
+
+    return None
+
+
+def normalize_change_items(section):
+    if not section:
+        return []
+
+    if isinstance(section, dict):
+        result = []
+        for key, value in section.items():
+            if isinstance(value, dict):
+                result.append({"id": key, **value})
+            else:
+                result.append({"id": key, "value": value})
+        return result
+
+    if isinstance(section, list):
+        return [x for x in section if isinstance(x, dict)]
+
+    return []
+
+
+def default_relationship(status: str = "отношения появились после сцены") -> dict:
+    data = {metric: 0 for metric in REL_METRICS}
+    data["status"] = status
+    data["notes"] = []
+    return data
+
+
+def apply_relationship_changes(session_id: str, payload: dict, dry_run: bool) -> bool:
+    section = find_section(
+        payload,
+        [
+            "relationship_changes",
+            "relationships_changes",
+            "relationship_deltas",
+            "relationships",
+        ],
+    )
+
+    items = normalize_change_items(section)
+
+    if not items:
+        return False
+
+    state = read_json("state/relationships.json", session_id, default={}) or {}
+
+    pairs = state.setdefault("pairs", {})
+    changed = False
+
+    for item in items:
+        pair = item.get("pair") or item.get("pair_id") or item.get("id")
+
+        if not pair or "__" not in str(pair):
+            continue
+
+        rel = pairs.setdefault(str(pair), default_relationship())
+
+        for metric in REL_METRICS:
+            delta_key = f"{metric}_delta"
+
+            if delta_key in item:
+                rel[metric] = max(
+                    0,
+                    min(100, int(rel.get(metric, 0)) + int(item.get(delta_key) or 0)),
+                )
+                changed = True
+
+            elif metric in item and isinstance(item.get(metric), int):
+                rel[metric] = max(0, min(100, int(item[metric])))
+                changed = True
+
+        if isinstance(item.get("status"), str):
+            rel["status"] = item["status"]
+            changed = True
+
+        notes = item.get("notes") or item.get("add_notes") or item.get("note")
+
+        if isinstance(notes, str):
+            notes = [notes]
+
+        if isinstance(notes, list):
+            rel_notes = rel.setdefault("notes", [])
+
+            for note in notes:
+                if note and note not in rel_notes:
+                    rel_notes.append(note)
+                    changed = True
+
+    if changed and not dry_run:
+        write_json("state/relationships.json", state, session_id)
+
+    return changed
+
+
+def apply_json_section(
+    session_id: str,
+    payload: dict,
+    file_path: str,
+    names: list[str],
+    dry_run: bool,
+) -> bool:
+    section = find_section(payload, names)
+
+    if not isinstance(section, dict) or not section:
+        return False
+
+    state = read_json(file_path, session_id, default={}) or {}
+
+    old_dump = json.dumps(state, ensure_ascii=False, sort_keys=True)
+
+    new_state = deep_merge(state, section)
+
+    new_dump = json.dumps(new_state, ensure_ascii=False, sort_keys=True)
+
+    if new_dump != old_dump:
+        if not dry_run:
+            write_json(file_path, new_state, session_id)
+        return True
+
+    return False
+
+
 @app.on_event("startup")
 def startup():
     seed()
@@ -340,7 +574,17 @@ def health():
 
 @app.get("/", response_model=RootResponse)
 def root():
-    return RootResponse(app=APP_NAME, health="/health", context="/api/v1/context", compact_context="/api/v1/context/compact", sessions="/api/v1/sessions", files="/api/v1/files", repair_start_state="/api/v1/repair/start-state", openapi="/openapi.json")
+    return RootResponse(
+        app=APP_NAME,
+        health="/health",
+        context="/api/v1/context",
+        compact_context="/api/v1/context/compact",
+        sessions="/api/v1/sessions",
+        files="/api/v1/files",
+        repair_start_state="/api/v1/repair/start-state",
+        apply_turn_result="/api/v1/sessions/{session_id}/apply-turn-result",
+        openapi="/openapi.json",
+    )
 
 
 @app.post("/api/v1/sessions", response_model=SessionInfo)
@@ -413,7 +657,8 @@ def session_turn_contract(session_id: str):
         "required_checks_before_answer": [
             "Load session context first.",
             "Obey output_format_contract exactly.",
-            "Read required_files before scene, including gpt/locks/no_empty_scenes_lock.md.",
+            "Read required_files before scene, including gpt/locks/no_empty_scenes_lock.md and gpt/locks/apply_state_after_turn_lock.md.",
+            "After each scene, apply turn result to state files or call /api/v1/sessions/{session_id}/apply-turn-result.",
             "Check knowledge_state before NPC claims.",
             "Check inventory_state before items.",
             "No empty scenes: if Akira goes for coffee/sleeps/walks, add a hook or compress to the next meaningful event.",
@@ -433,6 +678,34 @@ def session_turn_contract(session_id: str):
     }
 
 
+@app.post("/api/v1/sessions/{session_id}/apply-turn-result")
+def apply_turn_result(
+    session_id: str,
+    request: ApplyTurnResultRequest = ApplyTurnResultRequest(),
+):
+    sid = safe_session_id(session_id)
+    ensure_session(sid)
+
+    source, payload = read_turn_payload(sid, request)
+
+    changed_files = []
+
+    if apply_relationship_changes(sid, payload, request.dry_run):
+        changed_files.append("state/relationships.json")
+
+    for path, names in STATE_SECTION_MAP:
+        if apply_json_section(sid, payload, path, names, request.dry_run):
+            changed_files.append(path)
+
+    return {
+        "status": "applied" if changed_files else "no_changes_detected",
+        "session_id": sid,
+        "source": source,
+        "dry_run": request.dry_run,
+        "changed_files": changed_files,
+    }
+
+
 @app.get("/api/v1/sessions/{session_id}/json/{file_path:path}", response_model=JsonFileResponse)
 def get_session_json(session_id: str, file_path: str):
     data = json.loads(read_text(file_path, safe_session_id(session_id)))
@@ -444,7 +717,6 @@ def put_session_json(session_id: str, file_path: str, update: JsonUpdate):
     sid = safe_session_id(session_id)
     r = save_text(file_path, json.dumps(update.data, ensure_ascii=False, indent=2) + "\n", sid)
     return SaveResponse(status="saved", path=r["path"], bytes=r["bytes"])
-
 
 @app.post("/api/v1/sessions/{session_id}/repair/start-state", response_model=RepairResponse)
 def repair_session_start_state(session_id: str):
