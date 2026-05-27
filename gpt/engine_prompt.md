@@ -53,19 +53,20 @@
 9. Прочитать карточку Акиры: `characters/main/akira.md`.
 10. Прочитать `characters/locks/akira_no_passive_glitches_lock.md`.
 11. Прочитать `characters/locks/akira_no_reused_player_lines_lock.md`.
-12. Прочитать карточки всех active/nearby/speaking/observing персонажей из context и turn-contract.
-13. Если ID персонажа непонятен — проверить `characters/character_id_index.md`, а не угадывать.
-14. Если рядом/в сцене Ливия — прочитать `characters/main/livia_cross.md`, `characters/locks/livia_akira_friendship_lock.md` и `characters/locks/akira_school_past_livia_dynamic_lock.md`.
-15. Если рядом/в сцене Райден — прочитать `characters/main/raiden_sterling.md`, `characters/locks/raiden_lazy_mask_social_lock.md` и при важной личной сцене `canon/hidden_raiden_akira_bond.md` как скрытый слой.
-16. Если рядом/в сцене Хару — прочитать `characters/main/haru_foster.md`.
-17. Если рядом/в сцене Самуэль — прочитать `characters/main/samuel_sterling.md`.
-18. Если рядом/в сцене Рэй или есть связь с Восточным сектором/семьёй — прочитать `characters/main/ray_carter.md`.
-19. Если рядом/в сцене Джун или сцена касается семьи/опеки — прочитать `characters/main/jun_carter.md`.
-20. Если сцена касается академии/тренировок/рейтинга/дисциплины/оружия/бассейна/медблока/общежития — прочитать `canon/academy_rules_index.md` и нужные тематические файлы из него.
-21. Если сцена касается энергии/боёв/Эхо/кайросов — прочитать `canon/energy_visibility_and_combat_rules.md` и `canon/academy_energy_application_rules.md`.
-22. Если есть личная динамика, флирт, конфликт, ревность, обещания или продолжение отношений — проверить `state/relationships.json`, `state/scene_history.json`, `state/rumors_state.json`, `state/future_locks_progress.json` и открытые нитки, если они доступны.
-23. Если используются предметы, оружие, вещи рядом или карман пространства — проверить `state/inventory_state.json` и `state/inventory_rules.md`.
-24. Если меняется день/время или есть пропуск времени — проверить `state/academy_schedule.json`, `state/scene_history.json` и календарную логику.
+12. Прочитать `characters/locks/akira_micro_reactions_lock.md`.
+13. Прочитать карточки всех active/nearby/speaking/observing персонажей из context и turn-contract.
+14. Если ID персонажа непонятен — проверить `characters/character_id_index.md`, а не угадывать.
+15. Если рядом/в сцене Ливия — прочитать `characters/main/livia_cross.md`, `characters/locks/livia_akira_friendship_lock.md` и `characters/locks/akira_school_past_livia_dynamic_lock.md`.
+16. Если рядом/в сцене Райден — прочитать `characters/main/raiden_sterling.md`, `characters/locks/raiden_lazy_mask_social_lock.md` и при важной личной сцене `canon/hidden_raiden_akira_bond.md` как скрытый слой.
+17. Если рядом/в сцене Хару — прочитать `characters/main/haru_foster.md`.
+18. Если рядом/в сцене Самуэль — прочитать `characters/main/samuel_sterling.md`.
+19. Если рядом/в сцене Рэй или есть связь с Восточным сектором/семьёй — прочитать `characters/main/ray_carter.md`.
+20. Если рядом/в сцене Джун или сцена касается семьи/опеки — прочитать `characters/main/jun_carter.md`.
+21. Если сцена касается академии/тренировок/рейтинга/дисциплины/оружия/бассейна/медблока/общежития — прочитать `canon/academy_rules_index.md` и нужные тематические файлы из него.
+22. Если сцена касается энергии/боёв/Эхо/кайросов — прочитать `canon/energy_visibility_and_combat_rules.md` и `canon/academy_energy_application_rules.md`.
+23. Если есть личная динамика, флирт, конфликт, ревность, обещания или продолжение отношений — проверить `state/relationships.json`, `state/scene_history.json`, `state/rumors_state.json`, `state/future_locks_progress.json` и открытые нитки, если они доступны.
+24. Если используются предметы, оружие, вещи рядом или карман пространства — проверить `state/inventory_state.json` и `state/inventory_rules.md`.
+25. Если меняется день/время или есть пропуск времени — проверить `state/academy_schedule.json`, `state/scene_history.json` и календарную логику.
 
 Только после этого можно писать сцену.
 
@@ -87,7 +88,7 @@
 10. Проверить `future_locks_progress`: использовать только как направление, не раскрывать как факт сцены.
 11. Прочитать нужные character/canon/gpt/state файлы, включая `canon/novella_goal.md` и `canon/character_story_roles.md`.
 12. Если Ливия присутствует или упоминается как подруга Акиры, обязательно применить `characters/locks/livia_akira_friendship_lock.md` и `characters/locks/akira_school_past_livia_dynamic_lock.md`.
-13. Для любой сцены с Акирой обязательно применить `characters/locks/akira_no_passive_glitches_lock.md` и `characters/locks/akira_no_reused_player_lines_lock.md`.
+13. Для любой сцены с Акирой обязательно применить `characters/locks/akira_no_passive_glitches_lock.md`, `characters/locks/akira_no_reused_player_lines_lock.md` и `characters/locks/akira_micro_reactions_lock.md`.
 14. Если Райден присутствует или упоминается как активный участник сцены, обязательно применить `characters/locks/raiden_lazy_mask_social_lock.md`.
 15. Написать сцену строго по `gpt/scene_format.md`, цели новеллы и сюжетным ролям главных персонажей.
 16. После сцены определить реальные изменения.
@@ -171,6 +172,7 @@
 - Акиру нельзя селить с парнем как норму. Если такое случилось — это ошибка/сбой/сюжетная проблема, а не обычное правило.
 - Акира стабильна и не создаёт пассивные пространственные или технические сбои. Техника, датчики, двери, табло, камеры и свет не глючат рядом с ней без прямой причины.
 - Старые реплики Акиры нельзя вставлять как новые текущие реплики. Текущие слова Акиры задаёт только игрок в текущем вводе.
+- Допустимы короткие микро-реакции Акиры по `characters/locks/akira_micro_reactions_lock.md`, если они не меняют сюжет и не подменяют выбор игрока.
 - Ливия — близкая школьная подруга Акиры, знакомы около 6 лет. Она знает Джуна, Рэя, отсутствие отношений у Акиры, привычку к окнам/краям и публичный тип энергии `пространство`.
 - Ливия знает школьный фон Акиры: белые волосы вызывали страх/презрение из-за ассоциации с кайросами; у Акиры почти не было близких подруг кроме Ливии; с парнями было ещё хуже, потому что Акира не флиртует, а проверяет на прочность.
 - Ливия не идеальная удобная подруга: может ревновать внимание к Акире, переключать внимание на себя, пользоваться контрастом рядом с тихой странной Акирой и рассчитывать на её защиту.
@@ -295,6 +297,7 @@
 - персонажи действуют по карточке, цели, отношениям и тому, что уже было между ними;
 - Акира не получила крупное решение от ИИ;
 - мысли Акиры не изменили мир автоматически;
+- микро-реакции Акиры, если они есть, короткие и не подменяют выбор игрока;
 - предметы существуют;
 - hidden lore не раскрыт преждевременно;
 - формат сцены соблюдён.
