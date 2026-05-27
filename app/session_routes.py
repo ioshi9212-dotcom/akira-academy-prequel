@@ -60,13 +60,10 @@ MAIN_CHARACTER_FILES = {
 BASE_REQUIRED_FILES = [
     "gpt/engine_prompt.md",
     "gpt/scene_format.md",
-    "state/memory_update_rules.md",
-    "characters/character_habits.md",
-    "canon/academy_tone_and_visual_locks.md",
-    "canon/energy_visibility_and_combat_rules.md",
+    "canon/novella_goal.md",
+    "canon/character_story_roles.md",
     "canon/source_usage_rules.md",
-    "canon/social_dynamics.md",
-    "canon/timeline_1198_1206.md",
+    "state/memory_update_rules.md",
 ]
 
 
@@ -180,13 +177,40 @@ def session_turn_contract(session_id: str) -> TurnContractResponse:
     inventory = read_json("state/inventory_state.json", sid, default={}) or {}
     future = read_json("state/future_locks_progress.json", sid, default={}) or {}
 
-    active = unique(list(current.get("active_characters", []) or []))
-    nearby = unique(list(current.get("nearby_characters", []) or []))
-    scene_chars = unique(active + nearby)
-    files = [character_file(cid) for cid in scene_chars]
-    if "akira" not in scene_chars:
-        files.insert(0, "characters/main/akira.md")
+active = unique(list(current.get("active_characters", []) or []))
+nearby = unique(list(current.get("nearby_characters", []) or []))
 
+scene_chars = unique(["akira"] + active + nearby)
+
+files = [character_file(cid) for cid in scene_chars]
+
+files.extend([
+    "characters/locks/akira_no_passive_glitches_lock.md",
+    "characters/locks/akira_no_reused_player_lines_lock.md",
+])
+
+if "livia_cross" in scene_chars:
+    files.extend([
+        "characters/locks/livia_akira_friendship_lock.md",
+        "characters/locks/akira_school_past_livia_dynamic_lock.md",
+    ])
+
+if "raiden_sterling" in scene_chars or "raiden" in scene_chars:
+    files.extend([
+        "characters/locks/raiden_lazy_mask_social_lock.md",
+    ])
+
+if ("haru_foster" in scene_chars or "haru" in scene_chars) and (
+    "raiden_sterling" in scene_chars or "raiden" in scene_chars
+):
+    files.extend([
+        "characters/locks/haru_raiden_attraction_social_reactions_lock.md",
+    ])
+state_files = [
+    "state/knowledge_state.json",
+    "state/relationships.json",
+    "state/scene_history.json",
+]
     locks = []
     for lock_id, lock in (future.get("locks") or {}).items():
         if lock.get("status") in {"active", "scheduled", "not_started", "available_but_rare"}:
@@ -196,7 +220,7 @@ def session_turn_contract(session_id: str) -> TurnContractResponse:
         session_id=sid,
         active_character_ids=active,
         nearby_character_ids=nearby,
-        required_files=unique(files + BASE_REQUIRED_FILES),
+        required_files=unique(BASE_REQUIRED_FILES + files + state_files),
         output_format_contract=OUTPUT_FORMAT_CONTRACT,
         allowed_new_facts_this_turn=[
             "neutral sensory details",
