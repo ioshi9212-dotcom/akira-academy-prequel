@@ -63,6 +63,7 @@ BASE_REQUIRED_FILES = [
     "canon/novella_goal.md",
     "canon/character_story_roles.md",
     "canon/source_usage_rules.md",
+    "canon/character_depth_and_rotation.md",
     "state/memory_update_rules.md",
 ]
 
@@ -177,40 +178,42 @@ def session_turn_contract(session_id: str) -> TurnContractResponse:
     inventory = read_json("state/inventory_state.json", sid, default={}) or {}
     future = read_json("state/future_locks_progress.json", sid, default={}) or {}
 
-active = unique(list(current.get("active_characters", []) or []))
-nearby = unique(list(current.get("nearby_characters", []) or []))
+    active = unique(list(current.get("active_characters", []) or []))
+    nearby = unique(list(current.get("nearby_characters", []) or []))
+    scene_chars = unique(["akira"] + active + nearby)
 
-scene_chars = unique(["akira"] + active + nearby)
+    files = [character_file(cid) for cid in scene_chars]
 
-files = [character_file(cid) for cid in scene_chars]
-
-files.extend([
-    "characters/locks/akira_no_passive_glitches_lock.md",
-    "characters/locks/akira_no_reused_player_lines_lock.md",
-])
-
-if "livia_cross" in scene_chars:
     files.extend([
-        "characters/locks/livia_akira_friendship_lock.md",
-        "characters/locks/akira_school_past_livia_dynamic_lock.md",
+        "characters/locks/akira_no_passive_glitches_lock.md",
+        "characters/locks/akira_no_reused_player_lines_lock.md",
+        "characters/locks/akira_micro_reactions_lock.md",
     ])
 
-if "raiden_sterling" in scene_chars or "raiden" in scene_chars:
-    files.extend([
-        "characters/locks/raiden_lazy_mask_social_lock.md",
-    ])
+    if "livia_cross" in scene_chars:
+        files.extend([
+            "characters/locks/livia_akira_friendship_lock.md",
+            "characters/locks/akira_school_past_livia_dynamic_lock.md",
+        ])
 
-if ("haru_foster" in scene_chars or "haru" in scene_chars) and (
-    "raiden_sterling" in scene_chars or "raiden" in scene_chars
-):
-    files.extend([
-        "characters/locks/haru_raiden_attraction_social_reactions_lock.md",
-    ])
-state_files = [
-    "state/knowledge_state.json",
-    "state/relationships.json",
-    "state/scene_history.json",
-]
+    if "raiden_sterling" in scene_chars or "raiden" in scene_chars:
+        files.extend([
+            "characters/locks/raiden_lazy_mask_social_lock.md",
+        ])
+
+    if ("haru_foster" in scene_chars or "haru" in scene_chars) and (
+        "raiden_sterling" in scene_chars or "raiden" in scene_chars
+    ):
+        files.extend([
+            "characters/locks/haru_raiden_attraction_social_reactions_lock.md",
+        ])
+
+    state_files = [
+        "state/knowledge_state.json",
+        "state/relationships.json",
+        "state/scene_history.json",
+    ]
+
     locks = []
     for lock_id, lock in (future.get("locks") or {}).items():
         if lock.get("status") in {"active", "scheduled", "not_started", "available_but_rare"}:
@@ -248,6 +251,7 @@ state_files = [
             "Load this turn contract.",
             "Obey output_format_contract exactly.",
             "Check active and nearby character cards before writing lines.",
+            "Check character_depth_and_rotation before reducing important characters to scene functions.",
             "Check knowledge_state before every NPC claim.",
             "Check inventory_state before mentioning usable items.",
             "Use future locks as direction, not character knowledge.",
