@@ -64,6 +64,7 @@ BASE_REQUIRED_FILES = [
     "canon/character_story_roles.md",
     "canon/source_usage_rules.md",
     "canon/character_depth_and_rotation.md",
+    "canon/relationship_memory_rules.md",
     "state/memory_update_rules.md",
 ]
 
@@ -252,6 +253,7 @@ def session_turn_contract(session_id: str) -> TurnContractResponse:
             "Obey output_format_contract exactly.",
             "Check active and nearby character cards before writing lines.",
             "Check character_depth_and_rotation before reducing important characters to scene functions.",
+            "Check relationship_memory_rules before using relationship scores as the only source.",
             "Check knowledge_state before every NPC claim.",
             "Check inventory_state before mentioning usable items.",
             "Use future locks as direction, not character knowledge.",
