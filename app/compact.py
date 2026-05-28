@@ -15,21 +15,11 @@ BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://akira-academy-prequel-productio
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("DATA_DIR", "/data"))
 
-# Source-controlled folders refresh into /data on startup.
-# Runtime state/sessions are preserved in Railway volume.
 SYNC_FROM_REPO = ["canon", "characters", "gpt", "templates"]
 STATE_SEED = ["state"]
 SESSION_RE = re.compile(r"^[a-zA-Z0-9_-]{1,80}$")
 
-REL_METRICS = [
-    "affection",
-    "trust",
-    "tension",
-    "jealousy",
-    "respect",
-    "curiosity",
-    "resentment",
-]
+REL_METRICS = ["affection", "trust", "tension", "jealousy", "respect", "curiosity", "resentment"]
 
 STATE_SECTION_MAP = [
     ("state/current_state.json", ["current_state_changes", "current_state", "state_changes"]),
@@ -41,7 +31,7 @@ STATE_SECTION_MAP = [
     ("state/future_locks_progress.json", ["future_locks_changes", "future_locks_progress_changes", "future_locks_progress"]),
 ]
 
-app = FastAPI(title=APP_NAME, version="0.3.9", servers=[{"url": BASE_URL}])
+app = FastAPI(title=APP_NAME, version="0.3.10", servers=[{"url": BASE_URL}])
 
 
 class FileUpdate(BaseModel):
@@ -169,6 +159,7 @@ CORE_LOCK_FILES = [
     "gpt/locks/apply_state_after_turn_lock.md",
     "gpt/locks/acquaintance_and_named_npc_state_lock.md",
     "gpt/locks/named_npc_memory_lock.md",
+    "gpt/locks/npc_roommate_conflict_persistence_lock.md",
     "gpt/locks/character_presence_rotation_lock.md",
     "gpt/locks/character_rotation_lock.md",
 ]
@@ -183,10 +174,10 @@ DEFAULT_STATE_FILES = [
     "state/knowledge_state.json",
     "state/relationships.json",
     "state/scene_history.json",
+    "state/reputation_state.json",
+    "state/rumors_state.json",
 ]
 
-
-# ---------- filesystem helpers ----------
 
 def safe(p: str) -> Path:
     path = Path(p)
@@ -297,8 +288,6 @@ def touch_session(session_id: str) -> None:
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-# ---------- compact context helpers ----------
-
 def unique(values: list[str]) -> list[str]:
     result: list[str] = []
     for value in values:
@@ -364,15 +353,7 @@ def recommended_files_for_context(current: dict[str, Any] | None = None, future:
     future = future or {}
     scene_chars = active_scene_characters(current, future)
     character_files = [character_file(cid) for cid in scene_chars]
-
-    files = unique(
-        CORE_RECOMMENDED_FILES
-        + CORE_LOCK_FILES
-        + character_files
-        + character_lock_files(scene_chars)
-        + DEFAULT_STATE_FILES
-    )
-
+    files = unique(CORE_RECOMMENDED_FILES + CORE_LOCK_FILES + character_files + character_lock_files(scene_chars) + DEFAULT_STATE_FILES)
     return [path for path in files if repo_file_exists(path)]
 
 
@@ -388,7 +369,6 @@ def pair_in_focus(pair_id: str, focus_ids: set[str]) -> bool:
 def compact_relationships(state: Any, focus_ids: list[str]) -> Any:
     if not isinstance(state, dict):
         return state
-
     focus = set(focus_ids or ["akira"])
     pairs = state.get("pairs")
     if isinstance(pairs, dict):
@@ -403,26 +383,15 @@ def compact_relationships(state: Any, focus_ids: list[str]) -> Any:
                 "note": "Use /api/v1/sessions/{session_id}/json/state/relationships.json for full relationship memory when needed.",
             },
         }
-
     filtered = {key: value for key, value in state.items() if "__" in str(key) and pair_in_focus(str(key), focus)}
     if filtered:
-        return {
-            **filtered,
-            "_context_filter": {
-                "mode": "active_nearby_pairs_only",
-                "focus_character_ids": sorted(focus),
-                "visible_pairs": len(filtered),
-                "total_keys": len(state),
-            },
-        }
-
+        return {**filtered, "_context_filter": {"mode": "active_nearby_pairs_only", "focus_character_ids": sorted(focus), "visible_pairs": len(filtered), "total_keys": len(state)}}
     return state
 
 
 def compact_knowledge(state: Any, focus_ids: list[str]) -> Any:
     if not isinstance(state, dict):
         return state
-
     focus = set(focus_ids or ["akira"])
     filtered = {cid: data for cid, data in state.items() if cid in focus}
     return {
@@ -440,25 +409,12 @@ def compact_knowledge(state: Any, focus_ids: list[str]) -> Any:
 def compact_future_locks(state: Any) -> Any:
     if not isinstance(state, dict):
         return state
-
     locks = state.get("locks")
     if not isinstance(locks, dict):
         return state
-
     keep_status = {"active", "scheduled", "due", "triggered", "available_but_rare"}
-    filtered = {
-        lock_id: lock
-        for lock_id, lock in locks.items()
-        if isinstance(lock, dict) and lock.get("status") in keep_status
-    }
-    return {
-        "locks": filtered,
-        "_context_filter": {
-            "mode": "active_or_scheduled_locks_only",
-            "visible_locks": len(filtered),
-            "total_locks": len(locks),
-        },
-    }
+    filtered = {lock_id: lock for lock_id, lock in locks.items() if isinstance(lock, dict) and lock.get("status") in keep_status}
+    return {"locks": filtered, "_context_filter": {"mode": "active_or_scheduled_locks_only", "visible_locks": len(filtered), "total_locks": len(locks)}}
 
 
 def compact_if_large(value: Any, max_chars: int = 4500) -> Any:
@@ -466,44 +422,21 @@ def compact_if_large(value: Any, max_chars: int = 4500) -> Any:
         dumped = json.dumps(value, ensure_ascii=False)
     except Exception:
         return value
-
     if len(dumped) <= max_chars:
         return value
-
     if isinstance(value, dict):
-        return {
-            "_context_filter": {
-                "mode": "large_object_summary",
-                "total_keys": len(value),
-                "keys": list(value.keys())[:30],
-                "note": "Object is too large for /context. Load exact file through /json or /files when needed.",
-            }
-        }
-
+        return {"_context_filter": {"mode": "large_object_summary", "total_keys": len(value), "keys": list(value.keys())[:30], "note": "Object is too large for /context. Load exact file through /json or /files when needed."}}
     if isinstance(value, list):
-        return {
-            "_context_filter": {
-                "mode": "large_list_summary",
-                "total_items": len(value),
-                "sample": value[:10],
-                "note": "List is too large for /context. Load exact file through /json or /files when needed.",
-            }
-        }
-
+        return {"_context_filter": {"mode": "large_list_summary", "total_items": len(value), "sample": value[:10], "note": "List is too large for /context. Load exact file through /json or /files when needed."}}
     return value
 
 
 def context_payload(session_id: str | None = None) -> CompactContextResponse:
     seed()
-    note = (
-        "Use /turn-contract every turn. /context is a balanced snapshot: active/nearby relationships and knowledge are shown, "
-        "large full state files should be loaded through /json only when needed."
-    )
-
+    note = "Use /turn-contract every turn. /context is a balanced snapshot: active/nearby relationships and knowledge are shown; large full state files should be loaded through /json only when needed."
     current = read_json("state/current_state.json", session_id, default={}) or {}
     future = read_json("state/future_locks_progress.json", session_id, default={}) or {}
     focus_ids = active_scene_characters(current, future)
-
     return CompactContextResponse(
         session_id=session_id,
         current_state=current,
@@ -571,6 +504,7 @@ def output_format_contract() -> dict:
             "Akira thoughts only in bottom block: Мысли Акиры.",
             "No empty scenes: every scene needs a hook, conflict, conversation, observation, social reaction, rumor, consequence, or time skip.",
             "Livia is Akira's close school friend for about six years, not a new roommate.",
+            "Roommates, named NPCs and conflicts must persist in state; check npc_roommate_conflict_persistence_lock.",
             "Raiden is always dark-haired.",
             "Raiden does not patiently tolerate sticky female touches; trigger comes from stepmother history, but most people do not know that.",
             "Haru flirts easily, but tires when people see only the charismatic red-haired image, not him.",
@@ -579,8 +513,6 @@ def output_format_contract() -> dict:
         ],
     }
 
-
-# ---------- turn result helpers ----------
 
 def latest_turn_file(session_id: str) -> Path:
     root = ensure_session(session_id)
@@ -596,7 +528,6 @@ def latest_turn_file(session_id: str) -> Path:
 def read_turn_payload(session_id: str, req: ApplyTurnResultRequest) -> tuple[str, dict]:
     if isinstance(req.data, dict):
         return "inline", req.data
-
     root = ensure_session(session_id)
     if req.turn_file:
         safe_name = Path(req.turn_file).name
@@ -606,7 +537,6 @@ def read_turn_payload(session_id: str, req: ApplyTurnResultRequest) -> tuple[str
             raise HTTPException(status_code=404, detail="Turn result file not found")
     else:
         turn_path = latest_turn_file(session_id)
-
     try:
         return str(turn_path.relative_to(root)), json.loads(turn_path.read_text(encoding="utf-8"))
     except Exception as exc:
@@ -693,24 +623,18 @@ def merge_unique_list(rel: dict, field: str, value: Any) -> bool:
 
 
 def apply_relationship_changes(session_id: str, payload: dict, dry_run: bool) -> bool:
-    section = find_section(
-        payload,
-        ["relationship_changes", "relationships_changes", "relationship_deltas", "relationships"],
-    )
+    section = find_section(payload, ["relationship_changes", "relationships_changes", "relationship_deltas", "relationships"])
     items = normalize_change_items(section)
     if not items:
         return False
-
     state = read_json("state/relationships.json", session_id, default={}) or {}
     pairs = state.setdefault("pairs", {})
     changed = False
-
     for item in items:
         pair = item.get("pair") or item.get("pair_id") or item.get("id")
         if not pair or "__" not in str(pair):
             continue
         rel = pairs.setdefault(str(pair), default_relationship())
-
         for metric in REL_METRICS:
             delta_key = f"{metric}_delta"
             if delta_key in item:
@@ -719,24 +643,19 @@ def apply_relationship_changes(session_id: str, payload: dict, dry_run: bool) ->
             elif metric in item and isinstance(item.get(metric), int):
                 rel[metric] = max(0, min(100, int(item[metric])))
                 changed = True
-
         if isinstance(item.get("status"), str):
             rel["status"] = item["status"]
             changed = True
-
         notes = item.get("notes") or item.get("add_notes") or item.get("note")
         if merge_unique_list(rel, "notes", notes):
             changed = True
-
         for field in ["memory", "open_threads", "behavior_next", "triggers"]:
             value = item.get(field) or item.get(f"add_{field}")
             if merge_unique_list(rel, field, value):
                 changed = True
-
         if item.get("last_interaction") is not None:
             rel["last_interaction"] = item.get("last_interaction")
             changed = True
-
     if changed and not dry_run:
         write_json("state/relationships.json", state, session_id)
     return changed
@@ -757,8 +676,6 @@ def apply_json_section(session_id: str, payload: dict, file_path: str, names: li
     return False
 
 
-# ---------- routes ----------
-
 @app.on_event("startup")
 def startup():
     seed()
@@ -766,28 +683,12 @@ def startup():
 
 @app.get("/health", response_model=HealthResponse)
 def health():
-    return HealthResponse(
-        status="ok",
-        app=APP_NAME,
-        data_dir=str(DATA),
-        volume_seeded=(DATA / ".seeded").exists(),
-        public_base_url=BASE_URL,
-    )
+    return HealthResponse(status="ok", app=APP_NAME, data_dir=str(DATA), volume_seeded=(DATA / ".seeded").exists(), public_base_url=BASE_URL)
 
 
 @app.get("/", response_model=RootResponse)
 def root():
-    return RootResponse(
-        app=APP_NAME,
-        health="/health",
-        context="/api/v1/context",
-        compact_context="/api/v1/context/compact",
-        sessions="/api/v1/sessions",
-        files="/api/v1/files",
-        repair_start_state="/api/v1/repair/start-state",
-        apply_turn_result="/api/v1/sessions/{session_id}/apply-turn-result",
-        openapi="/openapi.json",
-    )
+    return RootResponse(app=APP_NAME, health="/health", context="/api/v1/context", compact_context="/api/v1/context/compact", sessions="/api/v1/sessions", files="/api/v1/files", repair_start_state="/api/v1/repair/start-state", apply_turn_result="/api/v1/sessions/{session_id}/apply-turn-result", openapi="/openapi.json")
 
 
 @app.post("/api/v1/sessions", response_model=SessionInfo)
@@ -798,21 +699,10 @@ def create_session(payload: SessionCreateRequest):
     if not d.exists():
         d.mkdir(parents=True, exist_ok=True)
         copy_missing(DATA / "state", d / "state")
-        meta = {
-            "session_id": sid,
-            "title": payload.title or "Academy Prequel Session",
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
-        }
+        meta = {"session_id": sid, "title": payload.title or "Academy Prequel Session", "created_at": datetime.utcnow().isoformat(), "updated_at": datetime.utcnow().isoformat()}
         (d / "session.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     meta = read_json("session.json", sid) or {}
-    return SessionInfo(
-        session_id=sid,
-        title=meta.get("title"),
-        created_at=meta.get("created_at"),
-        updated_at=meta.get("updated_at"),
-        context=f"/api/v1/sessions/{sid}/context",
-    )
+    return SessionInfo(session_id=sid, title=meta.get("title"), created_at=meta.get("created_at"), updated_at=meta.get("updated_at"), context=f"/api/v1/sessions/{sid}/context")
 
 
 @app.get("/api/v1/sessions", response_model=SessionsResponse)
@@ -822,13 +712,7 @@ def list_sessions():
     for d in sorted((DATA / "sessions").iterdir() if (DATA / "sessions").exists() else []):
         if d.is_dir() and (d / "session.json").exists():
             meta = json.loads((d / "session.json").read_text(encoding="utf-8"))
-            items.append(SessionInfo(
-                session_id=meta.get("session_id", d.name),
-                title=meta.get("title"),
-                created_at=meta.get("created_at"),
-                updated_at=meta.get("updated_at"),
-                context=f"/api/v1/sessions/{d.name}/context",
-            ))
+            items.append(SessionInfo(session_id=meta.get("session_id", d.name), title=meta.get("title"), created_at=meta.get("created_at"), updated_at=meta.get("updated_at"), context=f"/api/v1/sessions/{d.name}/context"))
     return SessionsResponse(sessions=items)
 
 
@@ -845,7 +729,6 @@ def session_turn_contract(session_id: str):
     knowledge = read_json("state/knowledge_state.json", sid, default={}) or {}
     inventory = read_json("state/inventory_state.json", sid, default={}) or {}
     future = read_json("state/future_locks_progress.json", sid, default={}) or {}
-
     active = unique(list(current.get("active_characters", []) or []))
     nearby = unique(list(current.get("nearby_characters", []) or []))
     scene_chars = active_scene_characters(current, future)
@@ -853,7 +736,6 @@ def session_turn_contract(session_id: str):
     for lock_id, lock in (future.get("locks") or {}).items():
         if lock.get("status") in {"active", "scheduled", "not_started", "available_but_rare"}:
             locks.append(f"{lock_id}: {lock.get('description', '')}")
-
     return {
         "session_id": sid,
         "active_character_ids": active,
@@ -877,6 +759,7 @@ def session_turn_contract(session_id: str):
             "dialogue without bold speaker names",
             "direct Akira thoughts inside scene text",
             "Livia treated as new roommate/new acquaintance",
+            "Roommate or named conflict NPC forgotten after scene",
             "Raiden described as light-haired",
             "Raiden treated as literally lazy or absent from academy life",
             "Raiden calmly accepting sticky female touches",
@@ -891,6 +774,7 @@ def session_turn_contract(session_id: str):
             "Check active and nearby character cards before writing lines.",
             "Check character_depth_and_rotation before reducing important characters to scene functions.",
             "Check relationship_memory_rules before using relationship scores as the only source.",
+            "Check npc_roommate_conflict_persistence_lock before roommate, dorm, corridor conflict, named NPC, or repeating NPC scenes.",
             "Check knowledge_state before every NPC claim.",
             "Check inventory_state before mentioning usable items.",
             "No empty scenes: if Akira goes for coffee/sleeps/walks, add a hook or compress to the next meaningful event.",
@@ -901,11 +785,7 @@ def session_turn_contract(session_id: str):
             "Rewrite before sending if format or locks are wrong.",
         ],
         "knowledge_table": {cid: knowledge.get(cid, {}) for cid in scene_chars},
-        "inventory_contract": {
-            "visible_inventory": current.get("visible_inventory", []),
-            "nearby_items": current.get("nearby_items", []),
-            "akira_inventory_state": (inventory.get("akira") or {}),
-        },
+        "inventory_contract": {"visible_inventory": current.get("visible_inventory", []), "nearby_items": current.get("nearby_items", []), "akira_inventory_state": (inventory.get("akira") or {})},
         "canon_locks": locks[:12],
     }
 
@@ -916,21 +796,12 @@ def apply_turn_result(session_id: str, request: ApplyTurnResultRequest = ApplyTu
     ensure_session(sid)
     source, payload = read_turn_payload(sid, request)
     changed_files = []
-
     if apply_relationship_changes(sid, payload, request.dry_run):
         changed_files.append("state/relationships.json")
-
     for path, names in STATE_SECTION_MAP:
         if apply_json_section(sid, payload, path, names, request.dry_run):
             changed_files.append(path)
-
-    return {
-        "status": "applied" if changed_files else "no_changes_detected",
-        "session_id": sid,
-        "source": source,
-        "dry_run": request.dry_run,
-        "changed_files": changed_files,
-    }
+    return {"status": "applied" if changed_files else "no_changes_detected", "session_id": sid, "source": source, "dry_run": request.dry_run, "changed_files": changed_files}
 
 
 @app.get("/api/v1/sessions/{session_id}/json/{file_path:path}", response_model=JsonFileResponse)
