@@ -18,6 +18,33 @@
 | `jun_carter` | Джун Картер | main / father / sector commander | Командующий Восточным сектором, отец Рэя, приёмный отец Акиры. |
 | `livia_cross` | Ливия Кросс | main supporting / friend / social square | Подруга Акиры, сначала увлечена Райденом, потом переключается на Хару. |
 | `eiren_vale` | Эйрен Вейл / Наблюдатель | hidden / observer | Человеческая маска Наблюдателя, абсолютный hidden lore. |
+| `daniel_dante_weiss` | Даниэль “Данте” Вэйс | main supporting / sound / scout | Курсант 19 лет, звук/вибрация, ближне-средний бой, разведка, боится потерять контроль над радиусом энергии. |
+| `elias_aster` | Эльяс Астер | main supporting / Aster twin / reflection | Один из двойняшек Астер; энергия отражения, тревожная социальная линия, провокатор и наблюдатель. |
+| `seline_aster` | Селин Астер | main supporting / Aster twin / distortion | Одна из двойняшек Астер; энергия искажения, сбивает восприятие пространства и внимания. |
+| `kael_north` | Каэл Норт | academy staff / tactics instructor | Преподаватель тактики, куратор старших групп, бывший рейдер, энергия вектор/траектория. |
+| `kiara_volt` | Киара Вольт | main supporting / social rival / Livia rival | Курсантка 18 лет, магнитное смещение, социальная соперница Ливии, крутится рядом с Райденом и Хару. |
+| `noa_rian` | Ноа Риан | main supporting / quiet romantic protector | Курсант 19 лет, задержка/отложенное действие, тихий мягкий защитник Акиры. |
+| `veronica_ellard` | Вероника Эллард | main supporting / Akira rival / status conflict | Курсантка 17 лет, давление/кинетический импульс, соперница Акиры через статус, силу и публичное превосходство. |
+
+## Main character card files
+
+Этот список должен соответствовать фактическим карточкам в `characters/main/`.
+
+| Card file | Stable ID / IDs |
+|---|---|
+| `characters/main/akira.md` | `akira` |
+| `characters/main/daniel_dante_weiss.md` | `daniel_dante_weiss` |
+| `characters/main/elias_seline_aster.md` | `elias_aster`, `seline_aster` |
+| `characters/main/haru_foster.md` | `haru_foster` |
+| `characters/main/jun_carter.md` | `jun_carter` |
+| `characters/main/kael_north.md` | `kael_north` |
+| `characters/main/kiara_volt.md` | `kiara_volt` |
+| `characters/main/livia_cross.md` | `livia_cross` |
+| `characters/main/noa_rian.md` | `noa_rian` |
+| `characters/main/raiden_sterling.md` | `raiden_sterling` |
+| `characters/main/ray_carter.md` | `ray_carter` |
+| `characters/main/samuel_sterling.md` | `samuel_sterling` |
+| `characters/main/veronica_ellard.md` | `veronica_ellard` |
 
 ## Important family / future cards
 
