@@ -9,7 +9,10 @@
     "every_event_requires_absolute_date": true,
     "relative_dates_must_be_calculated_from_current_state_date": true,
     "compact_every_turns": 15,
-    "compaction_does_not_delete_important_memory": true
+    "compaction_does_not_delete_important_memory": true,
+    "story_is_planned_novel_chain_not_simulator": true,
+    "academy_is_training_system_not_morality_school": true,
+    "social_media_is_background_not_main_plot": true
   },
   "turn_counter": {
     "total_game_turns": 0,
@@ -19,6 +22,63 @@
     "last_compaction_date": null,
     "last_compaction_note": null,
     "technical_turns_do_not_count": true
+  },
+  "narrative_policy": {
+    "mode": "сюжетная новелла с управляемой Акирой, не песочница и не симулятор быта",
+    "goal": "вести логичную цепочку интересных событий между уже существующими персонажами, постепенно заполняя жизнь Акиры людьми, конфликтами, тренировками, репутацией, рейтингом, обещаниями и последствиями",
+    "scene_priority": [
+      "развитие персонажных линий",
+      "тренировки / энергия / техника / рейтинг",
+      "социальные последствия и репутация",
+      "конфликты и обещания",
+      "будущие сюжетные крючки"
+    ],
+    "avoid": [
+      "пустой быт без последствий",
+      "импровизированные философские занятия под каждую личную проблему",
+      "соцсети как главная тема сцены",
+      "случайные NPC вместо подходящих main/supporting персонажей"
+    ]
+  },
+  "next_beats": {
+    "purpose": "Мини-план ближайших сюжетных крючков. Использовать как напоминание, а не как жёсткий сценарий.",
+    "rules": {
+      "keep_3_to_7_active_beats": true,
+      "each_beat_has_date_or_condition": true,
+      "do_not_force_if_scene_context_changed": true,
+      "if_due_then_show_or_explain_delay": true,
+      "remove_or_compact_after_resolved": true
+    },
+    "active": [
+      {
+        "beat_id": "akira_raiden_opponent_check_1198_08_18",
+        "date_or_condition": "1198-08-18 / учебная проверка, безопасное оружие или ограниченная энергия",
+        "related_ids": ["akira", "raiden_sterling", "haru_foster", "livia_cross"],
+        "summary": "Академия ставит Акиру и Райдена друг против друга как часть обычного смешивания студентов. Это не личный вызов и не наказание, а проверка контроля, дистанции и реакции.",
+        "expected_effects": ["напряжение", "раздражение", "взаимная проверка", "инструкторская пометка", "зацепка для будущего синхрона"],
+        "priority": "high",
+        "status": "open"
+      },
+      {
+        "beat_id": "akira_raiden_sync_pair_1198_08_20",
+        "date_or_condition": "1198-08-20 / парная проверка, синхрон, командная реакция",
+        "related_ids": ["akira", "raiden_sterling", "haru_foster", "livia_cross"],
+        "summary": "После проверки друг против друга Академия ставит Акиру и Райдена в пару; они раздражаются, но неожиданно читают ритм, дистанцию или движение друг друга.",
+        "expected_effects": ["вынужденный синхрон", "раздражение из-за совпадения", "наблюдение Хару", "внимание Ливии", "репутационный шум"],
+        "priority": "high",
+        "status": "open"
+      },
+      {
+        "beat_id": "livia_pulls_akira_out_1198_08_22",
+        "date_or_condition": "1198-08-22 evening / свободное время после учебного блока",
+        "related_ids": ["akira", "livia_cross", "haru_foster", "kiara_volt"],
+        "summary": "Ливия пытается вытащить Акиру куда-нибудь: танцы, караоке, студенческий вечер, музыкальный зал или разрешённая вылазка. Она может позвать кого-то ещё, если это логично и интересно.",
+        "expected_effects": ["самостоятельная инициатива Ливии", "социальная сцена", "возможный конфликт/флирт", "выбор Акиры влияет на динамику"],
+        "priority": "medium",
+        "status": "open"
+      }
+    ],
+    "resolved": []
   },
   "compaction_policy": {
     "game_turns_only": true,
@@ -114,6 +174,20 @@
       "compacted_summary": "",
       "compacted_history": []
     },
+    "line_rating": {
+      "title": "Рейтинг и классы Академии",
+      "character_ids": [],
+      "related_ids": ["akira", "livia_cross", "haru_foster", "raiden_sterling", "veronica_ellard", "kael_north"],
+      "current_summary": "",
+      "events": [],
+      "rating_updates": [],
+      "class_updates": [],
+      "exam_results": [],
+      "training_access": [],
+      "open_threads": [],
+      "compacted_summary": "",
+      "compacted_history": []
+    },
     "line_reputation": {
       "title": "Репутация",
       "character_ids": [],
@@ -134,6 +208,7 @@
       "events": [],
       "channels": [],
       "rumor_updates": [],
+      "daily_background_ping": [],
       "open_threads": [],
       "compacted_summary": "",
       "compacted_history": []
