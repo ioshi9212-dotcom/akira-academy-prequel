@@ -6,6 +6,8 @@
     "character_cards_are_source_for_personality": true,
     "this_file_stores_only_events_relationships_knowledge_obligations": true,
     "shared_event_written_once_then_referenced_by_lines": true,
+    "every_event_requires_absolute_date": true,
+    "relative_dates_must_be_calculated_from_current_state_date": true,
     "compact_every_turns": 15
   },
   "turn_counter": {
@@ -14,6 +16,19 @@
     "last_compaction_turn": 0,
     "last_compaction_note": null
   },
+  "calendar_policy": {
+    "date_format": "YYYY-MM-DD внутри данных, человекочитаемо в summary: 15 августа 1198",
+    "relative_date_rules": {
+      "same_day": "сегодня / утром / днём / вечером, если дата совпадает",
+      "one_day_ago": "вчера",
+      "two_days_ago": "позавчера / два дня назад",
+      "three_to_six_days_ago": "несколько дней назад / N дней назад",
+      "seven_days_ago": "неделю назад",
+      "more_than_seven_days_ago": "называть точную дату или период"
+    },
+    "hard_rule": "Персонажи не должны говорить 'вчера' про событие, если между current_state.date и event.date прошло больше одного дня."
+  },
+  "daily_timeline": {},
   "shared_events": [],
   "lines": {
     "line_haru": {
