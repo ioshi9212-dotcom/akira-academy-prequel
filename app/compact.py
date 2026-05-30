@@ -168,6 +168,8 @@ CORE_RECOMMENDED_FILES = [
     "canon/novella_goal.md",
     "canon/character_story_roles.md",
     "canon/source_usage_rules.md",
+    "canon/academy_rules_index.md",
+    "canon/academy_combat_and_weapon_rules.md",
     "canon/character_depth_and_rotation.md",
     "canon/relationship_memory_rules.md",
     "characters/character_id_index.md",
