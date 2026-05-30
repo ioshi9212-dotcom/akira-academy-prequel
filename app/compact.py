@@ -23,6 +23,7 @@ REL_METRICS = ["affection", "trust", "tension", "jealousy", "respect", "curiosit
 
 STATE_SECTION_MAP = [
     ("state/current_state.json", ["current_state_changes", "current_state", "state_changes"]),
+    ("state/story_lines.json", ["story_lines_changes", "story_line_changes", "story_lines", "story_lines_state"]),
     ("state/knowledge_state.json", ["knowledge_changes", "knowledge_state_changes", "knowledge_state"]),
     ("state/reputation_state.json", ["reputation_changes", "reputation_state_changes", "reputation_state"]),
     ("state/rumors_state.json", ["rumor_changes", "rumors_changes", "rumors_state_changes", "rumors_state"]),
@@ -31,7 +32,7 @@ STATE_SECTION_MAP = [
     ("state/future_locks_progress.json", ["future_locks_changes", "future_locks_progress_changes", "future_locks_progress"]),
 ]
 
-app = FastAPI(title=APP_NAME, version="0.3.10", servers=[{"url": BASE_URL}])
+app = FastAPI(title=APP_NAME, version="0.3.12", servers=[{"url": BASE_URL}])
 
 
 class FileUpdate(BaseModel):
@@ -109,6 +110,7 @@ class SessionsResponse(BaseModel):
 class CompactContextResponse(BaseModel):
     session_id: str | None = None
     current_state: object | None = None
+    story_lines: object | None = None
     relationships: object | None = None
     reputation_state: object | None = None
     power_state: object | None = None
@@ -141,6 +143,23 @@ MAIN_CHARACTER_FILES = {
     "ray": "characters/main/ray_carter.md",
     "jun_carter": "characters/main/jun_carter.md",
     "jun": "characters/main/jun_carter.md",
+    "daniel_dante_weiss": "characters/main/daniel_dante_weiss.md",
+    "daniel": "characters/main/daniel_dante_weiss.md",
+    "dante": "characters/main/daniel_dante_weiss.md",
+    "elias_aster": "characters/main/elias_seline_aster.md",
+    "elias": "characters/main/elias_seline_aster.md",
+    "seline_aster": "characters/main/elias_seline_aster.md",
+    "seline": "characters/main/elias_seline_aster.md",
+    "kael_north": "characters/main/kael_north.md",
+    "kael": "characters/main/kael_north.md",
+    "kiara_volt": "characters/main/kiara_volt.md",
+    "kiara": "characters/main/kiara_volt.md",
+    "noa_rian": "characters/main/noa_rian.md",
+    "noa": "characters/main/noa_rian.md",
+    "veronica_ellard": "characters/main/veronica_ellard.md",
+    "veronica": "characters/main/veronica_ellard.md",
+    "eiren_vale": "characters/main/eiren_vale.md",
+    "eiren": "characters/main/eiren_vale.md",
 }
 
 CORE_RECOMMENDED_FILES = [
@@ -151,12 +170,15 @@ CORE_RECOMMENDED_FILES = [
     "canon/source_usage_rules.md",
     "canon/character_depth_and_rotation.md",
     "canon/relationship_memory_rules.md",
+    "characters/character_id_index.md",
     "state/memory_update_rules.md",
 ]
 
 CORE_LOCK_FILES = [
     "gpt/locks/no_empty_scenes_lock.md",
+    "gpt/locks/dialogue_format_strict_lock.md",
     "gpt/locks/apply_state_after_turn_lock.md",
+    "gpt/locks/story_lines_memory_lock.md",
     "gpt/locks/acquaintance_and_named_npc_state_lock.md",
     "gpt/locks/named_npc_memory_lock.md",
     "gpt/locks/npc_roommate_conflict_persistence_lock.md",
@@ -171,6 +193,7 @@ AKIRA_LOCK_FILES = [
 ]
 
 DEFAULT_STATE_FILES = [
+    "state/story_lines.json",
     "state/knowledge_state.json",
     "state/relationships.json",
     "state/scene_history.json",
@@ -406,6 +429,44 @@ def compact_knowledge(state: Any, focus_ids: list[str]) -> Any:
     }
 
 
+def compact_story_lines(state: Any, focus_ids: list[str]) -> Any:
+    if not isinstance(state, dict):
+        return state
+    focus = set(focus_ids or ["akira"])
+    lines = state.get("lines")
+    if not isinstance(lines, dict):
+        return compact_if_large(state, 5500)
+
+    visible = {}
+    for line_id, line in lines.items():
+        if not isinstance(line, dict):
+            continue
+        ids = set(line.get("character_ids", []) or []) | set(line.get("related_ids", []) or [])
+        if ids & focus or line_id in {"line_academy", "line_reputation", "line_social_media_rumors", "line_obligations"}:
+            visible[line_id] = line
+
+    timeline = state.get("daily_timeline", {})
+    shared_events = state.get("shared_events", [])
+    if isinstance(shared_events, list) and len(shared_events) > 25:
+        shared_events = shared_events[-25:]
+
+    return {
+        "schema": state.get("schema"),
+        "turn_counter": state.get("turn_counter", {}),
+        "calendar_policy": state.get("calendar_policy", {}),
+        "daily_timeline": compact_if_large(timeline, 3000),
+        "shared_events_recent": shared_events,
+        "lines": visible,
+        "_context_filter": {
+            "mode": "active_nearby_story_lines_plus_global_lines",
+            "focus_character_ids": sorted(focus),
+            "visible_lines": list(visible.keys()),
+            "total_lines": len(lines),
+            "note": "Use /api/v1/sessions/{session_id}/json/state/story_lines.json for full story line memory.",
+        },
+    }
+
+
 def compact_future_locks(state: Any) -> Any:
     if not isinstance(state, dict):
         return state
@@ -433,13 +494,14 @@ def compact_if_large(value: Any, max_chars: int = 4500) -> Any:
 
 def context_payload(session_id: str | None = None) -> CompactContextResponse:
     seed()
-    note = "Use /turn-contract every turn. /context is a balanced snapshot: active/nearby relationships and knowledge are shown; large full state files should be loaded through /json only when needed."
+    note = "Use /turn-contract every turn. /context is a balanced snapshot: active/nearby relationships, story lines and knowledge are shown; large full state files should be loaded through /json only when needed."
     current = read_json("state/current_state.json", session_id, default={}) or {}
     future = read_json("state/future_locks_progress.json", session_id, default={}) or {}
     focus_ids = active_scene_characters(current, future)
     return CompactContextResponse(
         session_id=session_id,
         current_state=current,
+        story_lines=compact_story_lines(read_json("state/story_lines.json", session_id, default={}) or {}, focus_ids),
         relationships=compact_relationships(read_json("state/relationships.json", session_id, default={}) or {}, focus_ids),
         reputation_state=compact_if_large(read_json("state/reputation_state.json", session_id, default={}) or {}, 3500),
         power_state=compact_if_large(read_json("state/power_state.json", session_id, default={}) or {}, 3500),
@@ -489,14 +551,15 @@ def repair_state(session_id: str | None = None) -> RepairResponse:
 def output_format_contract() -> dict:
     return {
         "priority": "highest_for_scene_output",
-        "dialogue_format": "**Имя или видимый дескриптор** — Реплика. (*короткая ремарка: тон, взгляд, пауза, жест*)",
+        "dialogue_format": "**Имя или видимый дескриптор** — Реплика. (*короткая ремарка*)",
         "description_format": "*Описание действия, окружения или атмосферы отдельной строкой курсивом.*",
         "rules": [
             "Every spoken line starts with bold speaker name or visible descriptor.",
             "Do not use names Akira has not heard or read yet.",
             "After speaker name use long dash.",
             "Dialogue text is plain.",
-            "Optional stage note is short and italic in parentheses.",
+            "Optional stage note must be short and italic in parentheses: (*тихо*), (*смеётся*), (*смотрит в сторону*).",
+            "No stage notes like (тихо) without italic asterisks.",
             "No long actions in parentheses.",
             "No character thoughts in parentheses.",
             "Descriptions are separate italic paragraphs.",
@@ -505,6 +568,8 @@ def output_format_contract() -> dict:
             "No empty scenes: every scene needs a hook, conflict, conversation, observation, social reaction, rumor, consequence, or time skip.",
             "Livia is Akira's close school friend for about six years, not a new roommate.",
             "Roommates, named NPCs and conflicts must persist in state; check npc_roommate_conflict_persistence_lock.",
+            "Events, obligations and dated memories must persist in state/story_lines.json; do not create one-scene state files.",
+            "Check dialogue_format_strict_lock and story_lines_memory_lock; if any line violates them, rewrite before sending.",
             "Raiden is always dark-haired.",
             "Raiden does not patiently tolerate sticky female touches; trigger comes from stepmother history, but most people do not know that.",
             "Haru flirts easily, but tires when people see only the charismatic red-haired image, not him.",
@@ -729,6 +794,7 @@ def session_turn_contract(session_id: str):
     knowledge = read_json("state/knowledge_state.json", sid, default={}) or {}
     inventory = read_json("state/inventory_state.json", sid, default={}) or {}
     future = read_json("state/future_locks_progress.json", sid, default={}) or {}
+    story_lines = read_json("state/story_lines.json", sid, default={}) or {}
     active = unique(list(current.get("active_characters", []) or []))
     nearby = unique(list(current.get("nearby_characters", []) or []))
     scene_chars = active_scene_characters(current, future)
@@ -742,6 +808,13 @@ def session_turn_contract(session_id: str):
         "nearby_character_ids": nearby,
         "required_files": recommended_files_for_context(current, future),
         "output_format_contract": output_format_contract(),
+        "story_lines_contract": {
+            "required_file": "state/story_lines.json",
+            "schema": story_lines.get("schema"),
+            "calendar_policy": story_lines.get("calendar_policy", {}),
+            "turn_counter": story_lines.get("turn_counter", {}),
+            "rule": "Do not create one-scene state files. Store dated events, obligations, rumors and line progress in state/story_lines.json.",
+        },
         "allowed_new_facts_this_turn": [
             "neutral sensory details",
             "minor gestures, pauses, tone, clothing details",
@@ -757,7 +830,11 @@ def session_turn_contract(session_id: str):
             "NPC knowledge from unseen scenes",
             "new items without state update",
             "dialogue without bold speaker names",
+            "dialogue remarks like (тихо) without italic asterisks; use (*тихо*)",
+            "long actions inside dialogue parentheses",
             "direct Akira thoughts inside scene text",
+            "one-scene state files instead of state/story_lines.json",
+            "relative date words like yesterday without checking absolute event date",
             "Livia treated as new roommate/new acquaintance",
             "Roommate or named conflict NPC forgotten after scene",
             "Raiden described as light-haired",
@@ -771,11 +848,15 @@ def session_turn_contract(session_id: str):
             "Use /context as a compact snapshot only; load full json files only when needed.",
             "Obey output_format_contract exactly.",
             "Read required_files before scene.",
+            "Check dialogue_format_strict_lock before sending; every spoken line must use **Name/descriptor** — speech. (*short italic remark*) when a remark is needed.",
+            "Check story_lines_memory_lock before and after scene; dated events and obligations go to state/story_lines.json, not one-scene files.",
             "Check active and nearby character cards before writing lines.",
+            "Check character_id_index and character_presence_rotation before replacing a main supporting character with a random NPC.",
             "Check character_depth_and_rotation before reducing important characters to scene functions.",
             "Check relationship_memory_rules before using relationship scores as the only source.",
             "Check npc_roommate_conflict_persistence_lock before roommate, dorm, corridor conflict, named NPC, or repeating NPC scenes.",
             "Check knowledge_state before every NPC claim.",
+            "Check story_lines.calendar_policy before using 'вчера', 'позавчера' or 'несколько дней назад'.",
             "Check inventory_state before mentioning usable items.",
             "No empty scenes: if Akira goes for coffee/sleeps/walks, add a hook or compress to the next meaningful event.",
             "Livia has known Akira for about six years and knows Jun, Ray, windows/edges, no relationships, and public space energy.",
