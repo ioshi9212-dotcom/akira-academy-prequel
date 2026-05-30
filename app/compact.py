@@ -172,6 +172,7 @@ CORE_RECOMMENDED_FILES = [
     "canon/relationship_memory_rules.md",
     "characters/character_id_index.md",
     "state/memory_update_rules.md",
+    "state/story_lines_extensions.md",
 ]
 
 CORE_LOCK_FILES = [
