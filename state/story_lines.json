@@ -8,13 +8,35 @@
     "shared_event_written_once_then_referenced_by_lines": true,
     "every_event_requires_absolute_date": true,
     "relative_dates_must_be_calculated_from_current_state_date": true,
-    "compact_every_turns": 15
+    "compact_every_turns": 15,
+    "compaction_does_not_delete_important_memory": true
   },
   "turn_counter": {
-    "total_turns": 0,
+    "total_game_turns": 0,
     "since_last_compaction": 0,
+    "compact_every_turns": 15,
     "last_compaction_turn": 0,
-    "last_compaction_note": null
+    "last_compaction_date": null,
+    "last_compaction_note": null,
+    "technical_turns_do_not_count": true
+  },
+  "compaction_policy": {
+    "game_turns_only": true,
+    "technical_turns_do_not_count": true,
+    "debug_audit_rule_edits_do_not_count": true,
+    "preserve_open_threads": true,
+    "preserve_obligations": true,
+    "preserve_first_meetings": true,
+    "preserve_knowledge_boundaries": true,
+    "preserve_named_npc_identity": true,
+    "preserve_unknown_name_descriptors": true,
+    "preserve_relationship_causes": true,
+    "preserve_reputation_causes": true,
+    "compress_repeated_minor_events": true,
+    "compress_completed_progress_logs": true,
+    "do_not_erase_reason_for_current_reaction": true,
+    "daily_timeline_is_not_deleted": true,
+    "shared_events_can_be_reduced_to_refs_after_summary": true
   },
   "calendar_policy": {
     "date_format": "YYYY-MM-DD внутри данных, человекочитаемо в summary: 15 августа 1198",
@@ -40,7 +62,8 @@
       "relationship_updates": [],
       "knowledge_updates": [],
       "open_threads": [],
-      "compacted_summary": ""
+      "compacted_summary": "",
+      "compacted_history": []
     },
     "line_raiden": {
       "title": "Райден",
@@ -51,7 +74,8 @@
       "relationship_updates": [],
       "knowledge_updates": [],
       "open_threads": [],
-      "compacted_summary": ""
+      "compacted_summary": "",
+      "compacted_history": []
     },
     "line_livia": {
       "title": "Ливия",
@@ -62,7 +86,8 @@
       "relationship_updates": [],
       "knowledge_updates": [],
       "open_threads": [],
-      "compacted_summary": ""
+      "compacted_summary": "",
+      "compacted_history": []
     },
     "line_kiara": {
       "title": "Киара",
@@ -73,7 +98,8 @@
       "relationship_updates": [],
       "knowledge_updates": [],
       "open_threads": [],
-      "compacted_summary": ""
+      "compacted_summary": "",
+      "compacted_history": []
     },
     "line_academy": {
       "title": "Академия",
@@ -85,7 +111,8 @@
       "training_updates": [],
       "dorm_updates": [],
       "open_threads": [],
-      "compacted_summary": ""
+      "compacted_summary": "",
+      "compacted_history": []
     },
     "line_reputation": {
       "title": "Репутация",
@@ -96,7 +123,8 @@
       "group_reactions": [],
       "reputation_updates": [],
       "open_threads": [],
-      "compacted_summary": ""
+      "compacted_summary": "",
+      "compacted_history": []
     },
     "line_social_media_rumors": {
       "title": "Соцсети и слухи",
@@ -107,7 +135,8 @@
       "channels": [],
       "rumor_updates": [],
       "open_threads": [],
-      "compacted_summary": ""
+      "compacted_summary": "",
+      "compacted_history": []
     },
     "line_obligations": {
       "title": "Ставки, долги, обещания",
@@ -117,7 +146,8 @@
       "events": [],
       "open_obligations": [],
       "completed_obligations": [],
-      "compacted_summary": ""
+      "compacted_summary": "",
+      "compacted_history": []
     }
   }
 }
