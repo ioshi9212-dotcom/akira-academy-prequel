@@ -1,0 +1,108 @@
+{
+  "schema": "story_lines_v1",
+  "purpose": "Рабочая память событий по сюжетным линиям. Не хранит анкеты персонажей: анкеты лежат в characters/main/*.md.",
+  "rules": {
+    "no_one_scene_files": true,
+    "character_cards_are_source_for_personality": true,
+    "this_file_stores_only_events_relationships_knowledge_obligations": true,
+    "shared_event_written_once_then_referenced_by_lines": true,
+    "compact_every_turns": 15
+  },
+  "turn_counter": {
+    "total_turns": 0,
+    "since_last_compaction": 0,
+    "last_compaction_turn": 0,
+    "last_compaction_note": null
+  },
+  "shared_events": [],
+  "lines": {
+    "line_haru": {
+      "title": "Хару",
+      "character_ids": ["haru_foster"],
+      "related_ids": ["akira", "raiden_sterling", "livia_cross"],
+      "current_summary": "",
+      "events": [],
+      "relationship_updates": [],
+      "knowledge_updates": [],
+      "open_threads": [],
+      "compacted_summary": ""
+    },
+    "line_raiden": {
+      "title": "Райден",
+      "character_ids": ["raiden_sterling"],
+      "related_ids": ["akira", "haru_foster", "samuel_sterling", "kiara_volt"],
+      "current_summary": "",
+      "events": [],
+      "relationship_updates": [],
+      "knowledge_updates": [],
+      "open_threads": [],
+      "compacted_summary": ""
+    },
+    "line_livia": {
+      "title": "Ливия",
+      "character_ids": ["livia_cross"],
+      "related_ids": ["akira", "haru_foster", "raiden_sterling", "kiara_volt"],
+      "current_summary": "",
+      "events": [],
+      "relationship_updates": [],
+      "knowledge_updates": [],
+      "open_threads": [],
+      "compacted_summary": ""
+    },
+    "line_kiara": {
+      "title": "Киара",
+      "character_ids": ["kiara_volt"],
+      "related_ids": ["akira", "livia_cross", "haru_foster", "raiden_sterling"],
+      "current_summary": "",
+      "events": [],
+      "relationship_updates": [],
+      "knowledge_updates": [],
+      "open_threads": [],
+      "compacted_summary": ""
+    },
+    "line_academy": {
+      "title": "Академия",
+      "character_ids": [],
+      "related_ids": ["akira"],
+      "current_summary": "",
+      "events": [],
+      "schedule_updates": [],
+      "training_updates": [],
+      "dorm_updates": [],
+      "open_threads": [],
+      "compacted_summary": ""
+    },
+    "line_reputation": {
+      "title": "Репутация",
+      "character_ids": [],
+      "related_ids": ["akira", "livia_cross", "haru_foster", "raiden_sterling", "kiara_volt", "veronica_ellard"],
+      "current_summary": "",
+      "events": [],
+      "group_reactions": [],
+      "reputation_updates": [],
+      "open_threads": [],
+      "compacted_summary": ""
+    },
+    "line_social_media_rumors": {
+      "title": "Соцсети и слухи",
+      "character_ids": [],
+      "related_ids": ["akira", "livia_cross", "kiara_volt"],
+      "current_summary": "",
+      "events": [],
+      "channels": [],
+      "rumor_updates": [],
+      "open_threads": [],
+      "compacted_summary": ""
+    },
+    "line_obligations": {
+      "title": "Ставки, долги, обещания",
+      "character_ids": [],
+      "related_ids": ["akira", "haru_foster"],
+      "current_summary": "",
+      "events": [],
+      "open_obligations": [],
+      "completed_obligations": [],
+      "compacted_summary": ""
+    }
+  }
+}
