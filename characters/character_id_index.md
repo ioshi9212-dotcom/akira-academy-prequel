@@ -46,6 +46,20 @@
 | `characters/main/samuel_sterling.md` | `samuel_sterling` |
 | `characters/main/veronica_ellard.md` | `veronica_ellard` |
 
+## Important recurring NPC / key candidates
+
+| ID | Имя | Статус | Примечание |
+|---|---|---|---|
+| `asher_lane` | Ашер Лейн | recurring / key_candidate / Livia school past | Бывший Ливии; старшекурсник, возвращается 1 сентября 1198 после отсутствия в августе; связан со старшей компанией и “Слепой зоной”. |
+| `kai_renwick` | Кай Ренвик | recurring / key_candidate / Akira school past | Парень из школьного прошлого Акиры; связан с историей “Ставка закрыта” и каналом “Слепая зона”; возвращается 1 сентября 1198. |
+
+## NPC / recurring card files
+
+| Card file | Stable ID / IDs |
+|---|---|
+| `characters/npc/asher_lane.md` | `asher_lane` |
+| `characters/npc/kai_renwick.md` | `kai_renwick` |
+
 ## Important family / future cards
 
 | ID | Имя | Статус | Примечание |
