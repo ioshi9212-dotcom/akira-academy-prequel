@@ -182,11 +182,7 @@ CORE_LOCK_FILES = [
     "gpt/locks/dialogue_format_strict_lock.md",
     "gpt/locks/apply_state_after_turn_lock.md",
     "gpt/locks/story_lines_memory_lock.md",
-    "gpt/locks/acquaintance_and_named_npc_state_lock.md",
-    "gpt/locks/named_npc_memory_lock.md",
-    "gpt/locks/npc_roommate_conflict_persistence_lock.md",
     "gpt/locks/character_presence_rotation_lock.md",
-    "gpt/locks/character_rotation_lock.md",
 ]
 
 AKIRA_LOCK_FILES = [
@@ -570,7 +566,7 @@ def output_format_contract() -> dict:
             "Akira thoughts only in bottom block: Мысли Акиры.",
             "No empty scenes: every scene needs a hook, conflict, conversation, observation, social reaction, rumor, consequence, or time skip.",
             "Livia is Akira's close school friend for about six years, not a new roommate.",
-            "Roommates, named NPCs and conflicts must persist in state; check npc_roommate_conflict_persistence_lock.",
+            "Roommates, named NPCs, conflicts, character rotation and knowledge sources must persist/check through character_presence_rotation_lock.",
             "Events, obligations and dated memories must persist in state/story_lines.json; do not create one-scene state files.",
             "Check dialogue_format_strict_lock and story_lines_memory_lock; if any line violates them, rewrite before sending.",
             "Raiden is always dark-haired.",
@@ -859,6 +855,10 @@ def session_turn_contract(session_id: str):
             "Check relationship_memory_rules before using relationship scores as the only source.",
             "Check npc_roommate_conflict_persistence_lock before roommate, dorm, corridor conflict, named NPC, or repeating NPC scenes.",
             "Check knowledge_state before every NPC claim.",
+            "Before any NPC states a factual claim, verify a knowledge source: knowledge_state, participant, witness, heard_by, told_to, public_to, known_by, rumor, message, or duty access.",
+            "If no knowledge source exists, rewrite the NPC line as a question, suspicion, visible reaction, wrong assumption, or silence.",
+            "Do not treat story_lines or scene_history summaries as global NPC knowledge.",
+            "After scene, save meaningful remembered quotes only: phrases that changed relationship, created a trigger, promise, threat, boundary, rumor, reputation effect, or future reaction. Do not save all dialogue.",
             "Check story_lines.calendar_policy before using 'вчера', 'позавчера' or 'несколько дней назад'.",
             "Check inventory_state before mentioning usable items.",
             "No empty scenes: if Akira goes for coffee/sleeps/walks, add a hook or compress to the next meaningful event.",
