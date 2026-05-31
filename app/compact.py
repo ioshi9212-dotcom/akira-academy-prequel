@@ -250,7 +250,7 @@ def seed() -> None:
     for name in SYNC_FROM_REPO:
         sync_from_repo(ROOT / name, DATA / name)
     for name in STATE_SEED:
-        copy_missing(ROOT / name, DATA / name)
+        sync_from_repo(ROOT / name, DATA / name)
     (DATA / "sessions").mkdir(parents=True, exist_ok=True)
     (DATA / ".seeded").write_text("seeded\n", encoding="utf-8")
 
@@ -859,7 +859,7 @@ def session_turn_contract(session_id: str):
             "Check character_id_index and character_presence_rotation before replacing a main supporting character with a random NPC.",
             "Check character_depth_and_rotation before reducing important characters to scene functions.",
             "Check relationship_memory_rules before using relationship scores as the only source.",
-            "Check npc_roommate_conflict_persistence_lock before roommate, dorm, corridor conflict, named NPC, or repeating NPC scenes.",
+            "Check character_presence_rotation_lock before roommate, dorm, corridor conflict, named NPC, repeating NPC, character rotation, and knowledge-source scenes.",
             "Check knowledge_state before every NPC claim.",
             "Before any NPC states a factual claim, verify a knowledge source: knowledge_state, participant, witness, heard_by, told_to, public_to, known_by, rumor, message, or duty access.",
             "If no knowledge source exists, rewrite the NPC line as a question, suspicion, visible reaction, wrong assumption, or silence.",
