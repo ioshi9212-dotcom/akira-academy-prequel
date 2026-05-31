@@ -812,7 +812,8 @@ def session_turn_contract(session_id: str):
             "schema": story_lines.get("schema"),
             "calendar_policy": story_lines.get("calendar_policy", {}),
             "turn_counter": story_lines.get("turn_counter", {}),
-            "rule": "Do not create one-scene state files. Store dated events, obligations, rumors and line progress in state/story_lines.json.",
+            "next_beats": story_lines.get("next_beats", {}),
+            "rule": "Do not create one-scene state files. Store dated events, obligations, rumors, line progress, next_beats and compaction state in state/story_lines.json.",
         },
         "allowed_new_facts_this_turn": [
             "neutral sensory details",
