@@ -46,6 +46,19 @@
 | `characters/main/samuel_sterling.md` | `samuel_sterling` |
 | `characters/main/veronica_ellard.md` | `veronica_ellard` |
 
+## Akira behavior profiles
+
+Это не отдельные персонажи и не альтернативная биография. Это выбираемые поведенческие профили поверх `characters/main/akira.md`.
+
+Активный профиль хранится в `state/current_state.json -> akira_behavior_profile`.
+
+| Profile ID | File | Meaning |
+|---|---|---|
+| `akira_default_cold` | `characters/variants/akira_default_cold.md` | Акира-1: тихая, холодная, лениво-стабильная версия. |
+| `akira_post_kai_chaotic_mask` | `characters/variants/akira_post_kai_chaotic_mask.md` | Акира-2: громкая, ядовитая, странная защитная маска после Кая. |
+
+Правило: использовать только выбранный профиль и не смешивать неактивные версии.
+
 ## Important recurring NPC / key candidates
 
 | ID | Имя | Статус | Примечание |
