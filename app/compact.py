@@ -375,7 +375,21 @@ def recommended_files_for_context(current: dict[str, Any] | None = None, future:
     future = future or {}
     scene_chars = active_scene_characters(current, future)
     character_files = [character_file(cid) for cid in scene_chars]
-    files = unique(CORE_RECOMMENDED_FILES + CORE_LOCK_FILES + character_files + character_lock_files(scene_chars) + DEFAULT_STATE_FILES)
+    akira_profile_files = []
+    profile_id = (current or {}).get("akira_behavior_profile")
+    profiles = (current or {}).get("akira_behavior_profiles") or {}
+    if profile_id and isinstance(profiles, dict):
+        profile_file = profiles.get(profile_id)
+        if profile_file:
+            akira_profile_files.append(profile_file)
+    files = unique(
+        CORE_RECOMMENDED_FILES
+        + CORE_LOCK_FILES
+        + character_files
+        + akira_profile_files
+        + character_lock_files(scene_chars)
+        + DEFAULT_STATE_FILES
+    )
     return [path for path in files if repo_file_exists(path)]
 
 
@@ -807,6 +821,11 @@ def session_turn_contract(session_id: str):
         "nearby_character_ids": nearby,
         "required_files": recommended_files_for_context(current, future),
         "output_format_contract": output_format_contract(),
+        "akira_behavior_profile_contract": {
+            "active_profile": current.get("akira_behavior_profile", "akira_default_cold"),
+            "available_profiles": current.get("akira_behavior_profiles", {}),
+            "rule": "Use only the selected Akira behavior profile on top of characters/main/akira.md. Do not blend inactive Akira profiles. If user says 'используем Акиру-1/1', set akira_behavior_profile=akira_default_cold. If user says 'используем Акиру-2/2', set akira_behavior_profile=akira_post_kai_chaotic_mask."
+        },
         "story_lines_contract": {
             "required_file": "state/story_lines.json",
             "schema": story_lines.get("schema"),
@@ -848,6 +867,7 @@ def session_turn_contract(session_id: str):
             "Use /context as a compact snapshot only; load full json files only when needed.",
             "Obey output_format_contract exactly.",
             "Read required_files before scene.",
+            "Before writing Akira behavior, check current_state.akira_behavior_profile and load only the selected characters/variants profile; do not blend inactive Akira profiles.",
             "Check dialogue_format_strict_lock before sending; every spoken line must use **Name/descriptor** — speech. (*short italic remark*) when a remark is needed.",
             "Check story_lines_memory_lock before and after scene; dated events and obligations go to state/story_lines.json, not one-scene files.",
             "Check story_lines.next_beats before scene; use it as a mini-plan for near future hooks, not as a rigid script.",
