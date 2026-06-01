@@ -182,11 +182,7 @@ CORE_LOCK_FILES = [
     "gpt/locks/dialogue_format_strict_lock.md",
     "gpt/locks/apply_state_after_turn_lock.md",
     "gpt/locks/story_lines_memory_lock.md",
-    "gpt/locks/acquaintance_and_named_npc_state_lock.md",
-    "gpt/locks/named_npc_memory_lock.md",
-    "gpt/locks/npc_roommate_conflict_persistence_lock.md",
     "gpt/locks/character_presence_rotation_lock.md",
-    "gpt/locks/character_rotation_lock.md",
 ]
 
 AKIRA_LOCK_FILES = [
@@ -254,7 +250,7 @@ def seed() -> None:
     for name in SYNC_FROM_REPO:
         sync_from_repo(ROOT / name, DATA / name)
     for name in STATE_SEED:
-        copy_missing(ROOT / name, DATA / name)
+        sync_from_repo(ROOT / name, DATA / name)
     (DATA / "sessions").mkdir(parents=True, exist_ok=True)
     (DATA / ".seeded").write_text("seeded\n", encoding="utf-8")
 
@@ -379,7 +375,21 @@ def recommended_files_for_context(current: dict[str, Any] | None = None, future:
     future = future or {}
     scene_chars = active_scene_characters(current, future)
     character_files = [character_file(cid) for cid in scene_chars]
-    files = unique(CORE_RECOMMENDED_FILES + CORE_LOCK_FILES + character_files + character_lock_files(scene_chars) + DEFAULT_STATE_FILES)
+    akira_profile_files = []
+    profile_id = (current or {}).get("akira_behavior_profile")
+    profiles = (current or {}).get("akira_behavior_profiles") or {}
+    if profile_id and isinstance(profiles, dict):
+        profile_file = profiles.get(profile_id)
+        if profile_file:
+            akira_profile_files.append(profile_file)
+    files = unique(
+        CORE_RECOMMENDED_FILES
+        + CORE_LOCK_FILES
+        + character_files
+        + akira_profile_files
+        + character_lock_files(scene_chars)
+        + DEFAULT_STATE_FILES
+    )
     return [path for path in files if repo_file_exists(path)]
 
 
@@ -570,7 +580,7 @@ def output_format_contract() -> dict:
             "Akira thoughts only in bottom block: Мысли Акиры.",
             "No empty scenes: every scene needs a hook, conflict, conversation, observation, social reaction, rumor, consequence, or time skip.",
             "Livia is Akira's close school friend for about six years, not a new roommate.",
-            "Roommates, named NPCs and conflicts must persist in state; check npc_roommate_conflict_persistence_lock.",
+            "Roommates, named NPCs, conflicts, character rotation and knowledge sources must persist/check through character_presence_rotation_lock.",
             "Events, obligations and dated memories must persist in state/story_lines.json; do not create one-scene state files.",
             "Check dialogue_format_strict_lock and story_lines_memory_lock; if any line violates them, rewrite before sending.",
             "Raiden is always dark-haired.",
@@ -811,12 +821,18 @@ def session_turn_contract(session_id: str):
         "nearby_character_ids": nearby,
         "required_files": recommended_files_for_context(current, future),
         "output_format_contract": output_format_contract(),
+        "akira_behavior_profile_contract": {
+            "active_profile": current.get("akira_behavior_profile", "akira_default_cold"),
+            "available_profiles": current.get("akira_behavior_profiles", {}),
+            "rule": "Use only the selected Akira behavior profile on top of characters/main/akira.md. Do not blend inactive Akira profiles. If user says 'используем Акиру-1/1', set akira_behavior_profile=akira_default_cold. If user says 'используем Акиру-2/2', set akira_behavior_profile=akira_post_kai_chaotic_mask."
+        },
         "story_lines_contract": {
             "required_file": "state/story_lines.json",
             "schema": story_lines.get("schema"),
             "calendar_policy": story_lines.get("calendar_policy", {}),
             "turn_counter": story_lines.get("turn_counter", {}),
-            "rule": "Do not create one-scene state files. Store dated events, obligations, rumors and line progress in state/story_lines.json.",
+            "next_beats": story_lines.get("next_beats", {}),
+            "rule": "Do not create one-scene state files. Store dated events, obligations, rumors, line progress, next_beats and compaction state in state/story_lines.json.",
         },
         "allowed_new_facts_this_turn": [
             "neutral sensory details",
@@ -845,20 +861,38 @@ def session_turn_contract(session_id: str):
             "Raiden calmly accepting sticky female touches",
             "Haru treated as a flat womanizer without the image-vs-real-person reason",
             "passive space or technical glitches around Akira without cause",
+            "social media becoming the main plot of every scene",
+            "Haru or Raiden treated as invisible/unnoticed ordinary students in public academy scenes",
         ],
         "required_checks_before_answer": [
             "Load /turn-contract every turn.",
             "Use /context as a compact snapshot only; load full json files only when needed.",
             "Obey output_format_contract exactly.",
             "Read required_files before scene.",
+            "Before writing Akira behavior, check current_state.akira_behavior_profile and load only the selected characters/variants profile; do not blend inactive Akira profiles.",
             "Check dialogue_format_strict_lock before sending; every spoken line must use **Name/descriptor** — speech. (*short italic remark*) when a remark is needed.",
             "Check story_lines_memory_lock before and after scene; dated events and obligations go to state/story_lines.json, not one-scene files.",
+            "Check story_lines.next_beats before scene; use it as a mini-plan for near future hooks, not as a rigid script.",
+            "If a next_beat is due by date or condition, show it, delay it with a reason, or close it with a consequence. Do not silently forget due beats.",
+            "Check story_lines.turn_counter.since_last_compaction after every game turn.",
+            "If since_last_compaction reaches 15, compact repeated minor events while preserving dates, knowledge sources, relationships, obligations, open threads, and meaningful remembered quotes.",
+            "Do not count technical/debug/audit/rule-edit/API-check turns as game turns.",
             "Check active and nearby character cards before writing lines.",
             "Check character_id_index and character_presence_rotation before replacing a main supporting character with a random NPC.",
             "Check character_depth_and_rotation before reducing important characters to scene functions.",
             "Check relationship_memory_rules before using relationship scores as the only source.",
-            "Check npc_roommate_conflict_persistence_lock before roommate, dorm, corridor conflict, named NPC, or repeating NPC scenes.",
+            "Check character_presence_rotation_lock before roommate, dorm, corridor conflict, named NPC, repeating NPC, character rotation, and knowledge-source scenes.",
+            "Check academy social ecosystem before public scenes: ranking, status, rumors, social media, closed chats, and competition for attention must exist as background pressure.",
+            "Do not make social media the main plot of every scene; use it as recurring background, consequence, rumor, or pressure.",
+            "Before scenes with Haru, remember he is visible, popular, flirtatious, and attracts attention; some students may watch, gossip, compete, or try to sit closer.",
+            "Before scenes with Raiden, remember he is visible, high-status, cold, feared and watched; his attention is valuable because he rarely gives it.",
+            "Before cafeteria/training/ranking/social scenes, check who receives attention and who may react with jealousy, envy, interest, fear, or rivalry.",
+            "Academy rivalry is not only about power: students also compete for status, partners, instructor attention, senior attention, rumors, and proximity to popular students.",
             "Check knowledge_state before every NPC claim.",
+            "Before any NPC states a factual claim, verify a knowledge source: knowledge_state, participant, witness, heard_by, told_to, public_to, known_by, rumor, message, or duty access.",
+            "If no knowledge source exists, rewrite the NPC line as a question, suspicion, visible reaction, wrong assumption, or silence.",
+            "Do not treat story_lines or scene_history summaries as global NPC knowledge.",
+            "After scene, save meaningful remembered quotes only: phrases that changed relationship, created a trigger, promise, threat, boundary, rumor, reputation effect, or future reaction. Do not save all dialogue.",
             "Check story_lines.calendar_policy before using 'вчера', 'позавчера' or 'несколько дней назад'.",
             "Check inventory_state before mentioning usable items.",
             "No empty scenes: if Akira goes for coffee/sleeps/walks, add a hook or compress to the next meaningful event.",
