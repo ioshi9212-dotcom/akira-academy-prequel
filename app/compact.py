@@ -193,6 +193,8 @@ AKIRA_LOCK_FILES = [
 
 DEFAULT_STATE_FILES = [
     "state/story_lines.json",
+    "state/knowledge_state.json",
+    "state/relationships.json",
     "state/scene_history.json",
     "state/reputation_state.json",
     "state/rumors_state.json",
@@ -879,7 +881,6 @@ def session_turn_contract(session_id: str):
             "Check character_id_index and character_presence_rotation before replacing a main supporting character with a random NPC.",
             "Check character_depth_and_rotation before reducing important characters to scene functions.",
             "Check relationship_memory_rules before using relationship scores as the only source.",
-            "Load full state/relationships.json only when relationship dynamics for active/nearby characters are missing from context or need update.",
             "Check character_presence_rotation_lock before roommate, dorm, corridor conflict, named NPC, repeating NPC, character rotation, and knowledge-source scenes.",
             "Check academy social ecosystem before public scenes: ranking, status, rumors, social media, closed chats, and competition for attention must exist as background pressure.",
             "Do not make social media the main plot of every scene; use it as recurring background, consequence, rumor, or pressure.",
@@ -888,7 +889,6 @@ def session_turn_contract(session_id: str):
             "Before cafeteria/training/ranking/social scenes, check who receives attention and who may react with jealousy, envy, interest, fear, or rivalry.",
             "Academy rivalry is not only about power: students also compete for status, partners, instructor attention, senior attention, rumors, and proximity to popular students.",
             "Check knowledge_state before every NPC claim.",
-            "Load full state/knowledge_state.json only when the current NPC claim is not covered by knowledge_table or when a new knowledge source must be written.",
             "Before any NPC states a factual claim, verify a knowledge source: knowledge_state, participant, witness, heard_by, told_to, public_to, known_by, rumor, message, or duty access.",
             "If no knowledge source exists, rewrite the NPC line as a question, suspicion, visible reaction, wrong assumption, or silence.",
             "Do not treat story_lines or scene_history summaries as global NPC knowledge.",
