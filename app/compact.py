@@ -489,6 +489,174 @@ def compact_future_locks(state: Any) -> Any:
     return {"locks": filtered, "_context_filter": {"mode": "active_or_scheduled_locks_only", "visible_locks": len(filtered), "total_locks": len(locks)}}
 
 
+def akira_behavior_profile_contract(current: dict[str, Any]) -> dict:
+    return {
+        "active_profile": current.get("akira_behavior_profile", "akira_default_cold"),
+        "available_profiles": current.get("akira_behavior_profiles", {}),
+        "rule": "Use only the selected Akira behavior profile on top of characters/main/akira.md. Do not blend inactive Akira profiles. If user says 'используем Акиру-1/1', set akira_behavior_profile=akira_default_cold. If user says 'используем Акиру-2/2', set akira_behavior_profile=akira_post_kai_chaotic_mask."
+    }
+
+
+def character_required_files(required_files: list[str]) -> list[str]:
+    prefixes = ("characters/main/", "characters/npc/", "characters/variants/", "characters/locks/")
+    return [path for path in required_files if path.startswith(prefixes)]
+
+
+def knowledge_for_scene(knowledge: Any, scene_chars: list[str]) -> dict:
+    if not isinstance(knowledge, dict):
+        return {}
+    source = knowledge.get("characters") if isinstance(knowledge.get("characters"), dict) else knowledge
+    return {cid: source.get(cid, {}) for cid in scene_chars}
+
+
+def relationships_for_scene(relationships: Any, scene_chars: list[str]) -> dict:
+    focus = set(scene_chars or ["akira"])
+    if not isinstance(relationships, dict):
+        return {"_context_filter": {"mode": "relationships_unavailable", "focus_character_ids": sorted(focus)}}
+    pairs = relationships.get("pairs")
+    if isinstance(pairs, dict):
+        filtered = {pair: data for pair, data in pairs.items() if pair_in_focus(str(pair), focus)}
+        return {
+            "pairs": filtered,
+            "_context_filter": {
+                "mode": "scene_character_pairs_only",
+                "focus_character_ids": sorted(focus),
+                "visible_pairs": len(filtered),
+                "total_pairs": len(pairs),
+            },
+        }
+    filtered = {key: value for key, value in relationships.items() if "__" in str(key) and pair_in_focus(str(key), focus)}
+    return {
+        "pairs": filtered,
+        "_context_filter": {
+            "mode": "scene_character_pairs_only",
+            "focus_character_ids": sorted(focus),
+            "visible_pairs": len(filtered),
+            "total_keys": len(relationships),
+        },
+    }
+
+
+def power_for_scene(power_state: Any, scene_chars: list[str]) -> dict:
+    focus = set(scene_chars or ["akira"])
+    if not isinstance(power_state, dict):
+        return {"_context_filter": {"mode": "power_state_unavailable", "focus_character_ids": sorted(focus)}}
+    characters = power_state.get("characters")
+    if isinstance(characters, dict):
+        filtered = {cid: data for cid, data in characters.items() if cid in focus}
+        return {
+            "characters": filtered,
+            "_context_filter": {
+                "mode": "scene_characters_only",
+                "focus_character_ids": sorted(focus),
+                "visible_characters": len(filtered),
+                "total_characters": len(characters),
+            },
+        }
+    filtered = {cid: power_state.get(cid) for cid in focus if cid in power_state}
+    return {"characters": filtered, "_context_filter": {"mode": "scene_characters_only", "focus_character_ids": sorted(focus), "visible_characters": len(filtered)}}
+
+
+def story_lines_for_memory(story_lines: Any, scene_chars: list[str]) -> dict:
+    if not isinstance(story_lines, dict):
+        return {"_context_filter": {"mode": "story_lines_unavailable"}}
+    focus = set(scene_chars or ["akira"])
+    global_lines = {"line_academy", "line_reputation", "line_social_media_rumors", "line_obligations", "line_rating"}
+    visible_lines = {}
+    lines = story_lines.get("lines")
+    if isinstance(lines, dict):
+        for line_id, line in lines.items():
+            if not isinstance(line, dict):
+                continue
+            ids = set(line.get("character_ids", []) or []) | set(line.get("related_ids", []) or [])
+            if str(line_id) in global_lines or ids & focus:
+                visible_lines[line_id] = line
+    shared_events = story_lines.get("shared_events", [])
+    if isinstance(shared_events, list):
+        shared_events = shared_events[-20:]
+    return {
+        "turn_counter": story_lines.get("turn_counter", {}),
+        "calendar_policy": story_lines.get("calendar_policy", {}),
+        "next_beats": story_lines.get("next_beats", {}),
+        "daily_timeline": compact_if_large(story_lines.get("daily_timeline", {}), 3000) if "daily_timeline" in story_lines else {},
+        "shared_events_recent": shared_events,
+        "lines": visible_lines,
+        "_context_filter": {
+            "mode": "memory_part_compact",
+            "focus_character_ids": sorted(focus),
+            "visible_lines": list(visible_lines.keys()),
+            "total_lines": len(lines) if isinstance(lines, dict) else 0,
+        },
+    }
+
+
+def recent_scene_history(session_id: str, limit: int = 8) -> Any:
+    scene_history = read_json("state/scene_history.json", session_id, default={}) or {}
+    if isinstance(scene_history, list):
+        return scene_history[-limit:]
+    if isinstance(scene_history, dict):
+        for key in ("scenes", "history", "items"):
+            value = scene_history.get(key)
+            if isinstance(value, list):
+                return {key: value[-limit:], "_context_filter": {"mode": "recent_scene_history", "source_key": key, "limit": limit, "total_items": len(value)}}
+        return {"_context_filter": {"mode": "scene_history_summary", "keys": list(scene_history.keys())[:30]}}
+    return {"_context_filter": {"mode": "scene_history_unavailable", "type": type(scene_history).__name__}}
+
+
+def context_part_payload(session_id: str, part: str) -> dict:
+    seed()
+    sid = safe_session_id(session_id)
+    ensure_session(sid)
+    if part not in {"core", "characters", "memory"}:
+        raise HTTPException(status_code=400, detail="Unknown context part")
+    current = read_json("state/current_state.json", sid, default={}) or {}
+    future = read_json("state/future_locks_progress.json", sid, default={}) or {}
+    story_lines = read_json("state/story_lines.json", sid, default={}) or {}
+    scene_chars = active_scene_characters(current, future)
+    required_files = recommended_files_for_context(current, future)
+
+    if part == "core":
+        return {
+            "session_id": sid,
+            "current_state": current,
+            "akira_behavior_profile_contract": akira_behavior_profile_contract(current),
+            "story_lines_summary": {
+                "schema": story_lines.get("schema"),
+                "calendar_policy": story_lines.get("calendar_policy", {}),
+                "turn_counter": story_lines.get("turn_counter", {}),
+                "next_beats": story_lines.get("next_beats", {}),
+            },
+            "required_files": required_files,
+            "api_usage_note": "Core context only. Load characters part for active character knowledge/relationships. Load memory part for recent scene memory and open threads.",
+        }
+
+    active = unique(list(current.get("active_characters", []) or []))
+    nearby = unique(list(current.get("nearby_characters", []) or []))
+    if part == "characters":
+        knowledge = read_json("state/knowledge_state.json", sid, default={}) or {}
+        relationships = read_json("state/relationships.json", sid, default={}) or {}
+        power_state = read_json("state/power_state.json", sid, default={}) or {}
+        return {
+            "session_id": sid,
+            "active_character_ids": active,
+            "nearby_character_ids": nearby,
+            "scene_character_ids": scene_chars,
+            "character_files": character_required_files(required_files),
+            "knowledge_table": knowledge_for_scene(knowledge, scene_chars),
+            "relationships": relationships_for_scene(relationships, scene_chars),
+            "power_state": power_for_scene(power_state, scene_chars),
+            "api_usage_note": "Characters context only. Includes scene character files, focused knowledge, focused relationships, and focused power state; load full state files only when needed.",
+        }
+
+    return {
+        "session_id": sid,
+        "story_lines": story_lines_for_memory(story_lines, scene_chars),
+        "scene_history_recent": recent_scene_history(sid, 8),
+        "future_locks_progress": compact_future_locks(future),
+        "api_usage_note": "Memory context only. Includes compact story lines, recent scene history, and active/scheduled future locks; load full memory files only when needed.",
+    }
+
+
 def compact_if_large(value: Any, max_chars: int = 4500) -> Any:
     try:
         dumped = json.dumps(value, ensure_ascii=False)
@@ -797,6 +965,11 @@ def session_context(session_id: str):
     return context_payload(safe_session_id(session_id))
 
 
+@app.get("/api/v1/sessions/{session_id}/context/part/{part}")
+def session_context_part(session_id: str, part: str):
+    return context_part_payload(session_id, part)
+
+
 @app.get("/api/v1/sessions/{session_id}/turn-contract")
 def session_turn_contract(session_id: str):
     sid = safe_session_id(session_id)
@@ -819,11 +992,7 @@ def session_turn_contract(session_id: str):
         "nearby_character_ids": nearby,
         "required_files": recommended_files_for_context(current, future),
         "output_format_contract": output_format_contract(),
-        "akira_behavior_profile_contract": {
-            "active_profile": current.get("akira_behavior_profile", "akira_default_cold"),
-            "available_profiles": current.get("akira_behavior_profiles", {}),
-            "rule": "Use only the selected Akira behavior profile on top of characters/main/akira.md. Do not blend inactive Akira profiles. If user says 'используем Акиру-1/1', set akira_behavior_profile=akira_default_cold. If user says 'используем Акиру-2/2', set akira_behavior_profile=akira_post_kai_chaotic_mask."
-        },
+        "akira_behavior_profile_contract": akira_behavior_profile_contract(current),
         "story_lines_contract": {
             "required_file": "state/story_lines.json",
             "schema": story_lines.get("schema"),
@@ -902,7 +1071,7 @@ def session_turn_contract(session_id: str):
             "After scene, apply turn result to state files or call /api/v1/sessions/{session_id}/apply-turn-result.",
             "Rewrite before sending if format or locks are wrong.",
         ],
-        "knowledge_table": {cid: knowledge.get(cid, {}) for cid in scene_chars},
+        "knowledge_table": knowledge_for_scene(knowledge, scene_chars),
         "inventory_contract": {"visible_inventory": current.get("visible_inventory", []), "nearby_items": current.get("nearby_items", []), "akira_inventory_state": (inventory.get("akira") or {})},
         "canon_locks": locks[:12],
     }
