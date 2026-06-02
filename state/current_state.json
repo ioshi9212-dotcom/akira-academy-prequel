@@ -6,6 +6,18 @@
   "current_time": "late_morning",
   "current_location_id": "academy_main_courtyard",
   "current_location_text": "главный двор Академии Астрейн",
+  "akira_behavior_profile": "akira_default_cold",
+  "akira_behavior_profiles": {
+    "akira_default_cold": "characters/variants/akira_default_cold.md",
+    "akira_post_kai_chaotic_mask": "characters/variants/akira_post_kai_chaotic_mask.md"
+  },
+  "akira_behavior_profile_rules": [
+    "Если пользователь пишет 'используем Акиру-1' или 'используем 1', установить akira_behavior_profile = akira_default_cold.",
+    "Если пользователь пишет 'используем Акиру-2' или 'используем 2', установить akira_behavior_profile = akira_post_kai_chaotic_mask.",
+    "Использовать только выбранный профиль поведения поверх базовой карточки characters/main/akira.md.",
+    "Не смешивать неактивные профили поведения Акиры.",
+    "Профиль меняет поведение, манеру, маску и наружные реакции, но не меняет биографию, силу, скрытый лор и факты мира."
+  ],
   "weather": {
     "summary": "уточнить в первой сцене",
     "temperature_feel": null,
@@ -33,6 +45,8 @@
     "В шапке сцены писать только реальные предметы.",
     "Телефон и деньги Акиры лежат внутри багажа и не видны окружающим, пока она не достала их действием.",
     "Акира автоматически замечает очевидные детали окружения.",
-    "Скрытый лор не раскрывать персонажам автоматически."
+    "Скрытый лор не раскрывать персонажам автоматически.",
+    "Перед сценой проверить state/current_state.json -> akira_behavior_profile и соответствующий файл characters/variants/*.md.",
+    "Если профиль Акиры не указан, использовать akira_default_cold."
   ]
 }
