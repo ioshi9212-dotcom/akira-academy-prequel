@@ -1,52 +1,35 @@
 {
   "state_id": "current_state",
+  "project_slug": "akira-academy-prequel",
   "story": "academy_prequel_1198",
   "current_date": "1198-08-15",
-  "current_day_label": null,
   "current_time": "late_morning",
   "current_location_id": "academy_main_courtyard",
-  "current_location_text": "главный двор Академии Астрейн",
+  "current_location_text": "Academy Astrein main courtyard",
   "akira_behavior_profile": "akira_default_cold",
-  "akira_behavior_profiles": {
-    "akira_default_cold": "characters/variants/akira_default_cold.md",
-    "akira_post_kai_chaotic_mask": "characters/variants/akira_post_kai_chaotic_mask.md"
-  },
-  "akira_behavior_profile_rules": [
-    "Если пользователь пишет 'используем Акиру-1' или 'используем 1', установить akira_behavior_profile = akira_default_cold.",
-    "Если пользователь пишет 'используем Акиру-2' или 'используем 2', установить akira_behavior_profile = akira_post_kai_chaotic_mask.",
-    "Использовать только выбранный профиль поведения поверх базовой карточки characters/main/akira.md.",
-    "Не смешивать неактивные профили поведения Акиры.",
-    "Профиль меняет поведение, манеру, маску и наружные реакции, но не меняет биографию, силу, скрытый лор и факты мира."
-  ],
   "weather": {
-    "summary": "уточнить в первой сцене",
+    "summary": "set in first scene",
     "temperature_feel": null,
     "details": []
   },
   "akira_state": {
-    "visible_state": "спокойна внешне",
-    "internal_state": "насторожена, собрана, оценивает новое место",
-    "body_state": "после дороги, но держит контроль",
+    "visible_state": "calm outside",
+    "internal_state": "alert and focused",
+    "body_state": "after the road, controlled",
     "player_defined_state": null
   },
   "visible_inventory": [],
-  "nearby_items": [
-    "дорожная сумка / багаж Акиры"
-  ],
-  "active_characters": [
-    "akira"
-  ],
+  "nearby_items": ["Akira travel bag"],
+  "active_characters": ["akira", "livia"],
   "nearby_characters": [],
-  "current_scene_goal": "прибытие в Академию Астрейн и первые социальные контакты",
+  "allowed_main_characters": ["akira", "livia", "raiden", "haru", "kir", "kiara"],
+  "current_scene_goal": "Academy arrival and first social contacts",
   "last_player_input": null,
   "scene_count": 0,
   "rules": [
-    "Не тянуть время по минутам без причины.",
-    "В шапке сцены писать только реальные предметы.",
-    "Телефон и деньги Акиры лежат внутри багажа и не видны окружающим, пока она не достала их действием.",
-    "Акира автоматически замечает очевидные детали окружения.",
-    "Скрытый лор не раскрывать персонажам автоматически.",
-    "Перед сценой проверить state/current_state.json -> akira_behavior_profile и соответствующий файл characters/variants/*.md.",
-    "Если профиль Акиры не указан, использовать akira_default_cold."
+    "Use only akira-academy-prequel data.",
+    "Do not stretch time without reason.",
+    "Use only visible real items in scene header.",
+    "Do not reveal hidden lore automatically."
   ]
 }

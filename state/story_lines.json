@@ -1,18 +1,14 @@
 {
   "schema": "story_lines_v1",
-  "purpose": "Рабочая память событий по сюжетным линиям. Не хранит анкеты персонажей: анкеты лежат в characters/main/*.md и characters/npc/*.md.",
+  "project_slug": "akira-academy-prequel",
+  "story": "academy_prequel_1198",
+  "current_arc": "academy_day_001",
   "rules": {
-    "no_one_scene_files": true,
     "character_cards_are_source_for_personality": true,
     "this_file_stores_only_events_relationships_knowledge_obligations": true,
-    "shared_event_written_once_then_referenced_by_lines": true,
     "every_event_requires_absolute_date": true,
-    "relative_dates_must_be_calculated_from_current_state_date": true,
     "compact_every_turns": 15,
-    "compaction_does_not_delete_important_memory": true,
-    "story_is_planned_novel_chain_not_simulator": true,
-    "academy_is_training_system_not_morality_school": true,
-    "social_media_is_background_not_main_plot": true
+    "story_is_planned_novel_chain_not_simulator": true
   },
   "turn_counter": {
     "total_game_turns": 0,
@@ -20,305 +16,29 @@
     "compact_every_turns": 15,
     "last_compaction_turn": 0,
     "last_compaction_date": null,
-    "last_compaction_note": null,
+    "last_compaction_note": "clean academy reset",
     "technical_turns_do_not_count": true
   },
-  "narrative_policy": {
-    "mode": "сюжетная новелла с управляемой Акирой, не песочница и не симулятор быта",
-    "goal": "вести логичную цепочку интересных событий между уже существующими персонажами, постепенно заполняя жизнь Акиры людьми, конфликтами, тренировками, репутацией, рейтингом, обещаниями и последствиями",
-    "scene_priority": [
-      "развитие персонажных линий",
-      "тренировки / энергия / техника / рейтинг",
-      "социальные последствия и репутация",
-      "конфликты и обещания",
-      "будущие сюжетные крючки"
-    ],
-    "avoid": [
-      "пустой быт без последствий",
-      "импровизированные философские занятия под каждую личную проблему",
-      "соцсети как главная тема сцены",
-      "случайные NPC вместо подходящих main/supporting персонажей"
-    ]
-  },
-  "next_beats": {
-    "purpose": "Мини-план ближайших сюжетных крючков. Использовать как напоминание, а не как жёсткий сценарий.",
-    "rules": {
-      "keep_3_to_7_active_beats": true,
-      "each_beat_has_date_or_condition": true,
-      "do_not_force_if_scene_context_changed": true,
-      "if_due_then_show_or_explain_delay": true,
-      "remove_or_compact_after_resolved": true
+  "shared_events": [],
+  "active_lines": {
+    "academy_arrival": {
+      "status": "open",
+      "date_started": "1198-08-15",
+      "summary": "Akira and Livia arrive at Academy Astrein for the first day.",
+      "characters": ["akira", "livia"],
+      "event_refs": [],
+      "next_beats": ["registration", "official route", "dorm assignment", "first social pressure"]
     },
-    "active": [
-      {
-        "beat_id": "akira_raiden_opponent_check_1198_08_18",
-        "date_or_condition": "1198-08-18 / учебная проверка, безопасное оружие или ограниченная энергия",
-        "related_ids": ["akira", "raiden_sterling", "haru_foster", "livia_cross"],
-        "summary": "Академия ставит Акиру и Райдена друг против друга как часть обычного смешивания студентов. Это не личный вызов и не наказание, а проверка контроля, дистанции и реакции.",
-        "expected_effects": ["напряжение", "раздражение", "взаимная проверка", "инструкторская пометка", "зацепка для будущего синхрона"],
-        "priority": "high",
-        "status": "open"
-      },
-      {
-        "beat_id": "akira_raiden_sync_pair_1198_08_20",
-        "date_or_condition": "1198-08-20 / парная проверка, синхрон, командная реакция",
-        "related_ids": ["akira", "raiden_sterling", "haru_foster", "livia_cross"],
-        "summary": "После проверки друг против друга Академия ставит Акиру и Райдена в пару; они раздражаются, но неожиданно читают ритм, дистанцию или движение друг друга.",
-        "expected_effects": ["вынужденный синхрон", "раздражение из-за совпадения", "наблюдение Хару", "внимание Ливии", "репутационный шум"],
-        "priority": "high",
-        "status": "open"
-      },
-      {
-        "beat_id": "livia_pulls_akira_out_1198_08_22",
-        "date_or_condition": "1198-08-22 evening / свободное время после учебного блока",
-        "related_ids": ["akira", "livia_cross", "haru_foster", "kiara_volt"],
-        "summary": "Ливия пытается вытащить Акиру куда-нибудь: танцы, караоке, студенческий вечер, музыкальный зал или разрешённая вылазка. Она может позвать кого-то ещё, если это логично и интересно.",
-        "expected_effects": ["самостоятельная инициатива Ливии", "социальная сцена", "возможный конфликт/флирт", "выбор Акиры влияет на динамику"],
-        "priority": "medium",
-        "status": "open"
-      },
-      {
-        "beat_id": "asher_kai_return_to_academy_1198_09_01",
-        "date_or_condition": "1198-09-01 / начало сентябрьского учебного блока, возвращение части старших студентов в активный кампус",
-        "related_ids": ["akira", "livia_cross", "asher_lane", "kai_renwick", "haru_foster", "raiden_sterling"],
-        "summary": "Ашер Лейн и Кай Ренвик возвращаются к обучению после отсутствия в августе. Они были дома/вне активного кампуса и не жили в общежитии в августовских сценах. Их совместное появление вскрывает две разные школьные раны: Ашер — для Ливии, Кай — для Акиры.",
-        "expected_effects": ["старая боль Ливии", "старая закрытая реакция Акиры", "социальное напряжение", "возможный фон 'Слепой зоны'", "наблюдение Хару/Райдена"],
-        "priority": "high",
-        "status": "scheduled"
-      }
-    ],
-    "resolved": []
-  },
-  "compaction_policy": {
-    "game_turns_only": true,
-    "technical_turns_do_not_count": true,
-    "debug_audit_rule_edits_do_not_count": true,
-    "preserve_open_threads": true,
-    "preserve_obligations": true,
-    "preserve_first_meetings": true,
-    "preserve_knowledge_boundaries": true,
-    "preserve_named_npc_identity": true,
-    "preserve_unknown_name_descriptors": true,
-    "preserve_relationship_causes": true,
-    "preserve_reputation_causes": true,
-    "compress_repeated_minor_events": true,
-    "compress_completed_progress_logs": true,
-    "do_not_erase_reason_for_current_reaction": true,
-    "daily_timeline_is_not_deleted": true,
-    "shared_events_can_be_reduced_to_refs_after_summary": true
-  },
-  "calendar_policy": {
-    "date_format": "YYYY-MM-DD внутри данных, человекочитаемо в summary: 15 августа 1198",
-    "relative_date_rules": {
-      "same_day": "сегодня / утром / днём / вечером, если дата совпадает",
-      "one_day_ago": "вчера",
-      "two_days_ago": "позавчера / два дня назад",
-      "three_to_six_days_ago": "несколько дней назад / N дней назад",
-      "seven_days_ago": "неделю назад",
-      "more_than_seven_days_ago": "называть точную дату или период"
-    },
-    "hard_rule": "Персонажи не должны говорить 'вчера' про событие, если между current_state.date и event.date прошло больше одного дня."
-  },
-  "daily_timeline": {
-    "1198-09-01": [
-      {
-        "event_id": "asher_kai_return_to_academy_1198_09_01",
-        "time": "начало учебного дня / возвращение старших студентов",
-        "location": "Академия Астрейн, активный кампус",
-        "summary": "Ашер Лейн и Кай Ренвик возвращаются к обучению вместе с частью старших студентов. В августе их не было в общежитии и активном кампусе: они были дома/вне кампуса, поэтому не участвовали в августовских сценах.",
-        "participants": ["asher_lane", "kai_renwick"],
-        "witnesses": [],
-        "consequences": ["открывается школьное прошлое Ливии через Ашера", "открывается школьное прошлое Акиры через Кая", "возможен возврат темы 'Слепой зоны' как социального фона"],
-        "line_refs": ["line_livia", "line_akira_school_past", "line_asher", "line_kai", "line_social_media_rumors", "line_reputation"],
-        "state_refs": ["state/knowledge_state.json", "state/relationships.json", "state/story_lines.json"]
-      }
-    ]
-  },
-  "shared_events": [
-    {
-      "event_id": "asher_kai_absent_august_return_sep1_1198",
-      "date": "1198-09-01",
-      "time": "начало сентябрьского учебного блока",
-      "location": "Академия Астрейн",
-      "participants": ["asher_lane", "kai_renwick"],
-      "witnesses": [],
-      "summary": "Ашер Лейн и Кай Ренвик отсутствовали в августовских активных сценах Академии, потому что были дома/вне кампуса, а 1 сентября возвращаются к обучению вместе с частью старших студентов.",
-      "visible_to": [],
-      "known_by": ["asher_lane", "kai_renwick"],
-      "not_known_by": [],
-      "consequences": ["их нельзя вставлять в августовские общежитейские сцены задним числом", "их первое актуальное появление в Академии запланировано на 1 сентября"],
-      "line_refs": ["line_asher", "line_kai", "line_academy", "line_reputation"]
+    "akira_livia_friendship": {
+      "status": "open",
+      "date_started": "1198-08-15",
+      "summary": "Akira and Livia start the academy route together.",
+      "characters": ["akira", "livia"],
+      "event_refs": [],
+      "next_beats": []
     }
-  ],
-  "lines": {
-    "line_haru": {
-      "title": "Хару",
-      "character_ids": ["haru_foster"],
-      "related_ids": ["akira", "raiden_sterling", "livia_cross", "asher_lane", "kai_renwick"],
-      "current_summary": "",
-      "events": [],
-      "relationship_updates": [],
-      "knowledge_updates": [],
-      "open_threads": ["Хару может знать Ашера и Кая по лицу/кампусу, но не является их другом без сыгранной сцены."],
-      "compacted_summary": "",
-      "compacted_history": []
-    },
-    "line_raiden": {
-      "title": "Райден",
-      "character_ids": ["raiden_sterling"],
-      "related_ids": ["akira", "haru_foster", "samuel_sterling", "kiara_volt", "asher_lane", "kai_renwick"],
-      "current_summary": "",
-      "events": [],
-      "relationship_updates": [],
-      "knowledge_updates": [],
-      "open_threads": ["Райден может знать Ашера и Кая по лицу/кампусу, но не является их другом без сыгранной сцены."],
-      "compacted_summary": "",
-      "compacted_history": []
-    },
-    "line_livia": {
-      "title": "Ливия",
-      "character_ids": ["livia_cross"],
-      "related_ids": ["akira", "haru_foster", "raiden_sterling", "kiara_volt", "asher_lane", "kai_renwick"],
-      "current_summary": "Ливия имеет отдельную школьную боль через Ашера Лейна: он был её старшим парнем, наедине тёплым, при компании размывающим отношения.",
-      "events": [
-        {
-          "event_id": "livia_asher_school_past_fixed",
-          "date": "pre-1198",
-          "summary": "Ливия сама ушла от Ашера после серии обесцениваний, но у неё осталось чувство, что её выбирали только тогда, когда никто не смотрит.",
-          "effect": "объясняет её демонстративность, громкий флирт, страх быть 'неофициальной' и будущий триггер при встрече 1 сентября"
-        }
-      ],
-      "relationship_updates": ["livia_cross__asher_lane"],
-      "knowledge_updates": ["Ливия знает Ашера как бывшего; знает Кая как человека, подставившего Акиру; не знает, что Кай мог быть Акире чуть интересен."],
-      "open_threads": ["1 сентября Ашер возвращается и может вскрыть старую боль Ливии.", "Кай может включить защитную реакцию Ливии за Акиру."],
-      "compacted_summary": "",
-      "compacted_history": []
-    },
-    "line_asher": {
-      "title": "Ашер Лейн",
-      "character_ids": ["asher_lane"],
-      "related_ids": ["livia_cross", "akira", "kai_renwick", "haru_foster", "raiden_sterling"],
-      "current_summary": "Ашер — бывший Ливии из школы; его вина в том, что наедине он был тёплым, а при компании размывал отношения и выбирал удобный образ.",
-      "events": [
-        {
-          "event_id": "asher_absent_august_return_sep1_1198",
-          "date": "1198-09-01",
-          "summary": "Ашер отсутствовал в августе в активном кампусе/общежитии, потому что был дома/вне кампуса, и возвращается к обучению 1 сентября.",
-          "effect": "его нельзя использовать в августовских сценах задним числом; первое актуальное появление — сентябрь"
-        }
-      ],
-      "relationship_updates": ["livia_cross__asher_lane", "akira__asher_lane", "asher_lane__kai_renwick"],
-      "knowledge_updates": ["Ашер знает Ливию, Кая, общий шум вокруг 'Слепой зоны', но не hidden lore."],
-      "open_threads": ["1 сентября Ашер может обратиться к Ливии слишком знакомым 'Лив' и включить её старую боль."],
-      "compacted_summary": "",
-      "compacted_history": []
-    },
-    "line_kai": {
-      "title": "Кай Ренвик",
-      "character_ids": ["kai_renwick"],
-      "related_ids": ["akira", "livia_cross", "asher_lane", "haru_foster", "raiden_sterling"],
-      "current_summary": "Кай — школьная неприятная история Акиры; он мог быть ей чуть интересен, но выбрал толпу и не защитил её публично после 'Ставка закрыта'.",
-      "events": [
-        {
-          "event_id": "kai_absent_august_return_sep1_1198",
-          "date": "1198-09-01",
-          "summary": "Кай отсутствовал в августе в активном кампусе/общежитии, потому что был дома/вне кампуса, и возвращается к обучению 1 сентября.",
-          "effect": "его нельзя использовать в августовских сценах задним числом; первое актуальное появление — сентябрь"
-        }
-      ],
-      "relationship_updates": ["akira__kai_renwick", "livia_cross__kai_renwick", "asher_lane__kai_renwick"],
-      "knowledge_updates": ["Кай знает свою вину в истории 'Ставка закрыта'; Ливия знает версию подставы, но не знает глубину возможного интереса Акиры."],
-      "open_threads": ["1 сентября Кай может впервые столкнуться с Акирой после школьной истории.", "Ливия может резко вмешаться, не зная, что реакция Акиры глубже."],
-      "compacted_summary": "",
-      "compacted_history": []
-    },
-    "line_kiara": {
-      "title": "Киара",
-      "character_ids": ["kiara_volt"],
-      "related_ids": ["akira", "livia_cross", "haru_foster", "raiden_sterling"],
-      "current_summary": "",
-      "events": [],
-      "relationship_updates": [],
-      "knowledge_updates": [],
-      "open_threads": [],
-      "compacted_summary": "",
-      "compacted_history": []
-    },
-    "line_academy": {
-      "title": "Академия",
-      "character_ids": [],
-      "related_ids": ["akira", "asher_lane", "kai_renwick"],
-      "current_summary": "1 сентября часть старших студентов возвращается к активному обучению после августовского отсутствия дома/вне кампуса.",
-      "events": [
-        {
-          "event_id": "senior_students_return_sep1_1198",
-          "date": "1198-09-01",
-          "summary": "Ашер и Кай возвращаются к обучению вместе с частью старших студентов. Их не было в общежитии/активном кампусе в августе."
-        }
-      ],
-      "schedule_updates": ["1198-09-01 — начало сентябрьского блока для части старших студентов, включая Ашера и Кая."],
-      "training_updates": [],
-      "dorm_updates": ["В августе Ашер и Кай не жили в активном общежитии кампуса; были дома/вне кампуса."],
-      "open_threads": ["1 сентября их появление может пересечься с Акирой, Ливией, Хару и Райденом через общий кампус, расписание или старшие группы."],
-      "compacted_summary": "",
-      "compacted_history": []
-    },
-    "line_rating": {
-      "title": "Рейтинг и классы Академии",
-      "character_ids": [],
-      "related_ids": ["akira", "livia_cross", "haru_foster", "raiden_sterling", "veronica_ellard", "kael_north", "asher_lane", "kai_renwick"],
-      "current_summary": "",
-      "events": [],
-      "rating_updates": [],
-      "class_updates": [],
-      "exam_results": [],
-      "training_access": [],
-      "open_threads": ["После возвращения старших студентов 1 сентября Ашера и Кая можно использовать в тренировочных/рейтинговых сценах, но не как друзей Хару/Райдена без основания."],
-      "compacted_summary": "",
-      "compacted_history": []
-    },
-    "line_reputation": {
-      "title": "Репутация",
-      "character_ids": [],
-      "related_ids": ["akira", "livia_cross", "haru_foster", "raiden_sterling", "kiara_volt", "veronica_ellard", "asher_lane", "kai_renwick"],
-      "current_summary": "Старый школьный канал 'Слепая зона' может всплыть как репутационный фон после возвращения Ашера и Кая, но не должен становиться главным сюжетом автоматически.",
-      "events": [],
-      "group_reactions": [],
-      "reputation_updates": [],
-      "open_threads": ["Появление Кая может вернуть старый слух 'Ставка закрыта'.", "Появление Ашера может вскрыть у Ливии боль неофициальных отношений."],
-      "compacted_summary": "",
-      "compacted_history": []
-    },
-    "line_social_media_rumors": {
-      "title": "Соцсети и слухи",
-      "character_ids": [],
-      "related_ids": ["akira", "livia_cross", "kiara_volt", "asher_lane", "kai_renwick"],
-      "current_summary": "Старый школьный канал 'Слепая зона' связан с историей Кая и Акиры; он может всплыть как фон после 1 сентября.",
-      "events": [
-        {
-          "event_id": "blind_zone_school_channel_backstory",
-          "date": "pre-1198",
-          "summary": "В школьном закрытом канале 'Слепая зона' когда-то появилась история 'Ставка закрыта', где приход Акиры на встречу с Каем превратили в ставку/насмешку.",
-          "effect": "фон для будущего социального давления; не главная линия по умолчанию"
-        }
-      ],
-      "channels": ["Слепая зона"],
-      "rumor_updates": [],
-      "daily_background_ping": [],
-      "open_threads": ["После 1 сентября старые скрины/слухи могут всплыть через социальный круг, Киару, поклонниц Хару или общий студенческий фон."],
-      "compacted_summary": "",
-      "compacted_history": []
-    },
-    "line_obligations": {
-      "title": "Ставки, долги, обещания",
-      "character_ids": [],
-      "related_ids": ["akira", "haru_foster", "kai_renwick"],
-      "current_summary": "",
-      "events": [],
-      "open_obligations": [],
-      "completed_obligations": [],
-      "compacted_summary": "",
-      "compacted_history": []
-    }
-  }
+  },
+  "closed_lines": {},
+  "compacted_summary": "Clean academy start. No imported played scenes from other projects.",
+  "next_beats": ["finish registration", "move through official route", "establish Livia's presence", "introduce academy social tension"]
 }
