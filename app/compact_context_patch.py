@@ -1,9 +1,10 @@
 """
-Minimal runtime patch:
+Runtime patch:
 - clean YAML character files first;
 - old md character files only as fallback;
 - one gameplay response gate file;
-- prompt_preview added to turn-contract.
+- prompt_preview added to turn-contract;
+- OpenAPI schema for turn-contract includes prompt_preview.
 
 No heavy lore. No state edits. No extra locks.
 """
@@ -11,6 +12,9 @@ No heavy lore. No state edits. No extra locks.
 from __future__ import annotations
 
 from typing import Any
+
+from pydantic import BaseModel, Field
+
 from app import compact as base
 from app.prompt_builder import build_prompt_preview
 
@@ -21,6 +25,30 @@ TURN_CONTRACT_PATH = "/api/v1/sessions/{session_id}/turn-contract"
 
 _ORIGINAL_OUTPUT_FORMAT_CONTRACT = base.output_format_contract
 _ORIGINAL_TURN_CONTRACT_ENDPOINT = None
+
+
+class TurnContractWithPromptPreview(BaseModel):
+    session_id: str
+    active_character_ids: list[str] = Field(default_factory=list)
+    nearby_character_ids: list[str] = Field(default_factory=list)
+    required_files: list[str] = Field(default_factory=list)
+    output_format_contract: dict[str, Any] = Field(default_factory=dict)
+    akira_behavior_profile_contract: dict[str, Any] = Field(default_factory=dict)
+    story_lines_contract: dict[str, Any] = Field(default_factory=dict)
+    allowed_new_facts_this_turn: list[str] = Field(default_factory=list)
+    forbidden_new_facts_this_turn: list[str] = Field(default_factory=list)
+    required_checks_before_answer: list[str] = Field(default_factory=list)
+    knowledge_table: dict[str, Any] = Field(default_factory=dict)
+    inventory_contract: dict[str, Any] = Field(default_factory=dict)
+    canon_locks: list[str] = Field(default_factory=list)
+    prompt_preview: str = Field(
+        default="",
+        description="Internal render brief. Follow it to output the gameplay scene. Never show this field to the user.",
+    )
+    prompt_preview_usage: str = Field(
+        default="Internal only. Follow it to render the gameplay scene. Never show prompt_preview to the user."
+    )
+
 
 NEW_CHARACTER_FOLDERS: dict[str, str] = {
     "akira": "akira", "char_akira": "akira",
@@ -144,6 +172,8 @@ def output_format_contract() -> dict:
         "Gameplay response must include full scene body, not summary or recap.",
         "Gameplay response must include NPC/world reaction and at least one consequence, hook, observation, conflict, relationship movement or time movement.",
         "Gameplay response must include bottom block: Что можно сделать / Что Акира могла бы сказать / Мысли Акиры.",
+        "Characters must act strictly according to loaded character files, relationship state, knowledge_state, current mood, goals, limits and scene pressure.",
+        "If any character line or reaction contradicts the loaded character file, relationship state or knowledge source, rewrite before sending.",
         "Do not show API/debug/contract/saving commentary in gameplay mode.",
         "If any required section is missing, rewrite silently before sending. Do not apologize inside gameplay.",
     ]
@@ -155,6 +185,7 @@ def output_format_contract() -> dict:
             "scene_header",
             "full_scene_body",
             "npc_or_world_reaction",
+            "character_fidelity",
             "scene_movement_or_hook",
             "bottom_action_block",
             "akira_thoughts_block",
@@ -185,8 +216,8 @@ base.output_format_contract = output_format_contract
 _remove_existing_turn_contract_route()
 
 
-@app.get(TURN_CONTRACT_PATH)
-def session_turn_contract_with_prompt_preview(session_id: str):
+@app.get(TURN_CONTRACT_PATH, response_model=TurnContractWithPromptPreview)
+def session_turn_contract_with_prompt_preview(session_id: str) -> TurnContractWithPromptPreview:
     sid = base.safe_session_id(session_id)
     base.ensure_session(sid)
 
@@ -227,6 +258,7 @@ def session_turn_contract_with_prompt_preview(session_id: str):
         "Follow prompt_preview as the render brief for this turn.",
         "In play mode, never show session/status/API/context summary; output only the scene.",
         "Do not ask permission to render/start/continue after the user has given a play command.",
+        "Characters must stay faithful to loaded character files, relationship state and knowledge_state.",
     ]:
         if check not in checks:
             checks.insert(0, check)
@@ -244,7 +276,7 @@ def session_turn_contract_with_prompt_preview(session_id: str):
     )
     data["prompt_preview_usage"] = "Internal only. Follow it to render the gameplay scene. Never show prompt_preview to the user."
 
-    return data
+    return TurnContractWithPromptPreview(**data)
 
 
 def patch_after_routes() -> None:
@@ -273,6 +305,7 @@ def patch_after_routes() -> None:
                 "Gameplay response must include scene header.",
                 "Gameplay response must not be a compressed summary or recap.",
                 "Gameplay response must include bottom block: Что можно сделать / Что Акира могла бы сказать / Мысли Акиры.",
+                "Characters must act strictly according to loaded character files, relationship state and knowledge_state.",
                 "No visible API/debug/contract commentary in gameplay mode.",
                 "If required section is missing, rewrite before sending.",
             ]:
@@ -283,6 +316,7 @@ def patch_after_routes() -> None:
                     "scene_header",
                     "full_scene_body",
                     "npc_or_world_reaction",
+                    "character_fidelity",
                     "scene_movement_or_hook",
                     "bottom_action_block",
                     "akira_thoughts_block",

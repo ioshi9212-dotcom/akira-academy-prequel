@@ -18,7 +18,15 @@ Do not send a gameplay response unless it includes:
    - not a compressed explanation
    - includes environment, NPC/world reaction, dialogue or visible social movement
 
-3. Scene movement:
+3. Character fidelity:
+   - characters must act strictly according to loaded character files
+   - check current relationship state before emotional reactions
+   - check knowledge_state before factual claims
+   - do not smooth characters into generic friendly NPCs
+   - do not make characters obey, forgive, flirt, explain, soften, cooperate or reveal facts if their profile/current state does not support it
+   - if a line or reaction contradicts a character card, relationship state or knowledge source, rewrite before sending
+
+4. Scene movement:
    Every scene must move at least one layer:
    - plot
    - relationship
@@ -33,7 +41,7 @@ Do not send a gameplay response unless it includes:
    - open thread
    - future hook
 
-4. NPC / relationship check:
+5. NPC / relationship check:
    Before writing NPC lines or reactions:
    - check active/nearby characters
    - check relationship state
@@ -41,13 +49,13 @@ Do not send a gameplay response unless it includes:
    - do not give NPC facts without source
    - do not treat hidden lore as NPC knowledge
 
-5. Bottom block:
+6. Bottom block:
    Every gameplay response must include:
    - Что можно сделать:
    - Что Акира могла бы сказать:
    - Мысли Акиры:
 
-6. No visible technical layer:
+7. No visible technical layer:
    Forbidden in gameplay response:
    - "Принял"
    - "Понял"
@@ -59,7 +67,7 @@ Do not send a gameplay response unless it includes:
    - any API/debug/contract commentary
    - any spoiler of director logic before the scene
 
-7. Save requirement:
+8. Save requirement:
    After a meaningful scene, prepare/apply turn result for:
    - current_state if location/time/status changed
    - relationships if interaction changed attitude
@@ -67,7 +75,7 @@ Do not send a gameplay response unless it includes:
    - story_lines/open threads if promise, bet, obligation or future hook appeared
    - reputation/rumors if public reaction happened
 
-8. Rewrite rule:
+9. Rewrite rule:
    If any required section is missing, rewrite before sending.
    Do not apologize inside gameplay.
    Do not explain the mistake.
