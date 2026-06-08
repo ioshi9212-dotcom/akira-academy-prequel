@@ -1,22 +1,22 @@
-id: "char_kiara"
-display_name: "Киара"
-true_name: "Киара Вольт"
-address_name: "Киара"
+id: "char_kir"
+display_name: "Кир"
+true_name: "Кир Нокс"
+address_name: "Кир"
 labels:
-  unknown_to_akira: "высокая светловолосая курсантка"
-  known_to_akira: "Киара"
-  narrator_default: "Киара"
-  speaker_label_before_reveal: "высокая светловолосая курсантка"
-  speaker_label_after_reveal: "Киара"
-aliases: ["Киара Вольт", "Киара"]
+  unknown_to_akira: "небрежный парень с кривой улыбкой"
+  known_to_akira: "Кир"
+  narrator_default: "Кир"
+  speaker_label_before_reveal: "Кир"
+  speaker_label_after_reveal: "Кир"
+aliases: ["Кир Нокс", "Кир"]
 reserved_aliases: []
-gender: "female"
-age_range: "18"
+gender: "male"
+age_range: "17-18"
 height: "175 см"
 role:
-  public_role: "курсантка Академии; социальная соперница Ливии; орбита рядом с Райденом и Хару"
+  public_role: "старый друг Акиры и Ливии; проблемный, но полезный новичок"
   hidden_role: null
-  current_status: "появляется 15 августа позже стартовой сверки как заметная курсантка социальной орбиты"
+  current_status: "появляется 15 августа позже стартовой сверки, будто опоздал"
   faction_id: "academy_students"
   location_anchor: "loc_academy_main"
 start_frame:
@@ -27,7 +27,7 @@ start_frame:
   required_location_id: "loc_academy_main"
   active_at_start: false
   delayed_entry: true
-  entry_beat: "beat_004_kiara_first_trace"
+  entry_beat: "beat_003_kir_late_entry"
 files:
   appearance: "appearance.md"
   behavior: "behavior.md"
@@ -42,7 +42,7 @@ scene_usage:
   can_appear_without_calendar_reason: false
   requires_location_match: true
   requires_story_reason: true
-  can_be_background: true
+  can_be_background: false
   can_speak_without_card_loaded: false
 pov_access:
   akira_can_notice: ["appearance", "voice", "movement", "facial_expression", "visible reaction"]
@@ -51,6 +51,6 @@ loading_rules:
   always_load_with_character: ["appearance", "behavior", "voice", "knowledge", "links", "goals"]
   load_only_if_scene_requires: ["energy", "past", "habits"]
 naming_rules:
-  full_name_for_identification: "Киара Вольт"
-  scene_name: "Киара"
-  dialogue_name: "Киара"
+  full_name_for_identification: "Кир Нокс"
+  scene_name: "Кир"
+  dialogue_name: "Кир"
