@@ -1,35 +1,5 @@
-character_id: "char_kir"
-schema: "character_energy_v1"
-type: "impulse_shift"
-subtype: "inertial displacement / broken trajectory"
-public_level: "unstable practical type"
-true_level: "dangerous if control breaks"
-public_perception:
-  academy_frame: "Импульсный сдвиг: резкое короткое изменение импульса, угла, направления и инерции."
-  combat_role: "disruption / evasive movement / trajectory breaking / provocation fighter"
-principle:
-  - "Меняет направление движения тела или предмета коротким ломаным импульсом."
-  - "Не телепортация, не суперскорость, не чистое усиление тела."
-visible_effects:
-  - "ложный шаг"
-  - "резкий боковой рывок"
-  - "срыв ожидаемой траектории"
-  - "противник бьёт туда, где Кир был мгновение назад"
-  - "тело движется рвано, будто спорит с физикой"
-basic_uses:
-  - "уйти под неправильным углом"
-  - "сломать ритм атаки"
-  - "сбить траекторию предмета"
-  - "превратить падение в перекат"
-limits:
-  - "не телепортация"
-  - "не абсолютная скорость"
-  - "не идеальное уклонение от любого удара"
-  - "масса, скорость, боль и последствия важны"
-cost_risk: ["вывих", "удар о стену", "повреждение колена", "потеря равновесия", "дезориентация"]
-start_use:
-  default: false
-  allowed_if: ["energy check", "training", "combat", "scene consequence requires movement detail"]
-forbidden_use:
-  - "не делать Кира неуязвимым"
-  - "не использовать настоящую силу против Акиры без серьёзной причины"
+schema: character_energy_v1
+character_id: char_kir
+public_energy_status: "not fully established in current scene"
+visible_effects: []
+limits: []
