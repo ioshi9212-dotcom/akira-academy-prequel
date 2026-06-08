@@ -1,0 +1,93 @@
+name: API smoke test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  api-smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install httpx
+
+      - name: Verify server entrypoint
+        run: |
+          python - <<'PY'
+          import app.server
+          assert hasattr(app.server, 'app'), 'app.server must expose app'
+          print('OK: app.server imports and exposes app')
+          PY
+
+      - name: Verify OpenAPI turn-contract schema includes prompt_preview
+        run: |
+          python - <<'PY'
+          from fastapi.testclient import TestClient
+          from app.server import app
+
+          client = TestClient(app)
+          openapi = client.get('/openapi.json').json()
+          schemas = openapi.get('components', {}).get('schemas', {})
+          assert 'TurnContractWithPromptPreview' in schemas, 'OpenAPI must include TurnContractWithPromptPreview schema'
+          props = schemas['TurnContractWithPromptPreview'].get('properties', {})
+          assert 'prompt_preview' in props, 'Turn contract schema must expose prompt_preview'
+
+          path = openapi.get('paths', {}).get('/api/v1/sessions/{session_id}/turn-contract', {})
+          get = path.get('get', {})
+          content = get.get('responses', {}).get('200', {}).get('content', {}).get('application/json', {})
+          schema = content.get('schema', {})
+          assert schema.get('$ref') == '#/components/schemas/TurnContractWithPromptPreview', 'turn-contract response must use TurnContractWithPromptPreview'
+          print('OK: OpenAPI turn-contract schema includes prompt_preview')
+          PY
+
+      - name: Verify runtime turn-contract loads clean YAML and gate
+        run: |
+          python - <<'PY'
+          from fastapi.testclient import TestClient
+          from app.server import app
+
+          client = TestClient(app)
+          create = client.post('/api/v1/sessions', json={'title': 'github_actions_smoke_test'})
+          assert create.status_code == 200, create.text
+          session_id = create.json()['session_id']
+
+          contract_resp = client.get(f'/api/v1/sessions/{session_id}/turn-contract')
+          assert contract_resp.status_code == 200, contract_resp.text
+          contract = contract_resp.json()
+
+          assert contract.get('prompt_preview'), 'turn-contract must return prompt_preview'
+          required = contract.get('required_files', [])
+          required_set = set(required)
+
+          must_have = {
+              'characters/akira/main.yaml',
+              'characters/akira/character.yaml',
+              'characters/akira/past.yaml',
+              'characters/livia/main.yaml',
+              'characters/livia/character.yaml',
+              'gpt/locks/gameplay_response_gate.md',
+          }
+          missing = sorted(must_have - required_set)
+          assert not missing, f'Missing required files: {missing}. Current required_files={required}'
+
+          assert 'characters/main/akira.md' not in required_set, 'legacy characters/main/akira.md should not load when clean YAML exists'
+          assert 'characters/main/livia_cross.md' not in required_set, 'legacy characters/main/livia_cross.md should not load when clean YAML exists'
+          print('OK: runtime turn-contract loads clean YAML, gate, and prompt_preview')
+          PY
