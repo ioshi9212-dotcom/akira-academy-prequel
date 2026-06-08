@@ -1,9 +1,5 @@
 id: canon_lore_index
 schema: academy_prequel_lore_v1
-why_here: >
-  Этот лор лежит в canon/lore, потому что текущий рабочий app.compact
-  синхронизирует canon/ в Railway Volume. Отдельную папку lore/ пока не
-  используем, чтобы не трогать рабочий запуск.
 always_use_compact:
   - "canon/lore/world.yaml"
   - "canon/lore/academy.yaml"
@@ -13,12 +9,4 @@ use_when_scene_needs:
   factions: "canon/lore/factions.yaml"
   hidden: "canon/lore/hidden.yaml"
   start_1198: "canon/lore/start_1198.yaml"
-rule: >
-  Лор нужен для сцены, а не для лекции. Движок должен вытаскивать короткие
-  заметки по текущей сцене, а не вставлять весь файл в ответ.
-do_not:
-  - "не раскрывать скрытый лор как знание NPC"
-  - "не превращать соцсети в главный сюжет каждой сцены"
-  - "не использовать фоновую энергию как повторяющийся декоративный эффект"
-  - "не делать Академию тюрьмой"
-  - "не делать носителей полностью свободными как обычных гражданских людей"
+rule: "Лор нужен для коротких scene notes, не для лекций."
