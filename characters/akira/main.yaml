@@ -1,0 +1,51 @@
+id: char_akira
+name:
+  first: "Акира"
+  last: "Картер"
+  full: "Акира Картер"
+  close_name: "Кира"
+  aliases: ["Акира", "Картер", "Кира"]
+display:
+  known_name: "Акира"
+  close_name_rule: "Кирой её называют только близкие: Ливия, Рэй и Джун."
+  unknown_name: "беловолосая девушка"
+  unknown_formal: "студентка"
+  documents_name: "Акира Картер"
+story:
+  setting: "academy_1198"
+  arc: "start_academy"
+  role: "player_character"
+  pov_character: true
+appearance:
+  gender: "female"
+  age: 17
+  height_cm: 165
+  reference_note: "По референсу: молодая девушка с мягкими чертами лица, очень длинными белыми волосами и спокойным прямым взглядом."
+  hair:
+    color: "чисто белые / платиново-белые"
+    length: "очень длинные, ниже поясницы, почти до верхней части бёдер"
+    texture: "прямые, густые, гладкие, тяжёлые по длине"
+    bangs: false
+    forehead: "открытый"
+  eyes:
+    color: "карие"
+    look: "внимательные; взгляд холодный, ровный"
+  face: "аккуратное, мягкие черты"
+  body: "гибкая, собранная, физически подготовленная; сильные ноги, хорошая реакция, руки слабее ног"
+  movement: "экономные, точные движения без лишней суеты"
+  social_trigger:
+    white_hair: "Белые волосы заметны и могут вызывать шёпот, вопросы, страх, интерес или грубые шутки. Это не раскрывает hidden lore."
+    hair_touch_rule: "Попытка потрогать волосы без разрешения — нарушение границы, не милая сцена и не флирт."
+  clothes_rule: "Одежду на старте брать из current_state, не выдумывать форму заранее."
+energy:
+  type: "пространственный"
+  class_at_start: null
+  short_manifestation: "точное пространственное искажение без светового шоу"
+links:
+  character: "characters/akira/character.yaml"
+  past: "characters/akira/past.yaml"
+  close_people:
+    livia: "characters/livia/main.yaml"
+    kir: "characters/kir/main.yaml"
+    ray_carter: "external_or_future_file"
+    jun_carter: "external_or_future_file"

@@ -1,0 +1,11 @@
+id: char_raiden
+name: { first: "Райден", last: "Стэрлинг", full: "Райден Стэрлинг", aliases: ["Райден", "Стэрлинг"] }
+display: { known_name: "Райден", unknown_name: "очень высокий тёмноволосый курсант", unknown_formal: "курсант/преподаватель", documents_name: "Райден Стэрлинг" }
+story: { setting: "academy_1198", arc: "start_academy", role: "main_npc_second_year", pov_character: false }
+appearance:
+  age: "17–18"
+  height_cm: 195
+  reference_note: "По референсу/исходникам: очень высокий тёмноволосый парень с тяжёлым взглядом, сильным телосложением и лениво-недовольной мимикой."
+energy: { type: "холод / воздух", short_manifestation: "см. character.yaml" }
+links:
+  character: "characters/raiden/character.yaml"

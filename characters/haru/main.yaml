@@ -1,0 +1,11 @@
+id: char_haru
+name: { first: "Хару", last: "Фостер", full: "Хару Фостер", aliases: ["Хару", "Фостер"] }
+display: { known_name: "Хару", unknown_name: "высокий рыжий курсант", unknown_formal: "курсант/преподаватель", documents_name: "Хару Фостер" }
+story: { setting: "academy_1198", arc: "start_academy", role: "main_npc_second_year", pov_character: false }
+appearance:
+  age: "18"
+  height_cm: 190
+  reference_note: "По референсу/исходникам: высокий рыжий парень с веснушками, живой мимикой и сильным спортивным телосложением."
+energy: { type: "жар / огонь", short_manifestation: "см. character.yaml" }
+links:
+  character: "characters/haru/character.yaml"
