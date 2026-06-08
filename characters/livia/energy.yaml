@@ -1,5 +1,32 @@
-schema: character_energy_v1
-character_id: char_livia
-public_energy_status: "not fully established in current scene"
-visible_effects: []
-limits: []
+character_id: "char_livia"
+schema: "character_energy_v1"
+type: "resonance"
+subtype: "sound-kinetic impulse"
+public_level: "B-1 / B-2"
+true_level: "B-1 / B-2 at start, potential up to A with training"
+public_perception:
+  academy_frame: "Резонансный тип: звук, вибрация, ритм движения, короткие импульсы через среду."
+  combat_role: "support / rhythm disruption / distance control / ally tempo support"
+principle:
+  - "Создаёт и чувствует резонанс через голос, шаги, хлопок, щелчок, удар по поверхности, вибрацию пола, стен, воздуха или предметов."
+  - "Не читает мысли и не контролирует эмоции."
+visible_effects:
+  - "звук становится слишком резким"
+  - "шаг отдаётся сильнее, чем должен"
+  - "противник теряет темп"
+  - "голос на миг ломается"
+  - "поверхность отвечает короткой вибрацией"
+basic_uses:
+  - "усилить голос/звук"
+  - "создать звуковой импульс"
+  - "сбить равновесие или темп атаки"
+  - "помочь союзнику сохранить ритм"
+limits:
+  - "тишина или отсутствие среды ослабляют способность"
+  - "хаотичный шум мешает точности"
+  - "не прямой грубый урон на старте"
+cost_risk: ["звон в ушах", "головокружение", "потеря голоса", "дрожь в руках", "расфокусировка"]
+forbidden_use:
+  - "не гипноз"
+  - "не чтение мыслей"
+  - "не S-class на старте"

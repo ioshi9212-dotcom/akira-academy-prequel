@@ -1,5 +1,37 @@
-schema: character_energy_v1
-character_id: char_haru
-public_energy_status: "not fully established in current scene"
-visible_effects: []
-limits: []
+character_id: "char_haru"
+schema: "character_energy_v1"
+type: "heat_fire"
+subtype: "explosive heat / thermal impulse / pressure"
+public_level: "strong academy combat type"
+true_level: "dangerous under emotion and overload"
+public_perception:
+  academy_frame: "Сильный носитель жара и огня. Энергия заметная, телесная, опасная в движении."
+  combat_role: "pressure fighter / close-range heat impulse / explosive tempo"
+principle:
+  - "Создаёт и усиливает тепловой импульс."
+  - "Нагревает воздух, поверхность, ладони, металл, зону контакта или короткий участок рядом."
+  - "Не декоративные файерболы и не бесконечный огнемёт."
+visible_effects:
+  - "воздух у ладони дрожит"
+  - "вспышка бьёт коротким хлопком"
+  - "пол отдаёт горячим ударом"
+  - "датчики пищат от скачка температуры"
+  - "пахнет горячим металлом, пылью или палёной тканью"
+basic_uses:
+  - "горячие ладони"
+  - "тепловая волна"
+  - "короткий огненный хлопок"
+  - "взрывной толчок"
+  - "перегрев поверхности"
+limits:
+  - "не бесконечный огонь без основы"
+  - "не идеальный контроль по умолчанию"
+  - "эмоции могут поднять силу раньше слов"
+cost_risk: ["перегрев", "красные костяшки", "случайно нагретый предмет", "прожжённая ткань", "опасный всплеск при злости"]
+start_use:
+  default: false
+  allowed_if: ["training", "energy check", "combat", "basketball/movement heat signs", "emotional pressure"]
+forbidden_use:
+  - "не декоративная магия"
+  - "не бесконечное пламя без цены"
+  - "не забывать, что он опасен в движении"

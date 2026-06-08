@@ -1,5 +1,34 @@
-schema: character_energy_v1
-character_id: char_kiara
-public_energy_status: "not fully established in current scene"
-visible_effects: []
-limits: []
+character_id: "char_kiara"
+schema: "character_energy_v1"
+type: "magnetic_displacement"
+subtype: "metal direction and trajectory shift"
+public_level: "controlled academy combat type"
+public_perception:
+  academy_frame: "Магнитное смещение и направление металлических объектов."
+  combat_role: "distance control / weapon disruption / precision interference"
+principle:
+  - "Смещает направление металлических объектов и металлических деталей."
+  - "Энергия физическая: щелчок, рывок, дрожь металла, срыв траектории."
+  - "Не телекинез всего подряд и не управление людьми."
+visible_effects:
+  - "металлический щелчок"
+  - "рывок украшения или застёжки"
+  - "дрожь пряжки, браслета, клипсы"
+  - "оружие уходит с ожидаемой линии"
+basic_uses:
+  - "менять направление металлических объектов"
+  - "сбивать оружие с траектории"
+  - "притягивать мелкие металлические предметы"
+  - "создавать короткий рывок предмета в сторону"
+limits:
+  - "работает прежде всего с металлом"
+  - "не управляет телом человека напрямую"
+  - "не автоматическая победа"
+cost_risk: ["головная боль", "напряжение в пальцах", "сбой точности", "случайный рывок не того предмета"]
+start_use:
+  default: false
+  allowed_if: ["training", "energy check", "public demonstration", "combat", "metal object pressure"]
+forbidden_use:
+  - "не управляет всеми объектами"
+  - "не mind control"
+  - "не unbeatable"
