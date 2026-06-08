@@ -1,0 +1,11 @@
+{
+  "schema": "academy_rating_state_v1",
+  "description": "Session-local academic rating notes and instructor marks.",
+  "ratings": {},
+  "instructor_marks": {},
+  "rules": [
+    "Use short tags, not heavy RPG tables.",
+    "Rating affects pairs, access, instructor attention, reputation and future distribution.",
+    "First day can have observations before official rating."
+  ]
+}

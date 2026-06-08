@@ -1,0 +1,10 @@
+{
+  "schema": "academy_gossip_state_v1",
+  "description": "Session-local gossip and social pressure.",
+  "items": {},
+  "rules": [
+    "Gossip has source, spread level and certainty.",
+    "Rumor is not confirmed knowledge.",
+    "Do not make every scene about gossip."
+  ]
+}

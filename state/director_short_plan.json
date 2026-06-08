@@ -1,0 +1,11 @@
+{
+  "schema": "academy_director_short_plan_v1",
+  "description": "Short temporary plan between calendar points. Session-local.",
+  "plans": {},
+  "rules": [
+    "1-3 small intentions only.",
+    "Do not railroad the player.",
+    "Delete or mark done after use.",
+    "Use only when there is empty time between important beats."
+  ]
+}
