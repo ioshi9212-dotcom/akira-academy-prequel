@@ -1,0 +1,10 @@
+{
+  "schema": "academy_open_threads_v1",
+  "description": "Promises, pending hooks, obligations and future scene seeds.",
+  "threads": {},
+  "rules": [
+    "Save promises and hooks with participants, date/status and reason.",
+    "Close or mark done after use.",
+    "Do not keep stale threads forever."
+  ]
+}
