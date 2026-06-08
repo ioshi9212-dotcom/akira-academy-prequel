@@ -7,10 +7,6 @@
   "current_location_id": "academy_main_courtyard",
   "current_location_text": "Academy Astrein main courtyard",
   "akira_behavior_profile": "akira_v2_poisonous",
-  "scheduled_character_ids": [
-    "kir"
-  ],
-  "mentioned_character_ids": [],
   "weather": {
     "summary": "set in first scene",
     "temperature_feel": null,
