@@ -1,0 +1,11 @@
+id: char_kiara
+name: { first: "Киара", last: "Вольт", full: "Киара Вольт", aliases: ["Киара", "Вольт"] }
+display: { known_name: "Киара", unknown_name: "высокая светловолосая курсантка", unknown_formal: "курсант/преподаватель", documents_name: "Киара Вольт" }
+story: { setting: "academy_1198", arc: "start_academy", role: "main_social_npc_second_year", pov_character: false }
+appearance:
+  age: "18"
+  height_cm: 175
+  reference_note: "По референсу/исходникам: высокая светловолосая девушка с идеальной осанкой, дорогой ухоженностью и уверенным взглядом."
+energy: { type: "магнитное смещение", short_manifestation: "см. character.yaml" }
+links:
+  character: "characters/kiara/character.yaml"

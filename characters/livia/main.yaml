@@ -1,0 +1,16 @@
+id: char_livia
+name: { first: "Ливия", last: "Кросс", full: "Ливия Кросс", aliases: ["Ливия", "Лив"] }
+display: { known_name: "Ливия", unknown_name: "шумная темноволосая девушка", unknown_formal: "студентка", documents_name: "Ливия Кросс" }
+story: { setting: "academy_1198", arc: "start_academy", role: "main_companion_npc", pov_character: false }
+appearance:
+  gender: "female"
+  age: 17
+  height_cm: 164
+  reference_note: "По референсу: живая девушка с тёплой смугловатой кожей, объёмными тёмными волнистыми волосами и яркой мимикой."
+  hair: { color: "тёмно-каштановые", length: "до плеч или чуть ниже", texture: "объёмные, волнистые, слегка кудрявые" }
+  eyes: { color: "карие / тёмные", look: "живые, выразительные" }
+  face: "подвижная мимика, хитрая улыбка"
+energy: { type: "резонанс", short_manifestation: "звук, вибрация, кинетический импульс" }
+links:
+  character: "characters/livia/character.yaml"
+  frequent_with: { akira: "characters/akira/main.yaml", kir: "characters/kir/main.yaml" }
