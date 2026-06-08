@@ -1,50 +1,28 @@
 """
-Runtime context selector patch for akira-academy-prequel.
-
-This module intentionally does NOT replace app.compact.
-It imports the existing working app.compact and patches only context file selection:
-- clean YAML character folders first;
-- old characters/main/*.md only as fallback;
-- scheduled/mentioned/delayed ids supported when already present in state/calendar-derived state.
-
-No new locks. No heavy lore auto-load.
+Minimal runtime patch:
+- clean YAML character files first;
+- old md character files only as fallback;
+- one gameplay response gate file.
+No heavy lore. No state edits. No extra locks.
 """
 
 from __future__ import annotations
 
 from typing import Any
-
 from app import compact as base
 
 app = base.app
 
+GAMEPLAY_RESPONSE_GATE_FILE = "gpt/locks/gameplay_response_gate.md"
+
 NEW_CHARACTER_FOLDERS: dict[str, str] = {
-    "akira": "akira",
-    "char_akira": "akira",
-
-    "livia": "livia",
-    "livia_cross": "livia",
-    "char_livia": "livia",
-
-    "kir": "kir",
-    "kir_knox": "kir",
-    "char_kir": "kir",
-
-    "haru": "haru",
-    "haru_foster": "haru",
-    "char_haru": "haru",
-
-    "raiden": "raiden",
-    "raiden_sterling": "raiden",
-    "char_raiden": "raiden",
-
-    "kiara": "kiara",
-    "kiara_volt": "kiara",
-    "char_kiara": "kiara",
-
-    "kael": "kael_north",
-    "kael_north": "kael_north",
-    "char_kael_north": "kael_north",
+    "akira": "akira", "char_akira": "akira",
+    "livia": "livia", "livia_cross": "livia", "char_livia": "livia",
+    "kir": "kir", "kir_knox": "kir", "char_kir": "kir",
+    "haru": "haru", "haru_foster": "haru", "char_haru": "haru",
+    "raiden": "raiden", "raiden_sterling": "raiden", "char_raiden": "raiden",
+    "kiara": "kiara", "kiara_volt": "kiara", "char_kiara": "kiara",
+    "kael": "kael_north", "kael_north": "kael_north", "char_kael_north": "kael_north",
 }
 
 
@@ -58,9 +36,6 @@ def _unique(values: list[str]) -> list[str]:
 
 
 def character_files_for(character_id: str) -> list[str]:
-    """
-    Prefer clean YAML character folders. Use legacy md only if clean YAML files do not exist.
-    """
     cid = str(character_id).strip()
     files: list[str] = []
 
@@ -96,11 +71,6 @@ def character_file(character_id: str) -> str:
 
 
 def active_scene_characters(current: dict[str, Any], future: dict[str, Any] | None = None) -> list[str]:
-    """
-    Keep old behavior, but also accept ids already prepared by calendar/state:
-    scheduled_character_ids, mentioned_character_ids, delayed_character_ids.
-    This does not force Kir or anyone else by itself.
-    """
     future = future or {}
 
     active = list(current.get("active_characters", []) or [])
@@ -127,10 +97,6 @@ def active_scene_characters(current: dict[str, Any], future: dict[str, Any] | No
 
 
 def recommended_files_for_context(current: dict[str, Any] | None = None, future: dict[str, Any] | None = None) -> list[str]:
-    """
-    Same contract as base.recommended_files_for_context, but with clean YAML character folders.
-    No heavy lore auto-load. No new locks.
-    """
     current = current or {}
     future = future or {}
     scene_chars = active_scene_characters(current, future)
@@ -150,6 +116,7 @@ def recommended_files_for_context(current: dict[str, Any] | None = None, future:
     files = _unique(
         base.CORE_RECOMMENDED_FILES
         + base.CORE_LOCK_FILES
+        + ([GAMEPLAY_RESPONSE_GATE_FILE] if base.repo_file_exists(GAMEPLAY_RESPONSE_GATE_FILE) else [])
         + character_files
         + akira_profile_files
         + base.character_lock_files(scene_chars)
@@ -162,9 +129,87 @@ def base_recommended_files() -> list[str]:
     return recommended_files_for_context({"active_characters": ["akira"]}, {})
 
 
-# Monkey-patch only the selector functions used by /context and /turn-contract.
+def output_format_contract() -> dict:
+    contract = base.output_format_contract()
+    rules = contract.setdefault("rules", [])
+    extra_rules = [
+        "Gameplay response must include the scene header. If missing, rewrite before sending.",
+        "Gameplay response must include full scene body, not summary or recap.",
+        "Gameplay response must include NPC/world reaction and at least one consequence, hook, observation, conflict, relationship movement or time movement.",
+        "Gameplay response must include bottom block: Что можно сделать / Что Акира могла бы сказать / Мысли Акиры.",
+        "Do not show API/debug/contract/saving commentary in gameplay mode.",
+        "If any required section is missing, rewrite silently before sending. Do not apologize inside gameplay.",
+    ]
+    for rule in extra_rules:
+        if rule not in rules:
+            rules.append(rule)
+    contract["gameplay_response_gate"] = {
+        "required": [
+            "scene_header",
+            "full_scene_body",
+            "npc_or_world_reaction",
+            "scene_movement_or_hook",
+            "bottom_action_block",
+            "akira_thoughts_block",
+            "no_visible_technical_commentary",
+        ],
+        "rewrite_if_missing": True,
+    }
+    return contract
+
+
 base.character_files_for = character_files_for
 base.character_file = character_file
 base.active_scene_characters = active_scene_characters
 base.recommended_files_for_context = recommended_files_for_context
 base.base_recommended_files = base_recommended_files
+base.output_format_contract = output_format_contract
+
+
+def patch_after_routes() -> None:
+    """
+    Patch app.session_routes after it is imported by app.server.
+    This covers the alternate turn-contract route if it is the active one.
+    """
+    try:
+        import app.session_routes as routes
+    except Exception:
+        return
+
+    routes.character_file = character_file
+
+    if hasattr(routes, "MAIN_CHARACTER_FILES"):
+        routes.MAIN_CHARACTER_FILES = dict(getattr(routes, "MAIN_CHARACTER_FILES", {}))
+
+    if hasattr(routes, "BASE_REQUIRED_FILES"):
+        base_required = list(getattr(routes, "BASE_REQUIRED_FILES", []) or [])
+        if GAMEPLAY_RESPONSE_GATE_FILE not in base_required and base.repo_file_exists(GAMEPLAY_RESPONSE_GATE_FILE):
+            base_required.append(GAMEPLAY_RESPONSE_GATE_FILE)
+        routes.BASE_REQUIRED_FILES = base_required
+
+    if hasattr(routes, "OUTPUT_FORMAT_CONTRACT"):
+        contract = getattr(routes, "OUTPUT_FORMAT_CONTRACT", {})
+        if isinstance(contract, dict):
+            rules = contract.setdefault("rules", [])
+            for rule in [
+                "Gameplay response must include scene header.",
+                "Gameplay response must not be a compressed summary or recap.",
+                "Gameplay response must include bottom block: Что можно сделать / Что Акира могла бы сказать / Мысли Акиры.",
+                "No visible API/debug/contract commentary in gameplay mode.",
+                "If required section is missing, rewrite before sending.",
+            ]:
+                if rule not in rules:
+                    rules.append(rule)
+            contract["gameplay_response_gate"] = {
+                "required": [
+                    "scene_header",
+                    "full_scene_body",
+                    "npc_or_world_reaction",
+                    "scene_movement_or_hook",
+                    "bottom_action_block",
+                    "akira_thoughts_block",
+                    "no_visible_technical_commentary",
+                ],
+                "rewrite_if_missing": True,
+            }
+            routes.OUTPUT_FORMAT_CONTRACT = contract
