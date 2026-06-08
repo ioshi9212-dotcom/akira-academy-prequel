@@ -7,13 +7,14 @@ from pathlib import Path
 from uuid import uuid4
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 APP_NAME = "Akira Academy Prequel API"
 BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://akira-academy-prequel-production.up.railway.app").rstrip("/")
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("DATA_DIR", "/data"))
+DEFAULT_SESSION_ID = os.getenv("DEFAULT_SESSION_ID", "akira_academy_start")
 
 SYNC_FROM_REPO = ["canon", "characters", "gpt", "templates"]
 STATE_SEED = ["state"]
@@ -46,6 +47,7 @@ class JsonUpdate(BaseModel):
 class SessionCreateRequest(BaseModel):
     session_id: str | None = None
     title: str | None = None
+    reset: bool | None = None  # tolerated for GPT Actions; ignored by compact runtime
 
 
 class ApplyTurnResultRequest(BaseModel):
@@ -337,6 +339,61 @@ def touch_session(session_id: str) -> None:
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def create_session_storage(session_id: str | None = None, title: str | None = None) -> str:
+    """Create session files if missing and always return a valid session_id string."""
+    seed()
+    sid_raw = session_id or f"session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}"
+    sid = safe_session_id(sid_raw)
+    d = session_dir(sid)
+    if not d.exists():
+        d.mkdir(parents=True, exist_ok=True)
+        copy_missing(DATA / "state", d / "state")
+        meta = {
+            "session_id": sid,
+            "title": title or "Academy Prequel Session",
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+        }
+        (d / "session.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    else:
+        touch_session(sid)
+    return sid
+
+
+def latest_session_id() -> str | None:
+    seed()
+    sessions_root = DATA / "sessions"
+    if not sessions_root.exists():
+        return None
+    candidates: list[tuple[str, str]] = []
+    for d in sessions_root.iterdir():
+        if not d.is_dir():
+            continue
+        meta_path = d / "session.json"
+        if not meta_path.exists():
+            continue
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except Exception:
+            meta = {}
+        sid = meta.get("session_id") or d.name
+        updated = meta.get("updated_at") or meta.get("created_at") or ""
+        if sid:
+            candidates.append((updated, sid))
+    if not candidates:
+        return None
+    candidates.sort(reverse=True)
+    return safe_session_id(candidates[0][1])
+
+
+def default_context_session_id() -> str:
+    """For /api/v1/context only: never return session_id=null to GPT Actions."""
+    sid = latest_session_id()
+    if sid:
+        return sid
+    return create_session_storage(DEFAULT_SESSION_ID, "Academy Prequel Default Session")
+
+
 def unique(values: list[str]) -> list[str]:
     result: list[str] = []
     for value in values:
@@ -564,7 +621,7 @@ def compact_if_large(value: Any, max_chars: int = 4500) -> Any:
 
 def context_payload(session_id: str | None = None) -> CompactContextResponse:
     seed()
-    note = "Use /turn-contract every turn. /context is a balanced snapshot: active/nearby relationships, story lines and knowledge are shown; large full state files should be loaded through /json only when needed."
+    note = "For gameplay: first use POST /api/v1/sessions to get session_id, then use /api/v1/sessions/{session_id}/turn-contract every turn. General /context now attaches to the latest/default session only as a safety fallback."
     current = read_json("state/current_state.json", session_id, default={}) or {}
     future = read_json("state/future_locks_progress.json", session_id, default={}) or {}
     focus_ids = active_scene_characters(current, future)
@@ -833,18 +890,22 @@ def root():
 
 
 @app.post("/api/v1/sessions", response_model=SessionInfo)
-def create_session(payload: SessionCreateRequest | None = None):
-    seed()
+def create_session(payload: SessionCreateRequest | None = Body(default=None)):
+    """Create a gameplay session.
+
+    Accepts {}, no body, or tolerated extra fields like reset.
+    Always returns a real session_id string.
+    """
     payload = payload or SessionCreateRequest()
-    sid = safe_session_id(payload.session_id or f"session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}")
-    d = session_dir(sid)
-    if not d.exists():
-        d.mkdir(parents=True, exist_ok=True)
-        copy_missing(DATA / "state", d / "state")
-        meta = {"session_id": sid, "title": payload.title or "Academy Prequel Session", "created_at": datetime.utcnow().isoformat(), "updated_at": datetime.utcnow().isoformat()}
-        (d / "session.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    sid = create_session_storage(payload.session_id, payload.title)
     meta = read_json("session.json", sid) or {}
-    return SessionInfo(session_id=sid, title=meta.get("title"), created_at=meta.get("created_at"), updated_at=meta.get("updated_at"), context=f"/api/v1/sessions/{sid}/context")
+    return SessionInfo(
+        session_id=sid,
+        title=meta.get("title"),
+        created_at=meta.get("created_at"),
+        updated_at=meta.get("updated_at"),
+        context=f"/api/v1/sessions/{sid}/context",
+    )
 
 
 @app.get("/api/v1/sessions", response_model=SessionsResponse)
@@ -1046,12 +1107,14 @@ def put_json(file_path: str, update: JsonUpdate):
 
 @app.get("/api/v1/context", response_model=CompactContextResponse)
 def context():
-    return context_payload()
+    # GPT Actions may call general context before create_session. Never return session_id=null.
+    return context_payload(default_context_session_id())
 
 
 @app.get("/api/v1/context/compact", response_model=CompactContextResponse)
 def compact_context():
-    return context_payload()
+    # GPT Actions may call compact context before create_session. Never return session_id=null.
+    return context_payload(default_context_session_id())
 
 
 @app.post("/api/v1/repair/start-state", response_model=RepairResponse)
