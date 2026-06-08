@@ -1,5 +1,30 @@
-schema: character_energy_v1
-character_id: char_akira
-public_energy_status: "not fully established in current scene"
-visible_effects: []
-limits: []
+character_id: "char_akira"
+schema: "character_energy_v1"
+energy_type: "spatial / medium-like control"
+public_status_at_start: "rare_spatial_type_perceived_by_academy"
+public_perception:
+  academy_frame: "Редкий пространственный тип энергии. Студенты не знают деталей без сцены, проверки или слуха с источником."
+true_nature:
+  status: "hidden_lore"
+  note: "Пространство Акиры не обычная энергия в полном смысле; скрытый источник не раскрывать автоматически."
+sensor_logic:
+  - "Обычные датчики могут не реагировать, если Акира использует пространство как среду."
+  - "Для фиксации она должна намеренно дать энергетический отклик."
+  - "Это не безлимитный обход Академии: последствия, несостыковки и процедура всё ещё важны."
+known_actions:
+  waterfall: "личное ощущение пространственной среды, потока, давления и перехода; не вода"
+  pocket_space: "личное скрытое хранилище; предмет должен быть заранее закреплён"
+  personal_contour: "контур вокруг себя; смягчение, стабилизация, доля секунды, не абсолютная броня"
+  local_field: "точечное влияние на траекторию, дистанцию, устойчивость, внешний импульс"
+visible_effects:
+  - "звук глохнет на долю секунды"
+  - "предмет оказывается не там, где ожидали"
+  - "траектория ломается"
+  - "движение выглядит неправильным, но не декоративно-магическим"
+usable_for_start_scene:
+  default: false
+  allowed_if: ["energy check", "user action involving energy", "NPC asks controlled verification"]
+forbidden:
+  - "не начинать с полного раскрытия силы"
+  - "не делать порталы/декоративную магию"
+  - "не делать Акиру всемогущей или sensor-proof по умолчанию"

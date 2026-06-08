@@ -1,5 +1,21 @@
-schema: character_energy_v1
-character_id: char_raiden
-public_energy_status: "not fully established in current scene"
-visible_effects: []
-limits: []
+character_id: "char_raiden"
+schema: "character_energy_v1"
+type: "air_cold"
+public_level: "high / controlled"
+true_level: "closed; do not reveal without canon/runtime source"
+public_perception:
+  academy_frame: "Воздух и холод. В обычной социальной сцене эффект тонкий, а не боевая демонстрация."
+  combat_role: "air pressure / cold control / precision / suppression by presence"
+visible_effects:
+  - "воздух рядом остывает, если контроль даёт утечку"
+  - "тонкий иней или белое дыхание могут появиться под давлением"
+  - "движение ощущается слишком тихим, будто звук приглушён холодным воздухом"
+limits:
+  - "жара, усталость и эмоциональное давление ухудшают контроль"
+  - "видимые эффекты тонкие вне тренировки, боя или энергетического сбоя"
+cost_risk:
+  - "при перегрузе растёт холодная утечка"
+  - "публичная демонстрация привлекает внимание инструкторов, рейтинга и слухов"
+forbidden_use:
+  - "не замораживать людей casually for style"
+  - "не раскрывать hidden lineage через ability narration"
