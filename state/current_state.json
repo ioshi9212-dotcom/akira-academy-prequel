@@ -12,11 +12,11 @@
   "pov_character_id": "char_akira",
   "active_character_ids": [
     "char_akira",
-    "char_livia"
+    "char_livia",
+    "char_kir"
   ],
   "nearby_character_ids": [],
   "delayed_character_ids": [
-    "char_kir",
     "char_kiara"
   ],
   "scheduled_character_ids": [
@@ -39,7 +39,8 @@
   },
   "story_flags": {
     "akira_runtime_variant": "version_2_poisonous",
-    "academy_clean_character_id_mode": true
+    "academy_clean_character_id_mode": true,
+    "kir_active_from_start": true
   },
   "weather": {
     "summary": "уточнить в первой сцене",
@@ -61,7 +62,7 @@
   "start_outfit": {
     "char_akira": "чёрная рубашка, бордовый пиджак Академии, чёрные юбка-шорты, ремень, высокие чёрные ботинки"
   },
-  "current_scene_goal": "прибытие в Академию Астрейн, регистрация и первые социальные контакты",
+  "current_scene_goal": "прибытие в Академию Астрейн, регистрация и первые социальные контакты Акиры, Ливии и Кира",
   "last_player_input": null,
   "scene_count": 0,
   "rules": [
@@ -69,6 +70,14 @@
     "Не менять формат сцен и диалогов.",
     "Не тянуть время по минутам без причины.",
     "В шапке сцены писать только реальные предметы.",
-    "Скрытый лор не раскрывать персонажам автоматически."
-  ]
+    "Скрытый лор не раскрывать персонажам автоматически.",
+    "Кир активен с первого дня вместе с Акирой и Ливией, не late-entry.",
+    "Киара delayed, Хару и Райден social/scheduled orbit до логичного бита."
+  ],
+  "active_characters": [
+    "char_akira",
+    "char_livia",
+    "char_kir"
+  ],
+  "nearby_characters": []
 }
