@@ -130,28 +130,13 @@ class RepairResponse(BaseModel):
 
 
 MAIN_CHARACTER_FILES = {
-    # New char_id structure.
-    "char_akira": "characters/akira/character_card.yaml",
-    "char_livia": "characters/livia/character_card.yaml",
-    "char_kir": "characters/kir/character_card.yaml",
-    "char_kiara": "characters/kiara/character_card.yaml",
-    "char_haru": "characters/haru/character_card.yaml",
-    "char_raiden": "characters/raiden/character_card.yaml",
-
-    # Legacy aliases kept for backward compatibility with old state/files.
-    "akira": "characters/akira/character_card.yaml",
-    "livia_cross": "characters/livia/character_card.yaml",
-    "livia": "characters/livia/character_card.yaml",
-    "kir_knox": "characters/kir/character_card.yaml",
-    "kir": "characters/kir/character_card.yaml",
-    "raiden_sterling": "characters/raiden/character_card.yaml",
-    "raiden": "characters/raiden/character_card.yaml",
-    "haru_foster": "characters/haru/character_card.yaml",
-    "haru": "characters/haru/character_card.yaml",
-    "kiara_volt": "characters/kiara/character_card.yaml",
-    "kiara": "characters/kiara/character_card.yaml",
-
-    # Old wider-cast paths retained where files still exist.
+    "akira": "characters/main/akira.md",
+    "livia_cross": "characters/main/livia_cross.md",
+    "livia": "characters/main/livia_cross.md",
+    "raiden_sterling": "characters/main/raiden_sterling.md",
+    "raiden": "characters/main/raiden_sterling.md",
+    "haru_foster": "characters/main/haru_foster.md",
+    "haru": "characters/main/haru_foster.md",
     "samuel_sterling": "characters/main/samuel_sterling.md",
     "samuel": "characters/main/samuel_sterling.md",
     "ray_carter": "characters/main/ray_carter.md",
@@ -167,26 +152,14 @@ MAIN_CHARACTER_FILES = {
     "seline": "characters/main/elias_seline_aster.md",
     "kael_north": "characters/main/kael_north.md",
     "kael": "characters/main/kael_north.md",
+    "kiara_volt": "characters/main/kiara_volt.md",
+    "kiara": "characters/main/kiara_volt.md",
     "noa_rian": "characters/main/noa_rian.md",
     "noa": "characters/main/noa_rian.md",
     "veronica_ellard": "characters/main/veronica_ellard.md",
     "veronica": "characters/main/veronica_ellard.md",
     "eiren_vale": "characters/main/eiren_vale.md",
     "eiren": "characters/main/eiren_vale.md",
-}
-
-CHARACTER_ID_ALIASES = {
-    "akira": "char_akira",
-    "livia": "char_livia",
-    "livia_cross": "char_livia",
-    "kir": "char_kir",
-    "kir_knox": "char_kir",
-    "kiara": "char_kiara",
-    "kiara_volt": "char_kiara",
-    "haru": "char_haru",
-    "haru_foster": "char_haru",
-    "raiden": "char_raiden",
-    "raiden_sterling": "char_raiden",
 }
 
 CORE_RECOMMENDED_FILES = [
@@ -346,41 +319,22 @@ def unique(values: list[str]) -> list[str]:
     return result
 
 
-def normalize_character_id(character_id: str | None) -> str:
-    raw = str(character_id).strip() if character_id else ""
-    return CHARACTER_ID_ALIASES.get(raw, raw)
-
-
-def current_character_list(current: dict[str, Any], new_key: str, legacy_key: str | None = None) -> list[str]:
-    values: list[str] = []
-    raw_new = current.get(new_key, []) or []
-    if isinstance(raw_new, list):
-        values.extend(raw_new)
-    raw_legacy = current.get(legacy_key, []) if legacy_key else []
-    if isinstance(raw_legacy, list):
-        values.extend(raw_legacy)
-    return unique([normalize_character_id(value) for value in values])
-
-
 def repo_file_exists(path: str) -> bool:
     return (ROOT / path).exists() or (DATA / path).exists()
 
 
 def character_file(character_id: str) -> str:
-    cid = normalize_character_id(character_id)
-    return MAIN_CHARACTER_FILES.get(cid) or MAIN_CHARACTER_FILES.get(character_id, f"characters/npc/{character_id}.md")
+    return MAIN_CHARACTER_FILES.get(character_id, f"characters/npc/{character_id}.md")
 
 
 def active_scene_characters(current: dict[str, Any], future: dict[str, Any] | None = None) -> list[str]:
     future = future or {}
-    active = current_character_list(current, "active_character_ids", "active_characters")
-    nearby = current_character_list(current, "nearby_character_ids", "nearby_characters")
-    delayed = current_character_list(current, "delayed_character_ids")
-    scheduled = current_character_list(current, "scheduled_character_ids")
-    speaking = current_character_list(current, "speaking_character_ids")
-    observing = current_character_list(current, "observing_character_ids")
-    addressed = current_character_list(current, "addressed_character_ids")
-    looked_at = current_character_list(current, "looked_at_character_ids")
+    active = list(current.get("active_characters", []) or [])
+    nearby = list(current.get("nearby_characters", []) or [])
+    speaking = list(current.get("speaking_character_ids", []) or [])
+    observing = list(current.get("observing_character_ids", []) or [])
+    addressed = list(current.get("addressed_character_ids", []) or [])
+    looked_at = list(current.get("looked_at_character_ids", []) or [])
 
     triggered: list[str] = []
     for thread in current.get("open_threads", []) or []:
@@ -391,30 +345,19 @@ def active_scene_characters(current: dict[str, Any], future: dict[str, Any] | No
         if isinstance(lock, dict) and lock.get("status") in {"due", "active", "triggered"}:
             triggered.extend(lock.get("participants", []) or [])
 
-    # Active and nearby characters are primary. Delayed/scheduled are included for lightweight
-    # context discovery only when their files exist; the scene still decides whether to bring them in.
-    return unique(
-        ["char_akira"]
-        + active
-        + nearby
-        + speaking
-        + observing
-        + addressed
-        + looked_at
-        + [normalize_character_id(value) for value in triggered]
-    )
+    return unique(["akira"] + active + nearby + speaking + observing + addressed + looked_at + triggered)
 
 
 def character_lock_files(scene_chars: list[str]) -> list[str]:
     files = list(AKIRA_LOCK_FILES)
 
-    if "char_livia" in scene_chars or "livia_cross" in scene_chars or "livia" in scene_chars:
+    if "livia_cross" in scene_chars or "livia" in scene_chars:
         files.extend([
             "characters/locks/livia_akira_friendship_lock.md",
             "characters/locks/akira_school_past_livia_dynamic_lock.md",
         ])
 
-    if "char_raiden" in scene_chars or "raiden_sterling" in scene_chars or "raiden" in scene_chars:
+    if "raiden_sterling" in scene_chars or "raiden" in scene_chars:
         files.append("characters/locks/raiden_lazy_mask_social_lock.md")
         if "akira" in scene_chars:
             files.append("canon/hidden_raiden_akira_bond.md")
@@ -451,7 +394,7 @@ def recommended_files_for_context(current: dict[str, Any] | None = None, future:
 
 
 def base_recommended_files() -> list[str]:
-    return recommended_files_for_context({"active_character_ids": ["char_akira", "char_livia", "char_kir"]}, {})
+    return recommended_files_for_context({"active_characters": ["akira"]}, {})
 
 
 def pair_in_focus(pair_id: str, focus_ids: set[str]) -> bool:
@@ -590,19 +533,13 @@ def repair_state(session_id: str | None = None) -> RepairResponse:
     changed, notes = [], []
     current = read_json("state/current_state.json", session_id, default={}) or {}
     inventory = read_json("state/inventory_state.json", session_id, default={}) or {}
-    active = current.setdefault("active_character_ids", [])
-    nearby = current.setdefault("nearby_character_ids", [])
-    delayed = current.setdefault("delayed_character_ids", [])
-    for cid in ["char_akira", "char_livia", "char_kir"]:
-        if cid not in active:
-            active.append(cid)
-    if "char_kir" in delayed:
-        delayed.remove("char_kir")
-    if "char_kiara" not in delayed:
-        delayed.append("char_kiara")
-    current["active_characters"] = active
-    current["nearby_characters"] = nearby
-    notes.append("Normalized academy start characters: Akira, Livia and Kir are active; Kiara is delayed.")
+    active = current.setdefault("active_characters", [])
+    nearby = current.setdefault("nearby_characters", [])
+    if "akira" not in active:
+        active.append("akira")
+    if "livia_cross" not in active and "livia_cross" not in nearby:
+        nearby.append("livia_cross")
+        notes.append("Added livia_cross as nearby at academy start.")
     current.setdefault("visible_inventory", [])
     current.setdefault("nearby_items", [])
     current.setdefault("current_scene_goal", "прибытие в Академию Астрейн и первые социальные контакты")
@@ -833,9 +770,8 @@ def root():
 
 
 @app.post("/api/v1/sessions", response_model=SessionInfo)
-def create_session(payload: SessionCreateRequest | None = None):
+def create_session(payload: SessionCreateRequest):
     seed()
-    payload = payload or SessionCreateRequest()
     sid = safe_session_id(payload.session_id or f"session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}")
     d = session_dir(sid)
     if not d.exists():
@@ -872,10 +808,8 @@ def session_turn_contract(session_id: str):
     inventory = read_json("state/inventory_state.json", sid, default={}) or {}
     future = read_json("state/future_locks_progress.json", sid, default={}) or {}
     story_lines = read_json("state/story_lines.json", sid, default={}) or {}
-    active = current_character_list(current, "active_character_ids", "active_characters")
-    nearby = current_character_list(current, "nearby_character_ids", "nearby_characters")
-    delayed = current_character_list(current, "delayed_character_ids")
-    scheduled = current_character_list(current, "scheduled_character_ids")
+    active = unique(list(current.get("active_characters", []) or []))
+    nearby = unique(list(current.get("nearby_characters", []) or []))
     scene_chars = active_scene_characters(current, future)
     locks = []
     for lock_id, lock in (future.get("locks") or {}).items():
@@ -885,8 +819,6 @@ def session_turn_contract(session_id: str):
         "session_id": sid,
         "active_character_ids": active,
         "nearby_character_ids": nearby,
-        "delayed_character_ids": delayed,
-        "scheduled_character_ids": scheduled,
         "required_files": recommended_files_for_context(current, future),
         "output_format_contract": output_format_contract(),
         "akira_behavior_profile_contract": {
@@ -900,7 +832,6 @@ def session_turn_contract(session_id: str):
             "calendar_policy": story_lines.get("calendar_policy", {}),
             "turn_counter": story_lines.get("turn_counter", {}),
             "next_beats": story_lines.get("next_beats", {}),
-            "active_lines": story_lines.get("active_lines", {}),
             "rule": "Do not create one-scene state files. Store dated events, obligations, rumors, line progress, next_beats and compaction state in state/story_lines.json.",
         },
         "allowed_new_facts_this_turn": [

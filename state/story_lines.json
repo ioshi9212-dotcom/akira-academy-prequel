@@ -24,19 +24,17 @@
     "academy_arrival": {
       "status": "open",
       "date_started": "1198-08-15",
-      "summary": "Акира, Ливия и Кир прибывают в Академию Астрейн как старая школьная связка.",
+      "summary": "Акира и Ливия прибывают в Академию Астрейн.",
       "characters": [
         "char_akira",
-        "char_livia",
-        "char_kir"
+        "char_livia"
       ],
       "event_refs": [],
       "next_beats": [
         "registration",
         "official route",
         "dorm assignment",
-        "first social pressure",
-        "Kir reacts as old friend, not a new stranger"
+        "first social pressure"
       ]
     },
     "akira_livia_friendship": {
@@ -50,6 +48,20 @@
       "event_refs": [],
       "next_beats": []
     },
+    "kir_late_entry": {
+      "status": "pending",
+      "date_started": "1198-08-15",
+      "summary": "Кир должен появиться позже стартового давления, как знакомая проблема.",
+      "characters": [
+        "char_kir",
+        "char_akira",
+        "char_livia"
+      ],
+      "event_refs": [],
+      "next_beats": [
+        "late entry"
+      ]
+    },
     "kiara_social_trace": {
       "status": "pending",
       "date_started": "1198-08-15",
@@ -62,29 +74,6 @@
       "next_beats": [
         "first trace"
       ]
-    },
-    "kir_with_akira_livia": {
-      "status": "open",
-      "date_started": "1198-08-15",
-      "summary": "Кир уже рядом с Акирой и Ливией на старте Академии. Он не поздний случайный ввод, а часть старой школьной связки.",
-      "characters": [
-        "char_kir",
-        "char_akira",
-        "char_livia"
-      ],
-      "event_refs": [],
-      "next_beats": [
-        "Kir comments on registration pressure",
-        "Kir shows old-friend boundary dynamic",
-        "Kir stays separate for dorm assignment",
-        "Kir rhythm contrasts with academy order"
-      ],
-      "rules": [
-        "Не знакомить Кира с Акирой и Ливией заново.",
-        "Не делать Кира вечным спутником в женском общежитии.",
-        "Не применять силу Кира против Акиры всерьёз без сильной сюжетной причины.",
-        "Кир может нарушать границы только как старая игровая динамика, не как право для других."
-      ]
     }
   },
   "closed_lines": {},
@@ -93,7 +82,162 @@
     "finish registration",
     "move through official route",
     "establish Livia's presence",
-    "Kiara social trace when beat fits",
-    "establish Kir with Akira and Livia from start"
-  ]
+    "Kir late entry when beat fits",
+    "Kiara social trace when beat fits"
+  ],
+  "academy_first_day": {
+    "status": "open",
+    "date": "1198-08-15",
+    "source": "canon/story_chain_1198.md",
+    "next_beats": [
+      "registration_or_status_check",
+      "uniform_or_route_detail",
+      "dorm_route",
+      "shared_room_second_floor",
+      "first_social_pressure",
+      "possible_Haru_trace_only_if_scene_supports",
+      "possible_Raiden_background_trace_only_if_scene_supports"
+    ],
+    "forbidden": [
+      "do_not_reveal_full_power",
+      "do_not_make_registration_bureaucratic",
+      "do_not_force_Haru_Raiden_as_center"
+    ]
+  },
+  "academy_first_week_checks": {
+    "status": "pending",
+    "date_window": "1198-08-15_to_1198-08-22",
+    "source": "canon/story_chain_1198.md",
+    "next_beats": [
+      "physical_check",
+      "energy_baseline",
+      "rating_first_marks",
+      "instructor_notes",
+      "first_rumors",
+      "dorm/social consequences"
+    ],
+    "purpose": "Показать, что Академия оценивает контроль, реакцию, стабильность, командность, а не только raw power."
+  },
+  "basketball_social_arena": {
+    "status": "pending",
+    "date_target": "1198-08-17",
+    "source": "canon/story_chain_1198.md",
+    "next_beats": [
+      "Haru_Raiden_dynamic",
+      "Akira_observes_body_language",
+      "Livia_social_reaction",
+      "Kir_rhythm_contrast",
+      "Kiara_possible_social_pressure"
+    ],
+    "purpose": "Площадка как язык тела, статуса и социального давления."
+  },
+  "akira_raiden_training_tension": {
+    "status": "pending",
+    "date_target": "1198-08-18",
+    "source": "canon/story_chain_1198.md",
+    "next_beats": [
+      "official_training_pair_or_match",
+      "body_rhythm_mismatch_sync",
+      "hidden_bond_only_as_body_reaction",
+      "instructor_note",
+      "Livia_reacts_to_attention_or_danger"
+    ],
+    "forbidden": [
+      "do_not_make_it_romance",
+      "do_not_explain_reincarnation",
+      "do_not_make_victory_the_scene_goal"
+    ]
+  },
+  "forced_sync_pair_work": {
+    "status": "pending",
+    "date_target": "1198-08-20",
+    "source": "canon/story_chain_1198.md",
+    "next_beats": [
+      "zone_hold",
+      "conditional_evacuation",
+      "too_easy_coordination",
+      "Haru_notices_combat_not_romance",
+      "reputational_noise"
+    ]
+  },
+  "livia_social_arc": {
+    "status": "open",
+    "source": "canon/story_chain_1198.md",
+    "next_beats": [
+      "interest_in_Raiden",
+      "rough_rejection_later",
+      "switch_toward_Haru",
+      "jealousy_and_shame",
+      "growth_through_mistake"
+    ],
+    "forbidden": [
+      "do_not_make_Livia_stupid",
+      "do_not_make_Livia_villain_because_of_jealousy",
+      "do_not_make_her_always_convenient"
+    ]
+  },
+  "raiden_birthday_samuel_entry": {
+    "status": "pending",
+    "date_target": "1198-08-31",
+    "source": "canon/story_chain_1198.md",
+    "next_beats": [
+      "Raiden_turns_18",
+      "Samuel_appears_as_power",
+      "Raiden_cold_reaction",
+      "Haru_reads_some_pain",
+      "Akira_sees_reaction_not_explanation"
+    ],
+    "forbidden": [
+      "do_not_explain_mother_full_history",
+      "do_not_reveal_lab_line_to_students",
+      "do_not_make_Samuel_cartoon_villain"
+    ]
+  },
+  "asher_kai_return": {
+    "status": "locked_until_date",
+    "date_target": "1198-09-01",
+    "source": "canon/story_chain_1198.md",
+    "next_beats": [
+      "Asher_returns_with_older_students",
+      "Kai_returns_with_old_wound",
+      "Livia_old_line_opens",
+      "Akira_Kai_trigger",
+      "Kir_reacts_from_school_context"
+    ],
+    "forbidden": [
+      "do_not_insert_Asher_Kai_into_August",
+      "do_not_reveal_everything_by_monologue",
+      "do_not_make_social_media_the_whole_chapter"
+    ]
+  },
+  "academy_rating_pressure": {
+    "status": "pending",
+    "date_window": "1198-09-04_to_1198-09-30",
+    "source": "canon/story_chain_1198.md",
+    "next_beats": [
+      "rating_update",
+      "Veronica_notices_wrongness",
+      "public_pressure",
+      "discipline_or_access_consequence",
+      "rumor_reputation_shift"
+    ]
+  },
+  "training_field_and_raid_track": {
+    "status": "pending",
+    "date_window": "1198-09-07_to_1198-09-30",
+    "source": "canon/story_chain_1198.md",
+    "next_beats": [
+      "training_field_trip",
+      "water_block",
+      "night_training_signal",
+      "public_demonstration",
+      "almost_real_raid",
+      "september_consequences"
+    ],
+    "forbidden": [
+      "do_not_turn_into_final_war",
+      "do_not_reveal_Echo_full_truth",
+      "do_not_make_weapons_useful_without_energy_teamwork"
+    ]
+  }
 }
