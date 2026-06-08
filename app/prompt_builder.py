@@ -108,6 +108,13 @@ TASK:
 - If user wrote "начнем", "старт", "первая сцена", or gave an in-character action, that is already permission to render the scene.
 - In technical/debug mode only, technical output is allowed.
 
+CHARACTER FIDELITY:
+- Characters must act strictly according to their loaded character files, current relationship state, knowledge_state, current mood, goals, limits and scene pressure.
+- Do not smooth characters into generic friendly NPCs.
+- Do not make characters say, feel, forgive, flirt, obey, explain or cooperate if their card/relationship/knowledge does not support it.
+- If a planned line or reaction contradicts a loaded character file, relationship state or knowledge source, rewrite it before sending.
+- A character can be quiet, evasive, wrong, rude, jealous, curious, scared, dismissive or resistant if that fits their profile and current context.
+
 CURRENT STATE:
 {_dump(_compact_current_state(current_state), 1800)}
 
@@ -135,8 +142,9 @@ A gameplay answer must include:
 2. Full scene body, not recap/status/summary.
 3. NPC/world reaction.
 4. Dialogue in required format.
-5. At least one scene movement: plot, relationship, knowledge, conflict, reputation, body/energy state, rumor, schedule, open_thread or future hook.
-6. Bottom block:
+5. Character fidelity: every NPC line/reaction must fit loaded character files, relationships and knowledge sources.
+6. At least one scene movement: plot, relationship, knowledge, conflict, reputation, body/energy state, rumor, schedule, open_thread or future hook.
+7. Bottom block:
    - Что можно сделать:
    - Что Акира могла бы сказать:
    - Мысли Акиры:
@@ -149,10 +157,11 @@ FORBIDDEN FINAL OUTPUT IN PLAY MODE:
 - "Хочешь продолжить?"
 - "Могу разыграть сцену?"
 - "Это внутреннее состояние игры"
+- generic character behavior that ignores loaded character files
 - any API/debug/contract commentary
 
 SELF-CHECK BEFORE SENDING:
-If header, full scene body, NPC/world reaction, scene movement, or bottom block is missing,
+If header, full scene body, NPC/world reaction, character fidelity, scene movement, or bottom block is missing,
 rewrite silently before sending. Do not apologize inside gameplay.
 """.strip()
 
