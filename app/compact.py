@@ -7,7 +7,7 @@ from pathlib import Path
 from uuid import uuid4
 from typing import Any
 
-from fastapi import Body, FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 APP_NAME = "Akira Academy Prequel API"
@@ -890,22 +890,14 @@ def root():
 
 
 @app.post("/api/v1/sessions", response_model=SessionInfo)
-def create_session(
-    session_id: str | None = Body(default=None, description="Optional explicit session id."),
-    title: str | None = Body(default=None, description="Optional session title."),
-    reset: bool | None = Body(default=None, description="Accepted for GPT Actions compatibility; compact runtime ignores it."),
-    data: dict[str, Any] | None = Body(default=None, description="Accepted wrapper for older Action calls; may contain session_id/title/reset."),
-):
+def create_session(payload: SessionCreateRequest | None = Body(default=None)):
     """Create a gameplay session.
 
-    GPT Actions requires requestBody to be a plain object schema.
-    This endpoint accepts {}, no body, direct fields, or legacy {"data": {...}} wrapper.
-    It always returns a real session_id string.
+    Accepts {}, no body, or tolerated extra fields like reset.
+    Always returns a real session_id string.
     """
-    if isinstance(data, dict):
-        session_id = session_id or data.get("session_id")
-        title = title or data.get("title")
-    sid = create_session_storage(session_id, title)
+    payload = payload or SessionCreateRequest()
+    sid = create_session_storage(payload.session_id, payload.title)
     meta = read_json("session.json", sid) or {}
     return SessionInfo(
         session_id=sid,
@@ -933,12 +925,7 @@ def session_context(session_id: str):
 
 
 @app.get("/api/v1/sessions/{session_id}/turn-contract")
-def session_turn_contract(
-    session_id: str,
-    user_input: str | None = Query(default=None, description="Latest player input. Accepted for GPT play-gate compatibility."),
-    mode: str = Query(default="play", description="Contract mode: play, technical, debug, or inspect."),
-    include_file_contents: bool = Query(default=False, description="Accepted for GPT play-gate compatibility. Compact runtime may return file paths instead of full contents."),
-):
+def session_turn_contract(session_id: str):
     sid = safe_session_id(session_id)
     ensure_session(sid)
     current = read_json("state/current_state.json", sid, default={}) or {}
@@ -957,11 +944,6 @@ def session_turn_contract(
             locks.append(f"{lock_id}: {lock.get('description', '')}")
     return {
         "session_id": sid,
-        "turn_contract_request": {
-            "user_input": user_input,
-            "mode": mode,
-            "include_file_contents": include_file_contents,
-        },
         "active_character_ids": active,
         "nearby_character_ids": nearby,
         "delayed_character_ids": delayed,
