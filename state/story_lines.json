@@ -24,17 +24,19 @@
     "academy_arrival": {
       "status": "open",
       "date_started": "1198-08-15",
-      "summary": "Акира и Ливия прибывают в Академию Астрейн.",
+      "summary": "Акира, Ливия и Кир прибывают в Академию Астрейн как старая школьная связка.",
       "characters": [
         "char_akira",
-        "char_livia"
+        "char_livia",
+        "char_kir"
       ],
       "event_refs": [],
       "next_beats": [
         "registration",
         "official route",
         "dorm assignment",
-        "first social pressure"
+        "first social pressure",
+        "Kir reacts as old friend, not a new stranger"
       ]
     },
     "akira_livia_friendship": {
@@ -48,20 +50,6 @@
       "event_refs": [],
       "next_beats": []
     },
-    "kir_late_entry": {
-      "status": "pending",
-      "date_started": "1198-08-15",
-      "summary": "Кир должен появиться позже стартового давления, как знакомая проблема.",
-      "characters": [
-        "char_kir",
-        "char_akira",
-        "char_livia"
-      ],
-      "event_refs": [],
-      "next_beats": [
-        "late entry"
-      ]
-    },
     "kiara_social_trace": {
       "status": "pending",
       "date_started": "1198-08-15",
@@ -74,6 +62,29 @@
       "next_beats": [
         "first trace"
       ]
+    },
+    "kir_with_akira_livia": {
+      "status": "open",
+      "date_started": "1198-08-15",
+      "summary": "Кир уже рядом с Акирой и Ливией на старте Академии. Он не поздний случайный ввод, а часть старой школьной связки.",
+      "characters": [
+        "char_kir",
+        "char_akira",
+        "char_livia"
+      ],
+      "event_refs": [],
+      "next_beats": [
+        "Kir comments on registration pressure",
+        "Kir shows old-friend boundary dynamic",
+        "Kir stays separate for dorm assignment",
+        "Kir rhythm contrasts with academy order"
+      ],
+      "rules": [
+        "Не знакомить Кира с Акирой и Ливией заново.",
+        "Не делать Кира вечным спутником в женском общежитии.",
+        "Не применять силу Кира против Акиры всерьёз без сильной сюжетной причины.",
+        "Кир может нарушать границы только как старая игровая динамика, не как право для других."
+      ]
     }
   },
   "closed_lines": {},
@@ -82,7 +93,7 @@
     "finish registration",
     "move through official route",
     "establish Livia's presence",
-    "Kir late entry when beat fits",
-    "Kiara social trace when beat fits"
+    "Kiara social trace when beat fits",
+    "establish Kir with Akira and Livia from start"
   ]
 }
