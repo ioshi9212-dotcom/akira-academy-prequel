@@ -1,0 +1,6 @@
+schema: character_knowledge_v1
+character_id: char_raiden
+knows: []
+suspects: []
+wrong_beliefs: []
+does_not_know: []

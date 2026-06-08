@@ -1,0 +1,5 @@
+schema: character_energy_v1
+character_id: char_akira
+public_energy_status: "not fully established in current scene"
+visible_effects: []
+limits: []
