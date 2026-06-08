@@ -13,7 +13,7 @@ jobs:
   api-smoke-test:
     runs-on: ubuntu-latest
     env:
-      DATA_DIR: ${{ runner.temp }}/academy-prequel-data
+      DATA_DIR: /tmp/academy-prequel-data
 
     steps:
       - name: Checkout
