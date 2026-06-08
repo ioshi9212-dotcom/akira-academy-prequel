@@ -16,7 +16,7 @@
     "compact_every_turns": 15,
     "last_compaction_turn": 0,
     "last_compaction_date": null,
-    "last_compaction_note": "clean character-id academy reset",
+    "last_compaction_note": "clean academy reset",
     "technical_turns_do_not_count": true
   },
   "shared_events": [],
@@ -24,65 +24,21 @@
     "academy_arrival": {
       "status": "open",
       "date_started": "1198-08-15",
-      "summary": "Акира и Ливия прибывают в Академию Астрейн.",
-      "characters": [
-        "char_akira",
-        "char_livia"
-      ],
+      "summary": "Akira and Livia arrive at Academy Astrein for the first day.",
+      "characters": ["akira", "livia"],
       "event_refs": [],
-      "next_beats": [
-        "registration",
-        "official route",
-        "dorm assignment",
-        "first social pressure"
-      ]
+      "next_beats": ["registration", "official route", "dorm assignment", "first social pressure"]
     },
     "akira_livia_friendship": {
       "status": "open",
       "date_started": "1198-08-15",
-      "summary": "Акира и Ливия начинают академический маршрут как старые школьные подруги.",
-      "characters": [
-        "char_akira",
-        "char_livia"
-      ],
+      "summary": "Akira and Livia start the academy route together.",
+      "characters": ["akira", "livia"],
       "event_refs": [],
       "next_beats": []
-    },
-    "kir_late_entry": {
-      "status": "pending",
-      "date_started": "1198-08-15",
-      "summary": "Кир должен появиться позже стартового давления, как знакомая проблема.",
-      "characters": [
-        "char_kir",
-        "char_akira",
-        "char_livia"
-      ],
-      "event_refs": [],
-      "next_beats": [
-        "late entry"
-      ]
-    },
-    "kiara_social_trace": {
-      "status": "pending",
-      "date_started": "1198-08-15",
-      "summary": "Киара появляется как заметная социальная фигура и будущая соперница Ливии.",
-      "characters": [
-        "char_kiara",
-        "char_livia"
-      ],
-      "event_refs": [],
-      "next_beats": [
-        "first trace"
-      ]
     }
   },
   "closed_lines": {},
-  "compacted_summary": "Clean academy start in char_id mode. No imported played scenes from other projects.",
-  "next_beats": [
-    "finish registration",
-    "move through official route",
-    "establish Livia's presence",
-    "Kir late entry when beat fits",
-    "Kiara social trace when beat fits"
-  ]
+  "compacted_summary": "Clean academy start. No imported played scenes from other projects.",
+  "next_beats": ["finish registration", "move through official route", "establish Livia's presence", "introduce academy social tension"]
 }

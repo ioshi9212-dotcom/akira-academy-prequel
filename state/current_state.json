@@ -2,73 +2,34 @@
   "state_id": "current_state",
   "project_slug": "akira-academy-prequel",
   "story": "academy_prequel_1198",
-  "current_calendar_id": "academy_start",
-  "current_arc_id": "arc_001_academy_start",
-  "current_day_id": "academy_day_001",
   "current_date": "1198-08-15",
   "current_time": "late_morning",
-  "current_location_id": "loc_academy_main",
-  "current_location_text": "главная зона прибытия Академии Астрейн",
-  "pov_character_id": "char_akira",
-  "active_character_ids": [
-    "char_akira",
-    "char_livia"
-  ],
-  "nearby_character_ids": [],
-  "delayed_character_ids": [
-    "char_kir",
-    "char_kiara"
-  ],
-  "scheduled_character_ids": [
-    "char_haru",
-    "char_raiden"
-  ],
-  "mentioned_character_ids": [],
-  "scene_tags": [
-    "academy",
-    "arrival",
-    "registration",
-    "social_pressure"
-  ],
-  "character_status": {
-    "char_akira": {
-      "runtime_variant": "version_2_poisonous",
-      "behavior_version": "version_2_poisonous",
-      "active_mask": "version_2_poisonous"
-    }
-  },
-  "story_flags": {
-    "akira_runtime_variant": "version_2_poisonous",
-    "academy_clean_character_id_mode": true
-  },
+  "current_location_id": "academy_main_courtyard",
+  "current_location_text": "Academy Astrein main courtyard",
+  "akira_behavior_profile": "akira_default_cold",
   "weather": {
-    "summary": "уточнить в первой сцене",
+    "summary": "set in first scene",
     "temperature_feel": null,
     "details": []
   },
   "akira_state": {
-    "visible_state": "спокойна внешне",
-    "internal_state": "насторожена, собрана, оценивает новое место",
-    "body_state": "после дороги, держит контроль",
+    "visible_state": "calm outside",
+    "internal_state": "alert and focused",
+    "body_state": "after the road, controlled",
     "player_defined_state": null
   },
-  "visible_inventory": [
-    "сумка с вещами",
-    "документы",
-    "телефон"
-  ],
-  "nearby_items": [],
-  "start_outfit": {
-    "char_akira": "чёрная рубашка, бордовый пиджак Академии, чёрные юбка-шорты, ремень, высокие чёрные ботинки"
-  },
-  "current_scene_goal": "прибытие в Академию Астрейн, регистрация и первые социальные контакты",
+  "visible_inventory": [],
+  "nearby_items": ["Akira travel bag"],
+  "active_characters": ["akira", "livia"],
+  "nearby_characters": [],
+  "allowed_main_characters": ["akira", "livia", "raiden", "haru", "kir", "kiara"],
+  "current_scene_goal": "Academy arrival and first social contacts",
   "last_player_input": null,
   "scene_count": 0,
   "rules": [
-    "Использовать персонажей через char_id и characters/characters_index.yaml.",
-    "Не менять формат сцен и диалогов.",
-    "Не тянуть время по минутам без причины.",
-    "В шапке сцены писать только реальные предметы.",
-    "Скрытый лор не раскрывать персонажам автоматически."
+    "Use only akira-academy-prequel data.",
+    "Do not stretch time without reason.",
+    "Use only visible real items in scene header.",
+    "Do not reveal hidden lore automatically."
   ]
 }

@@ -50,15 +50,15 @@
 6. Прочитать `canon/character_story_roles.md`.
 7. Прочитать `canon/source_usage_rules.md`.
 8. Прочитать `state/memory_update_rules.md`.
-9. Прочитать Акиру через `characters/characters_index.yaml` -> `characters/akira/character_card.yaml` и runtime из `runtime/characters/characters_runtime_index.yaml`.
+9. Прочитать карточку Акиры: `characters/main/akira.md`.
 10. Прочитать `characters/locks/akira_no_passive_glitches_lock.md`.
 11. Прочитать `characters/locks/akira_no_reused_player_lines_lock.md`.
 12. Прочитать `characters/locks/akira_micro_reactions_lock.md`.
 13. Прочитать карточки всех active/nearby/speaking/observing персонажей из context и turn-contract.
 14. Если ID персонажа непонятен — проверить `characters/character_id_index.md`, а не угадывать.
-15. Если рядом/в сцене Ливия — читать `char_livia` через `characters/characters_index.yaml`, runtime `runtime/characters/livia.yaml`, плюс locks дружбы Акиры/Ливии.
-16. Если рядом/в сцене Райден — читать `char_raiden` через `characters/characters_index.yaml`, runtime `runtime/characters/raiden.yaml`, lock Райдена и при важной личной сцене hidden bond как скрытый слой.
-17. Если рядом/в сцене Хару — читать `char_haru` через `characters/characters_index.yaml` и runtime `runtime/characters/haru.yaml`.
+15. Если рядом/в сцене Ливия — прочитать `characters/main/livia_cross.md`, `characters/locks/livia_akira_friendship_lock.md` и `characters/locks/akira_school_past_livia_dynamic_lock.md`.
+16. Если рядом/в сцене Райден — прочитать `characters/main/raiden_sterling.md`, `characters/locks/raiden_lazy_mask_social_lock.md` и при важной личной сцене `canon/hidden_raiden_akira_bond.md` как скрытый слой.
+17. Если рядом/в сцене Хару — прочитать `characters/main/haru_foster.md`.
 18. Если рядом/в сцене Самуэль — прочитать `characters/main/samuel_sterling.md`.
 19. Если рядом/в сцене Рэй или есть связь с Восточным сектором/семьёй — прочитать `characters/main/ray_carter.md`.
 20. Если рядом/в сцене Джун или сцена касается семьи/опеки — прочитать `characters/main/jun_carter.md`.
