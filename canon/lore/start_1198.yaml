@@ -1,22 +1,6 @@
 id: start_1198
-schema: academy_prequel_lore_v1
-visibility: director_runtime
 date: "1198-08-15"
 title: "Поступление в Академию"
-purpose:
-  - "ввести Акиру и Ливию через действие"
-  - "показать сверку, регистрацию, правила и первые ограничения"
-  - "запустить первые слухи, рейтинг, связи и социальные крючки"
-  - "не превращать старт в экскурсию"
-active_start:
-  - "char_akira"
-  - "char_livia"
-possible_today:
-  - "char_kir"
-  - "char_kiara"
-  - "char_haru"
-  - "char_raiden"
-  - "char_kael_north"
-rule: >
-  Каждый переход должен двигать сюжет, отношения, знания, конфликт,
-  репутацию, расписание, рейтинг, состояние или будущую развилку.
+active_start: ["akira", "livia"]
+possible_today: ["kir", "kiara", "haru", "raiden", "kael_north"]
+rule: "Каждый переход двигает сюжет, отношения, знания, конфликт, репутацию, расписание, рейтинг, состояние или future hook."

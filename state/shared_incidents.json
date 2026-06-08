@@ -1,10 +1,4 @@
 {
   "schema": "academy_shared_incidents_v1",
-  "description": "Events witnessed by several characters, with separate interpretations stored elsewhere when needed.",
-  "incidents": {},
-  "rules": [
-    "One event can be interpreted differently by each witness.",
-    "Do not treat incident summary as knowledge for characters who were not present.",
-    "Use witnesses, heard_by, known_by, source and certainty."
-  ]
+  "incidents": {}
 }

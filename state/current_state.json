@@ -6,7 +6,11 @@
   "current_time": "late_morning",
   "current_location_id": "academy_main_courtyard",
   "current_location_text": "Academy Astrein main courtyard",
-  "akira_behavior_profile": "akira_default_cold",
+  "akira_behavior_profile": "akira_v2_poisonous",
+  "scheduled_character_ids": [
+    "kir"
+  ],
+  "mentioned_character_ids": [],
   "weather": {
     "summary": "set in first scene",
     "temperature_feel": null,
@@ -19,10 +23,23 @@
     "player_defined_state": null
   },
   "visible_inventory": [],
-  "nearby_items": ["Akira travel bag"],
-  "active_characters": ["akira", "livia"],
+  "nearby_items": [
+    "Akira travel bag"
+  ],
+  "active_characters": [
+    "akira",
+    "livia"
+  ],
   "nearby_characters": [],
-  "allowed_main_characters": ["akira", "livia", "raiden", "haru", "kir", "kiara"],
+  "allowed_main_characters": [
+    "akira",
+    "livia",
+    "raiden",
+    "haru",
+    "kir",
+    "kiara",
+    "kael_north"
+  ],
   "current_scene_goal": "Academy arrival and first social contacts",
   "last_player_input": null,
   "scene_count": 0,
@@ -30,6 +47,7 @@
     "Use only akira-academy-prequel data.",
     "Do not stretch time without reason.",
     "Use only visible real items in scene header.",
-    "Do not reveal hidden lore automatically."
+    "Do not reveal hidden lore automatically.",
+    "Use Akira v2 poisonous profile as default."
   ]
 }
