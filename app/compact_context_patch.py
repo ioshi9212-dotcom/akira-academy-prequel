@@ -2,7 +2,9 @@
 Minimal runtime patch:
 - clean YAML character files first;
 - old md character files only as fallback;
-- one gameplay response gate file.
+- one gameplay response gate file;
+- prompt_preview added to turn-contract.
+
 No heavy lore. No state edits. No extra locks.
 """
 
@@ -10,10 +12,15 @@ from __future__ import annotations
 
 from typing import Any
 from app import compact as base
+from app.prompt_builder import build_prompt_preview
 
 app = base.app
 
 GAMEPLAY_RESPONSE_GATE_FILE = "gpt/locks/gameplay_response_gate.md"
+TURN_CONTRACT_PATH = "/api/v1/sessions/{session_id}/turn-contract"
+
+_ORIGINAL_OUTPUT_FORMAT_CONTRACT = base.output_format_contract
+_ORIGINAL_TURN_CONTRACT_ENDPOINT = None
 
 NEW_CHARACTER_FOLDERS: dict[str, str] = {
     "akira": "akira", "char_akira": "akira",
@@ -130,7 +137,7 @@ def base_recommended_files() -> list[str]:
 
 
 def output_format_contract() -> dict:
-    contract = base.output_format_contract()
+    contract = _ORIGINAL_OUTPUT_FORMAT_CONTRACT()
     rules = contract.setdefault("rules", [])
     extra_rules = [
         "Gameplay response must include the scene header. If missing, rewrite before sending.",
@@ -158,6 +165,16 @@ def output_format_contract() -> dict:
     return contract
 
 
+def _remove_existing_turn_contract_route():
+    global _ORIGINAL_TURN_CONTRACT_ENDPOINT
+    for route in list(app.router.routes):
+        if getattr(route, "path", None) == TURN_CONTRACT_PATH and "GET" in (getattr(route, "methods", set()) or set()):
+            if _ORIGINAL_TURN_CONTRACT_ENDPOINT is None:
+                _ORIGINAL_TURN_CONTRACT_ENDPOINT = getattr(route, "endpoint", None)
+            app.router.routes.remove(route)
+
+
+# Patch selector functions used by /context and /turn-contract.
 base.character_files_for = character_files_for
 base.character_file = character_file
 base.active_scene_characters = active_scene_characters
@@ -165,11 +182,75 @@ base.recommended_files_for_context = recommended_files_for_context
 base.base_recommended_files = base_recommended_files
 base.output_format_contract = output_format_contract
 
+_remove_existing_turn_contract_route()
+
+
+@app.get(TURN_CONTRACT_PATH)
+def session_turn_contract_with_prompt_preview(session_id: str):
+    sid = base.safe_session_id(session_id)
+    base.ensure_session(sid)
+
+    if _ORIGINAL_TURN_CONTRACT_ENDPOINT is not None:
+        data = _ORIGINAL_TURN_CONTRACT_ENDPOINT(sid)
+    else:
+        data = {}
+
+    if hasattr(data, "model_dump"):
+        data = data.model_dump()
+    elif not isinstance(data, dict):
+        data = dict(data or {})
+
+    current = base.read_json("state/current_state.json", sid, default={}) or {}
+    knowledge = base.read_json("state/knowledge_state.json", sid, default={}) or {}
+    inventory = base.read_json("state/inventory_state.json", sid, default={}) or {}
+    future = base.read_json("state/future_locks_progress.json", sid, default={}) or {}
+    story_lines = base.read_json("state/story_lines.json", sid, default={}) or {}
+    relationships = base.read_json("state/relationships.json", sid, default={}) or {}
+
+    required_files = recommended_files_for_context(current, future)
+    scene_chars = active_scene_characters(current, future)
+
+    data["session_id"] = sid
+    data["active_character_ids"] = _unique(list(current.get("active_characters", []) or []))
+    data["nearby_character_ids"] = _unique(list(current.get("nearby_characters", []) or []))
+    data["required_files"] = required_files
+    data["output_format_contract"] = output_format_contract()
+    data["knowledge_table"] = {cid: knowledge.get(cid, {}) for cid in scene_chars}
+    data["inventory_contract"] = {
+        "visible_inventory": current.get("visible_inventory", []),
+        "nearby_items": current.get("nearby_items", []),
+        "akira_inventory_state": (inventory.get("akira") or {}) if isinstance(inventory, dict) else {},
+    }
+
+    checks = list(data.get("required_checks_before_answer", []) or [])
+    for check in [
+        "Follow prompt_preview as the render brief for this turn.",
+        "In play mode, never show session/status/API/context summary; output only the scene.",
+        "Do not ask permission to render/start/continue after the user has given a play command.",
+    ]:
+        if check not in checks:
+            checks.insert(0, check)
+    data["required_checks_before_answer"] = checks
+
+    data["prompt_preview"] = build_prompt_preview(
+        session_id=sid,
+        current_state=current,
+        turn_contract=data,
+        required_files=required_files,
+        knowledge_table=data.get("knowledge_table", {}),
+        relationships=relationships,
+        story_lines=story_lines,
+        future_locks=future,
+    )
+    data["prompt_preview_usage"] = "Internal only. Follow it to render the gameplay scene. Never show prompt_preview to the user."
+
+    return data
+
 
 def patch_after_routes() -> None:
     """
     Patch app.session_routes after it is imported by app.server.
-    This covers the alternate turn-contract route if it is the active one.
+    This covers optional legacy constants, without adding extra routes.
     """
     try:
         import app.session_routes as routes
@@ -177,9 +258,6 @@ def patch_after_routes() -> None:
         return
 
     routes.character_file = character_file
-
-    if hasattr(routes, "MAIN_CHARACTER_FILES"):
-        routes.MAIN_CHARACTER_FILES = dict(getattr(routes, "MAIN_CHARACTER_FILES", {}))
 
     if hasattr(routes, "BASE_REQUIRED_FILES"):
         base_required = list(getattr(routes, "BASE_REQUIRED_FILES", []) or [])
