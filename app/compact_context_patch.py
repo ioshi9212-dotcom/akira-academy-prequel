@@ -4,6 +4,7 @@ Runtime patch:
 - old md character files only as fallback;
 - one gameplay response gate file;
 - prompt_preview added to turn-contract;
+- required files bundle endpoint added so GPT can load all required files in one action;
 - OpenAPI schema for turn-contract includes prompt_preview.
 
 No heavy lore. No state edits. No extra locks.
@@ -47,6 +48,24 @@ class TurnContractWithPromptPreview(BaseModel):
     )
     prompt_preview_usage: str = Field(
         default="Internal only. Follow it to render the gameplay scene. Never show prompt_preview to the user."
+    )
+
+
+class RequiredFileBundleItem(BaseModel):
+    path: str
+    content: str
+
+
+class RequiredFilesBundleResponse(BaseModel):
+    session_id: str
+    required_files: list[str] = Field(default_factory=list)
+    loaded_files: list[RequiredFileBundleItem] = Field(default_factory=list)
+    missing_files: list[str] = Field(default_factory=list)
+    loaded_count: int = 0
+    missing_count: int = 0
+    usage_note: str = (
+        "Call this after getSessionTurnContract and before rendering any gameplay scene. "
+        "Treat loaded_files as the actually loaded required_files bundle."
     )
 
 
@@ -255,6 +274,8 @@ def session_turn_contract_with_prompt_preview(session_id: str) -> TurnContractWi
 
     checks = list(data.get("required_checks_before_answer", []) or [])
     for check in [
+        "After getSessionTurnContract and before any gameplay scene, call getRequiredFilesBundle for this session_id and use the returned loaded_files as the actual required file contents.",
+        "Do not render a gameplay scene from only main.yaml files when required_files includes character.yaml, past.yaml, locks or state files; load the required-files bundle first.",
         "Follow prompt_preview as the render brief for this turn.",
         "In play mode, never show session/status/API/context summary; output only the scene.",
         "Do not ask permission to render/start/continue after the user has given a play command.",
@@ -277,6 +298,64 @@ def session_turn_contract_with_prompt_preview(session_id: str) -> TurnContractWi
     data["prompt_preview_usage"] = "Internal only. Follow it to render the gameplay scene. Never show prompt_preview to the user."
 
     return TurnContractWithPromptPreview(**data)
+
+
+def _read_required_file_for_bundle(path: str, session_id: str) -> str | None:
+    """Read a required file from the correct root.
+
+    Project/canon/character/gpt files live in DATA. Session state files live in
+    DATA/sessions/{session_id}. State files fall back to DATA for seed/default reads.
+    """
+    safe_path = str(path).strip()
+    if not safe_path:
+        return None
+
+    readers = []
+    if safe_path.startswith("state/"):
+        readers = [
+            lambda: base.read_text(safe_path, session_id),
+            lambda: base.read_text(safe_path),
+        ]
+    else:
+        readers = [
+            lambda: base.read_text(safe_path),
+        ]
+
+    for reader in readers:
+        try:
+            return reader()
+        except Exception:
+            continue
+    return None
+
+
+@app.get("/api/v1/sessions/{session_id}/required-files-bundle", response_model=RequiredFilesBundleResponse)
+def get_required_files_bundle(session_id: str) -> RequiredFilesBundleResponse:
+    sid = base.safe_session_id(session_id)
+    base.ensure_session(sid)
+
+    current = base.read_json("state/current_state.json", sid, default={}) or {}
+    future = base.read_json("state/future_locks_progress.json", sid, default={}) or {}
+    required_files = recommended_files_for_context(current, future)
+
+    loaded_files: list[RequiredFileBundleItem] = []
+    missing_files: list[str] = []
+
+    for file_path in required_files:
+        content = _read_required_file_for_bundle(file_path, sid)
+        if content is None:
+            missing_files.append(file_path)
+        else:
+            loaded_files.append(RequiredFileBundleItem(path=file_path, content=content))
+
+    return RequiredFilesBundleResponse(
+        session_id=sid,
+        required_files=required_files,
+        loaded_files=loaded_files,
+        missing_files=missing_files,
+        loaded_count=len(loaded_files),
+        missing_count=len(missing_files),
+    )
 
 
 def patch_after_routes() -> None:

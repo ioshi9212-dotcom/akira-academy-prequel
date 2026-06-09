@@ -80,3 +80,11 @@ Do not send a gameplay response unless it includes:
    Do not apologize inside gameplay.
    Do not explain the mistake.
    Output only the corrected full scene.
+10. Required files loading gate:
+    Before rendering a gameplay scene:
+    - getSessionTurnContract gives the required_files manifest only; the manifest is not the file content.
+    - load the actual required file contents through getRequiredFilesBundle for the same session_id.
+    - do not start a scene after reading only main.yaml files if required_files contains character.yaml, past.yaml, locks, canon or state files.
+    - if a character appears through active/nearby/scheduled/future lock and their character.yaml or past.yaml is in required_files, that content must be treated as loaded before the character speaks or is introduced.
+    - if required files cannot be loaded in technical/debug mode, report the missing files instead of inventing a scene.
+

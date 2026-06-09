@@ -102,7 +102,10 @@ session_id: {session_id}
 
 TASK:
 - Use this contract and required_files internally.
-- Output the gameplay scene immediately.
+- Immediately after getSessionTurnContract and before any gameplay scene, call getRequiredFilesBundle for this same session_id.
+- Treat getRequiredFilesBundle.loaded_files as the actual loaded required file contents.
+- Do NOT render from only main.yaml files if required_files also contains character.yaml, past.yaml, locks or state files.
+- Output the gameplay scene only after the required-files bundle is loaded.
 - Do NOT show API status, session status, current_state summary, file list, contract summary, setup explanation or prompt_preview.
 - Do NOT ask permission to continue/render/start.
 - If user wrote "начнем", "старт", "первая сцена", or gave an in-character action, that is already permission to render the scene.
@@ -123,8 +126,13 @@ active_character_ids: {active_ids}
 nearby_character_ids: {nearby_ids}
 focus_ids_for_this_turn: {focus_ids}
 
-REQUIRED FILES TO USE INTERNALLY:
+REQUIRED FILES TO LOAD AS A BUNDLE BEFORE SCENE:
 {_dump(required_files, 2200)}
+
+REQUIRED FILE LOADING PROTOCOL:
+- The list above is not enough by itself. It is only a manifest.
+- Call getRequiredFilesBundle(session_id) and use loaded_files before writing gameplay prose.
+- If the bundle was not loaded, do not invent missing character relationships from main.yaml only.
 
 KNOWLEDGE TABLE:
 {_dump(knowledge_table or turn_contract.get("knowledge_table", {}), 2200)}
@@ -158,6 +166,7 @@ FORBIDDEN FINAL OUTPUT IN PLAY MODE:
 - "Могу разыграть сцену?"
 - "Это внутреннее состояние игры"
 - generic character behavior that ignores loaded character files
+- rendering a scene after reading only 1-3 main.yaml files while required_files contains more files
 - any API/debug/contract commentary
 
 SELF-CHECK BEFORE SENDING:
