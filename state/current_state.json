@@ -15,12 +15,18 @@
   "akira_state": {
     "visible_state": "calm outside",
     "internal_state": "alert and focused",
-    "body_state": "after the road, controlled",
-    "player_defined_state": null
+    "body_state": "after the road, controlled; first-day cheek scratch under Livia plaster; possible training fatigue if scene says so",
+    "player_defined_state": null,
+    "visible_mark": "scratch on cheek covered by a plaster placed by Livia",
+    "hair_state": "loose white hair by default unless player states braid/wet hair/other style"
   },
-  "visible_inventory": [],
+  "visible_inventory": [
+    "телефон",
+    "багаж с личными вещами",
+    "одежда: высокие ботинки, чёрная юбка-шорты, чёрная рубашка, бордовый пиджак Академии"
+  ],
   "nearby_items": [
-    "Akira travel bag"
+    "багаж Акиры с личными вещами"
   ],
   "active_characters": [
     "akira",
@@ -45,5 +51,15 @@
     "Use only visible real items in scene header.",
     "Do not reveal hidden lore automatically.",
     "Use Akira v2 poisonous profile as default."
+  ],
+  "outfit": {
+    "boots": "высокие ботинки",
+    "bottom": "чёрная юбка-шорты",
+    "shirt": "чёрная рубашка",
+    "jacket": "бордовый пиджак Академии"
+  },
+  "start_day_notes": [
+    "15 августа 1198 на щеке Акиры пластырь: Ливия наклеила его после ссадины.",
+    "Ссадина появилась за день до Академии, когда Акира в грозу доставала кота с дерева; Кир видел это."
   ]
 }
