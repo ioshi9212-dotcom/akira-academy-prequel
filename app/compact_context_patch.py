@@ -7,7 +7,7 @@ Runtime patch:
 - required files manifest/chunk endpoints added so GPT can load all required files without ResponseTooLargeError;
 - OpenAPI schema for turn-contract includes prompt_preview.
 
-No heavy lore. No state edits. No extra locks.
+No heavy lore. No state edits. Adds player input anchor lock to required files.
 """
 
 from __future__ import annotations
@@ -22,6 +22,9 @@ from app.prompt_builder import build_prompt_preview
 app = base.app
 
 GAMEPLAY_RESPONSE_GATE_FILE = "gpt/locks/gameplay_response_gate.md"
+PLAYER_INPUT_ANCHOR_LOCK_FILE = "gpt/locks/player_input_anchor_lock.md"
+CURRENT_STATE_FILE = "state/current_state.json"
+PROMPT_BUILDER_FILE = "app/prompt_builder.py"
 TURN_CONTRACT_PATH = "/api/v1/sessions/{session_id}/turn-contract"
 
 _ORIGINAL_OUTPUT_FORMAT_CONTRACT = base.output_format_contract
@@ -52,8 +55,8 @@ class TurnContractWithPromptPreview(BaseModel):
 
 
 DEFAULT_FILE_PART_CHARS = 12000
-DEFAULT_CHUNK_CHARS = 36000
-DEFAULT_CHUNK_ITEMS = 4
+DEFAULT_CHUNK_CHARS = 12000
+DEFAULT_CHUNK_ITEMS = 1
 
 
 class RequiredFileBundleItem(BaseModel):
@@ -209,6 +212,9 @@ def recommended_files_for_context(current: dict[str, Any] | None = None, future:
         base.CORE_RECOMMENDED_FILES
         + base.CORE_LOCK_FILES
         + ([GAMEPLAY_RESPONSE_GATE_FILE] if base.repo_file_exists(GAMEPLAY_RESPONSE_GATE_FILE) else [])
+        + ([PLAYER_INPUT_ANCHOR_LOCK_FILE] if base.repo_file_exists(PLAYER_INPUT_ANCHOR_LOCK_FILE) else [])
+        + ([CURRENT_STATE_FILE] if base.repo_file_exists(CURRENT_STATE_FILE) else [])
+        + ([PROMPT_BUILDER_FILE] if base.repo_file_exists(PROMPT_BUILDER_FILE) else [])
         + character_files
         + akira_profile_files
         + base.character_lock_files(scene_chars)
@@ -233,6 +239,9 @@ def output_format_contract() -> dict:
         "If any character line or reaction contradicts the loaded character file, relationship state or knowledge source, rewrite before sending.",
         "Do not show API/debug/contract/saving commentary in gameplay mode.",
         "If any required section is missing, rewrite silently before sending. Do not apologize inside gameplay.",
+        "Everything the player writes outside parentheses must appear verbatim as Akira's spoken line; never replace it with a recap.",
+        "Everything inside parentheses is action/pause/body state/intention, not speech.",
+        "If the player waits for registration/check/scanner, do not auto-complete the procedure; stop before the player-facing action.",
     ]
     for rule in extra_rules:
         if rule not in rules:
@@ -273,7 +282,7 @@ base.output_format_contract = output_format_contract
 _remove_existing_turn_contract_route()
 
 
-@app.get(TURN_CONTRACT_PATH, response_model=TurnContractWithPromptPreview)
+@app.get(TURN_CONTRACT_PATH, response_model=TurnContractWithPromptPreview, operation_id="getSessionTurnContract")
 def session_turn_contract_with_prompt_preview(session_id: str) -> TurnContractWithPromptPreview:
     sid = base.safe_session_id(session_id)
     base.ensure_session(sid)
@@ -318,6 +327,8 @@ def session_turn_contract_with_prompt_preview(session_id: str) -> TurnContractWi
         "In play mode, never show session/status/API/context summary; output only the scene.",
         "Do not ask permission to render/start/continue after the user has given a play command.",
         "Characters must stay faithful to loaded character files, relationship state and knowledge_state.",
+        "Everything the player writes outside parentheses must be inserted verbatim as Akira's speech; do not recap or skip it.",
+        "If the player writes wait/ждать for registration/check/scanner, do not automatically pass that procedure for Akira.",
     ]:
         if check not in checks:
             checks.insert(0, check)
@@ -485,7 +496,7 @@ def _required_files_chunk_response(
     )
 
 
-@app.get("/api/v1/sessions/{session_id}/required-files-manifest", response_model=RequiredFilesManifestResponse)
+@app.get("/api/v1/sessions/{session_id}/required-files-manifest", response_model=RequiredFilesManifestResponse, operation_id="getRequiredFilesManifest")
 def get_required_files_manifest(session_id: str) -> RequiredFilesManifestResponse:
     sid = base.safe_session_id(session_id)
     base.ensure_session(sid)
@@ -505,7 +516,7 @@ def get_required_files_manifest(session_id: str) -> RequiredFilesManifestRespons
     )
 
 
-@app.get("/api/v1/sessions/{session_id}/required-files-chunk", response_model=RequiredFilesChunkResponse)
+@app.get("/api/v1/sessions/{session_id}/required-files-chunk", response_model=RequiredFilesChunkResponse, operation_id="getRequiredFilesChunk")
 def get_required_files_chunk(
     session_id: str,
     chunk_index: int = 0,
@@ -520,7 +531,7 @@ def get_required_files_chunk(
     )
 
 
-@app.get("/api/v1/sessions/{session_id}/required-files-bundle", response_model=RequiredFilesChunkResponse)
+@app.get("/api/v1/sessions/{session_id}/required-files-bundle", response_model=RequiredFilesChunkResponse, operation_id="getRequiredFilesBundle")
 def get_required_files_bundle(
     session_id: str,
     chunk_index: int = 0,
@@ -553,8 +564,9 @@ def patch_after_routes() -> None:
 
     if hasattr(routes, "BASE_REQUIRED_FILES"):
         base_required = list(getattr(routes, "BASE_REQUIRED_FILES", []) or [])
-        if GAMEPLAY_RESPONSE_GATE_FILE not in base_required and base.repo_file_exists(GAMEPLAY_RESPONSE_GATE_FILE):
-            base_required.append(GAMEPLAY_RESPONSE_GATE_FILE)
+        for required_path in (GAMEPLAY_RESPONSE_GATE_FILE, PLAYER_INPUT_ANCHOR_LOCK_FILE, CURRENT_STATE_FILE, PROMPT_BUILDER_FILE):
+            if required_path not in base_required and base.repo_file_exists(required_path):
+                base_required.append(required_path)
         routes.BASE_REQUIRED_FILES = base_required
 
     if hasattr(routes, "OUTPUT_FORMAT_CONTRACT"):
