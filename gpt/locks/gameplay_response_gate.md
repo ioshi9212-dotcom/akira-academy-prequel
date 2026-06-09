@@ -88,3 +88,11 @@ Do not send a gameplay response unless it includes:
     - if a character appears through active/nearby/scheduled/future lock and their character.yaml or past.yaml is in required_files, that content must be treated as loaded before the character speaks or is introduced.
     - if required files cannot be loaded in technical/debug mode, report the missing files instead of inventing a scene.
 
+10. Required files loading:
+   Before writing any gameplay scene after getSessionTurnContract:
+   - call getRequiredFilesManifest;
+   - call getRequiredFilesChunk from chunk_index=0 until has_more=false;
+   - use all loaded file chunks as the actual required file contents;
+   - do not replace the chunked bundle with only getProjectFile/main.yaml;
+   - if chunk loading fails, stop in technical mode instead of writing the scene.
+
