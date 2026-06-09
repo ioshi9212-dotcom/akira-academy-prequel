@@ -4,7 +4,7 @@ Runtime patch:
 - old md character files only as fallback;
 - one gameplay response gate file;
 - prompt_preview added to turn-contract;
-- required files bundle endpoint added so GPT can load all required files in one action;
+- required files manifest/chunk endpoints added so GPT can load all required files without ResponseTooLargeError;
 - OpenAPI schema for turn-contract includes prompt_preview.
 
 No heavy lore. No state edits. No extra locks.
@@ -51,21 +51,59 @@ class TurnContractWithPromptPreview(BaseModel):
     )
 
 
+DEFAULT_FILE_PART_CHARS = 12000
+DEFAULT_CHUNK_CHARS = 36000
+DEFAULT_CHUNK_ITEMS = 4
+
+
 class RequiredFileBundleItem(BaseModel):
     path: str
     content: str
+    part_index: int = 0
+    parts_total: int = 1
+    content_chars: int = 0
 
 
-class RequiredFilesBundleResponse(BaseModel):
+class RequiredFileManifestItem(BaseModel):
+    path: str
+    exists: bool = True
+    source: str = "project"
+    size_chars: int = 0
+    parts_total: int = 0
+
+
+class RequiredFilesManifestResponse(BaseModel):
     session_id: str
     required_files: list[str] = Field(default_factory=list)
+    files: list[RequiredFileManifestItem] = Field(default_factory=list)
+    missing_files: list[str] = Field(default_factory=list)
+    loaded_count: int = 0
+    missing_count: int = 0
+    total_parts: int = 0
+    default_chunk_chars: int = DEFAULT_CHUNK_CHARS
+    default_chunk_items: int = DEFAULT_CHUNK_ITEMS
+    chunks_total: int = 0
+    usage_note: str = (
+        "Call getRequiredFilesManifest after getSessionTurnContract, then call "
+        "getRequiredFilesChunk with chunk_index=0..chunks_total-1 before rendering gameplay."
+    )
+
+
+class RequiredFilesChunkResponse(BaseModel):
+    session_id: str
+    required_files: list[str] = Field(default_factory=list)
+    chunk_index: int = 0
+    chunks_total: int = 0
+    has_more: bool = False
+    next_chunk_index: int | None = None
     loaded_files: list[RequiredFileBundleItem] = Field(default_factory=list)
     missing_files: list[str] = Field(default_factory=list)
     loaded_count: int = 0
     missing_count: int = 0
+    total_loaded_parts: int = 0
     usage_note: str = (
-        "Call this after getSessionTurnContract and before rendering any gameplay scene. "
-        "Treat loaded_files as the actually loaded required_files bundle."
+        "This is a size-limited chunk of required file contents. "
+        "If has_more=true, call getRequiredFilesChunk again with next_chunk_index."
     )
 
 
@@ -274,8 +312,8 @@ def session_turn_contract_with_prompt_preview(session_id: str) -> TurnContractWi
 
     checks = list(data.get("required_checks_before_answer", []) or [])
     for check in [
-        "After getSessionTurnContract and before any gameplay scene, call getRequiredFilesBundle for this session_id and use the returned loaded_files as the actual required file contents.",
-        "Do not render a gameplay scene from only main.yaml files when required_files includes character.yaml, past.yaml, locks or state files; load the required-files bundle first.",
+        "After getSessionTurnContract and before any gameplay scene, call getRequiredFilesManifest and then getRequiredFilesChunk for every chunk until has_more=false.",
+        "Do not render a gameplay scene from only main.yaml files when required_files includes character.yaml, past.yaml, locks or state files; load all required-file chunks first.",
         "Follow prompt_preview as the render brief for this turn.",
         "In play mode, never show session/status/API/context summary; output only the scene.",
         "Do not ask permission to render/start/continue after the user has given a play command.",
@@ -300,7 +338,7 @@ def session_turn_contract_with_prompt_preview(session_id: str) -> TurnContractWi
     return TurnContractWithPromptPreview(**data)
 
 
-def _read_required_file_for_bundle(path: str, session_id: str) -> str | None:
+def _read_required_file_for_bundle(path: str, session_id: str) -> tuple[str | None, str | None]:
     """Read a required file from the correct root.
 
     Project/canon/character/gpt files live in DATA. Session state files live in
@@ -308,55 +346,198 @@ def _read_required_file_for_bundle(path: str, session_id: str) -> str | None:
     """
     safe_path = str(path).strip()
     if not safe_path:
-        return None
+        return None, None
 
-    readers = []
     if safe_path.startswith("state/"):
-        readers = [
-            lambda: base.read_text(safe_path, session_id),
-            lambda: base.read_text(safe_path),
-        ]
-    else:
-        readers = [
-            lambda: base.read_text(safe_path),
-        ]
-
-    for reader in readers:
         try:
-            return reader()
+            return base.read_text(safe_path, session_id), "session_state"
         except Exception:
-            continue
-    return None
+            pass
+        try:
+            return base.read_text(safe_path), "seed_state"
+        except Exception:
+            return None, None
+
+    try:
+        return base.read_text(safe_path), "project"
+    except Exception:
+        return None, None
 
 
-@app.get("/api/v1/sessions/{session_id}/required-files-bundle", response_model=RequiredFilesBundleResponse)
-def get_required_files_bundle(session_id: str) -> RequiredFilesBundleResponse:
-    sid = base.safe_session_id(session_id)
-    base.ensure_session(sid)
+def _clamp_int(value: int, *, minimum: int, maximum: int) -> int:
+    try:
+        number = int(value)
+    except Exception:
+        number = minimum
+    return max(minimum, min(maximum, number))
 
-    current = base.read_json("state/current_state.json", sid, default={}) or {}
-    future = base.read_json("state/future_locks_progress.json", sid, default={}) or {}
+
+def _split_text(content: str, part_chars: int) -> list[str]:
+    part_chars = _clamp_int(part_chars, minimum=4000, maximum=24000)
+    if not content:
+        return [""]
+    return [content[i:i + part_chars] for i in range(0, len(content), part_chars)]
+
+
+def _required_file_parts(
+    session_id: str,
+    *,
+    file_part_chars: int = DEFAULT_FILE_PART_CHARS,
+) -> tuple[list[str], list[RequiredFileBundleItem], list[RequiredFileManifestItem], list[str]]:
+    current = base.read_json("state/current_state.json", session_id, default={}) or {}
+    future = base.read_json("state/future_locks_progress.json", session_id, default={}) or {}
     required_files = recommended_files_for_context(current, future)
 
-    loaded_files: list[RequiredFileBundleItem] = []
+    loaded_parts: list[RequiredFileBundleItem] = []
+    manifest: list[RequiredFileManifestItem] = []
     missing_files: list[str] = []
 
     for file_path in required_files:
-        content = _read_required_file_for_bundle(file_path, sid)
+        content, source = _read_required_file_for_bundle(file_path, session_id)
         if content is None:
             missing_files.append(file_path)
-        else:
-            loaded_files.append(RequiredFileBundleItem(path=file_path, content=content))
+            manifest.append(RequiredFileManifestItem(path=file_path, exists=False, source="missing"))
+            continue
 
-    return RequiredFilesBundleResponse(
+        pieces = _split_text(content, file_part_chars)
+        parts_total = len(pieces)
+        manifest.append(
+            RequiredFileManifestItem(
+                path=file_path,
+                exists=True,
+                source=source or "project",
+                size_chars=len(content),
+                parts_total=parts_total,
+            )
+        )
+        for index, piece in enumerate(pieces):
+            loaded_parts.append(
+                RequiredFileBundleItem(
+                    path=file_path,
+                    content=piece,
+                    part_index=index,
+                    parts_total=parts_total,
+                    content_chars=len(piece),
+                )
+            )
+
+    return required_files, loaded_parts, manifest, missing_files
+
+
+def _chunk_loaded_parts(
+    loaded_parts: list[RequiredFileBundleItem],
+    *,
+    max_chars: int = DEFAULT_CHUNK_CHARS,
+    max_items: int = DEFAULT_CHUNK_ITEMS,
+) -> list[list[RequiredFileBundleItem]]:
+    max_chars = _clamp_int(max_chars, minimum=8000, maximum=70000)
+    max_items = _clamp_int(max_items, minimum=1, maximum=10)
+
+    chunks: list[list[RequiredFileBundleItem]] = []
+    current: list[RequiredFileBundleItem] = []
+    current_chars = 0
+
+    for part in loaded_parts:
+        part_chars = len(part.content or "")
+        if current and (len(current) >= max_items or current_chars + part_chars > max_chars):
+            chunks.append(current)
+            current = []
+            current_chars = 0
+        current.append(part)
+        current_chars += part_chars
+
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _required_files_chunk_response(
+    session_id: str,
+    *,
+    chunk_index: int = 0,
+    max_chars: int = DEFAULT_CHUNK_CHARS,
+    max_items: int = DEFAULT_CHUNK_ITEMS,
+) -> RequiredFilesChunkResponse:
+    sid = base.safe_session_id(session_id)
+    base.ensure_session(sid)
+
+    required_files, loaded_parts, _manifest, missing_files = _required_file_parts(sid)
+    chunks = _chunk_loaded_parts(loaded_parts, max_chars=max_chars, max_items=max_items)
+    chunks_total = len(chunks)
+
+    safe_chunk_index = _clamp_int(chunk_index, minimum=0, maximum=max(chunks_total - 1, 0)) if chunks_total else 0
+    selected = chunks[safe_chunk_index] if chunks_total else []
+    has_more = bool(chunks_total and safe_chunk_index < chunks_total - 1)
+    next_chunk_index = safe_chunk_index + 1 if has_more else None
+
+    return RequiredFilesChunkResponse(
         session_id=sid,
         required_files=required_files,
-        loaded_files=loaded_files,
+        chunk_index=safe_chunk_index,
+        chunks_total=chunks_total,
+        has_more=has_more,
+        next_chunk_index=next_chunk_index,
+        loaded_files=selected,
         missing_files=missing_files,
-        loaded_count=len(loaded_files),
+        loaded_count=len({part.path for part in loaded_parts}),
         missing_count=len(missing_files),
+        total_loaded_parts=len(loaded_parts),
     )
 
+
+@app.get("/api/v1/sessions/{session_id}/required-files-manifest", response_model=RequiredFilesManifestResponse)
+def get_required_files_manifest(session_id: str) -> RequiredFilesManifestResponse:
+    sid = base.safe_session_id(session_id)
+    base.ensure_session(sid)
+
+    required_files, loaded_parts, manifest, missing_files = _required_file_parts(sid)
+    chunks = _chunk_loaded_parts(loaded_parts)
+
+    return RequiredFilesManifestResponse(
+        session_id=sid,
+        required_files=required_files,
+        files=manifest,
+        missing_files=missing_files,
+        loaded_count=len([item for item in manifest if item.exists]),
+        missing_count=len(missing_files),
+        total_parts=len(loaded_parts),
+        chunks_total=len(chunks),
+    )
+
+
+@app.get("/api/v1/sessions/{session_id}/required-files-chunk", response_model=RequiredFilesChunkResponse)
+def get_required_files_chunk(
+    session_id: str,
+    chunk_index: int = 0,
+    max_chars: int = DEFAULT_CHUNK_CHARS,
+    max_items: int = DEFAULT_CHUNK_ITEMS,
+) -> RequiredFilesChunkResponse:
+    return _required_files_chunk_response(
+        session_id,
+        chunk_index=chunk_index,
+        max_chars=max_chars,
+        max_items=max_items,
+    )
+
+
+@app.get("/api/v1/sessions/{session_id}/required-files-bundle", response_model=RequiredFilesChunkResponse)
+def get_required_files_bundle(
+    session_id: str,
+    chunk_index: int = 0,
+    max_chars: int = DEFAULT_CHUNK_CHARS,
+    max_items: int = DEFAULT_CHUNK_ITEMS,
+) -> RequiredFilesChunkResponse:
+    """Backward-compatible endpoint name.
+
+    v1 returned all files in one large response and could hit ResponseTooLargeError.
+    v2 returns a size-limited chunk. Use has_more/next_chunk_index to continue.
+    """
+    return _required_files_chunk_response(
+        session_id,
+        chunk_index=chunk_index,
+        max_chars=max_chars,
+        max_items=max_items,
+    )
 
 def patch_after_routes() -> None:
     """
