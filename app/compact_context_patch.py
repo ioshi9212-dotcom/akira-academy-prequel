@@ -7,7 +7,7 @@ Runtime patch:
 - required files manifest/chunk endpoints added so GPT can load all required files without ResponseTooLargeError;
 - OpenAPI schema for turn-contract includes prompt_preview.
 
-No heavy lore. No state edits. Adds player input anchor lock to required files.
+No heavy lore. No state edits. Adds player input anchor lock and visible-scene-before-state lock to required files.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ app = base.app
 GAMEPLAY_RESPONSE_GATE_FILE = "gpt/locks/gameplay_response_gate.md"
 PLAYER_INPUT_ANCHOR_LOCK_FILE = "gpt/locks/player_input_anchor_lock.md"
 CURRENT_STATE_FILE = "state/current_state.json"
-PROMPT_BUILDER_FILE = "app/prompt_builder.py"
+VISIBLE_SCENE_BEFORE_STATE_LOCK_FILE = "gpt/locks/gameplay_visible_scene_before_state_and_no_status_summary.md"
 TURN_CONTRACT_PATH = "/api/v1/sessions/{session_id}/turn-contract"
 
 _ORIGINAL_OUTPUT_FORMAT_CONTRACT = base.output_format_contract
@@ -214,7 +214,7 @@ def recommended_files_for_context(current: dict[str, Any] | None = None, future:
         + ([GAMEPLAY_RESPONSE_GATE_FILE] if base.repo_file_exists(GAMEPLAY_RESPONSE_GATE_FILE) else [])
         + ([PLAYER_INPUT_ANCHOR_LOCK_FILE] if base.repo_file_exists(PLAYER_INPUT_ANCHOR_LOCK_FILE) else [])
         + ([CURRENT_STATE_FILE] if base.repo_file_exists(CURRENT_STATE_FILE) else [])
-        + ([PROMPT_BUILDER_FILE] if base.repo_file_exists(PROMPT_BUILDER_FILE) else [])
+        + ([VISIBLE_SCENE_BEFORE_STATE_LOCK_FILE] if base.repo_file_exists(VISIBLE_SCENE_BEFORE_STATE_LOCK_FILE) else [])
         + character_files
         + akira_profile_files
         + base.character_lock_files(scene_chars)
@@ -242,6 +242,9 @@ def output_format_contract() -> dict:
         "Everything the player writes outside parentheses must appear verbatim as Akira's spoken line; never replace it with a recap.",
         "Everything inside parentheses is action/pause/body state/intention, not speech.",
         "If the player waits for registration/check/scanner, do not auto-complete the procedure; stop before the player-facing action.",
+        "If the current player input contains no spoken text outside parentheses, do not create new Akira dialogue lines in the scene body; put possible Akira lines only in the bottom block.",
+        "In gameplay mode, show the full visible scene before applying state; after apply-turn-result, the final visible answer must still be the gameplay scene, not status/summary.",
+        "If apply-turn-result was called before a visible scene was shown, output a repair-render of that saved event without applying state again.",
     ]
     for rule in extra_rules:
         if rule not in rules:
@@ -564,7 +567,7 @@ def patch_after_routes() -> None:
 
     if hasattr(routes, "BASE_REQUIRED_FILES"):
         base_required = list(getattr(routes, "BASE_REQUIRED_FILES", []) or [])
-        for required_path in (GAMEPLAY_RESPONSE_GATE_FILE, PLAYER_INPUT_ANCHOR_LOCK_FILE, CURRENT_STATE_FILE, PROMPT_BUILDER_FILE):
+        for required_path in (GAMEPLAY_RESPONSE_GATE_FILE, PLAYER_INPUT_ANCHOR_LOCK_FILE, CURRENT_STATE_FILE, VISIBLE_SCENE_BEFORE_STATE_LOCK_FILE):
             if required_path not in base_required and base.repo_file_exists(required_path):
                 base_required.append(required_path)
         routes.BASE_REQUIRED_FILES = base_required

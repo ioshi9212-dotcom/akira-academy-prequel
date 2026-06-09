@@ -22,6 +22,8 @@ Do not send a gameplay response unless it includes:
 
 3. Player input anchor:
    - everything the user wrote outside parentheses is Akira's exact spoken line and must be inserted as Akira's line
+   - if the current player input contains no spoken text outside parentheses, the scene body must not contain any new line like **Акира** — ... / **Akira** — ...
+   - possible Akira dialogue not explicitly written by the player belongs only in the bottom block `Что Акира могла бы сказать`
    - everything inside parentheses is action, gesture, body state, intention, movement or pause, not speech
    - if the player input contains multiple Akira lines separated by parenthetical actions, those actions are pauses that should be filled with world/NPC reaction
    - do not shorten, replace or give Akira's line to another character
@@ -72,7 +74,15 @@ Do not send a gameplay response unless it includes:
    - Что Акира могла бы сказать:
    - Мысли Акиры:
 
-9. No visible technical layer:
+9. Visible scene before state / no status summary:
+   - in gameplay mode, the final visible answer must be the gameplay scene, not a tool/status summary
+   - render the complete user-visible scene before applying state mutations
+   - apply-turn-result is persistence only; it never replaces the scene
+   - after apply-turn-result, the final answer must still contain the scene header, body and bottom blocks
+   - if apply-turn-result was called before a visible scene was shown, output a repair-render of the already-saved scene without applying state again
+   - forbidden final replacements: "Сцена отработана", "Ключевые моменты", "Следующая точка", "Если хочешь, могу отрендерить"
+
+10. No visible technical layer:
    Forbidden in gameplay response:
    - "Принял"
    - "Понял"
@@ -84,7 +94,7 @@ Do not send a gameplay response unless it includes:
    - any API/debug/contract commentary
    - any spoiler of director logic before the scene
 
-10. Save requirement:
+11. Save requirement:
     After a meaningful scene, prepare/apply turn result for:
     - current_state if location/time/status changed
     - relationships if interaction changed attitude
@@ -92,7 +102,7 @@ Do not send a gameplay response unless it includes:
     - story_lines/open threads if promise, bet, obligation or future hook appeared
     - reputation/rumors if public reaction happened
 
-11. Required files loading:
+12. Required files loading:
     Before writing any gameplay scene after getSessionTurnContract:
     - call getRequiredFilesManifest;
     - call getRequiredFilesChunk from chunk_index=0 until has_more=false;
@@ -100,11 +110,13 @@ Do not send a gameplay response unless it includes:
     - do not replace the chunked bundle with only getProjectFile/main.yaml;
     - if chunk loading fails, stop in technical mode instead of writing the scene.
 
-12. Rewrite rule:
+13. Rewrite rule:
     If any required section is missing, rewrite before sending.
     If the scene compressed the player input into a recap, rewrite before sending.
     If an NPC answered for Akira on a direct challenge, rewrite before sending.
     If Akira disappears from a saturated dialogue, stop earlier and give the player the choice.
+    If Akira speaks in the scene body without a current player-provided spoken line, rewrite before sending.
+    If the final answer became status/summary after apply-turn-result, rewrite as the visible gameplay scene.
     Do not apologize inside gameplay.
     Do not explain the mistake.
     Output only the corrected full scene.

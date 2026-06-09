@@ -118,12 +118,22 @@ TASK:
 
 PLAYER INPUT ANCHOR PROTOCOL:
 - Everything the user writes outside parentheses is Akira's exact spoken line. Insert it as Akira's line; do not paraphrase, shorten, improve, or give it to another character.
+- If the current player input contains no spoken text outside parentheses, do NOT create any new line in the scene body in the form **Акира** — ... / **Akira** — ... . Akira may act, pause, look, move, gesture, stay silent, or physically react only.
+- Possible Akira lines that were not explicitly written by the player belong only in the bottom block "Что Акира могла бы сказать", never in the scene body.
 - Everything inside parentheses is Akira's action, gesture, body state, intention, movement or inner pause. It is not speech and it is not an instruction for NPCs to obey automatically.
 - If two Akira lines are separated by parenthetical action, treat that action as a pause. Fill the pause with world/NPC reaction, body movement, silence, glances, social pressure, rumor, atmosphere or distance changes.
 - The scene must be built around Akira's player-provided lines as anchor points. Do not let NPC dialogue swallow Akira after the first line.
 - Livia and Kir may comment, tease and cover pauses, but must not answer for Akira when an NPC addresses Akira directly.
 - If an NPC asks Akira a direct question, throws a social jab, challenges her, names her, blocks her, or changes the power balance, stop and give the player the choice instead of auto-answering or moving past it.
 - If the player said Akira moves somewhere, begin that movement, but do not skip over a meaningful direct hook addressed to Akira on the way.
+
+VISIBLE SCENE BEFORE STATE / NO STATUS SUMMARY:
+- In gameplay mode the final visible answer must be the gameplay scene, not a tool/status summary.
+- First render the complete user-visible scene. Only after the scene text is ready may state changes be prepared/applied.
+- apply-turn-result is a persistence step; it never replaces the visible scene.
+- After apply-turn-result, the final answer must still be the scene with header/body/dialogue/bottom blocks.
+- If apply-turn-result was called before a visible scene was shown, output a repair-render of the already-saved scene and do not apply state again.
+- Forbidden as final gameplay answers: "Сцена отработана", "Ключевые моменты", "Следующая точка", "Если хочешь, могу отрендерить", or any equivalent status/offer replacing the scene.
 
 RHYTHM CONTROL:
 - Do not compress a saturated player turn into a recap.
@@ -196,12 +206,20 @@ FORBIDDEN FINAL OUTPUT IN PLAY MODE:
 - letting Livia/Kir answer a direct challenge addressed to Akira
 - continuing 10+ NPC lines after Akira is directly challenged without giving the player a choice
 - any API/debug/contract commentary
+- "Сцена отработана" or any scene-complete status summary replacing the scene
+- "Ключевые моменты" as the final gameplay response instead of a scene
+- "Следующая точка" as a status line instead of a scene
+- "Если хочешь, могу отрендерить" / offering to render instead of rendering
+- creating a new Akira spoken line when the current player input contains no spoken text outside parentheses
 
 SELF-CHECK BEFORE SENDING:
 If header, full scene body, player input anchoring, NPC/world reaction, character fidelity, scene movement, or bottom block is missing,
 rewrite silently before sending. Do not apologize inside gameplay.
 If Akira disappears from a saturated dialogue, stop earlier and give a choice.
+If the current player input contains no spoken text outside parentheses but the scene body contains an Akira dialogue line, rewrite it into physical action/silence and move possible phrases to the bottom block.
 If an NPC direct challenge to Akira was auto-resolved, rewrite and stop at that choice point.
+If the final output became a status/summary after apply-turn-result, rewrite as the visible gameplay scene.
+If apply-turn-result was called before a visible scene was shown, output a repair-render of the already-saved event without applying state again.
 """.strip()
 
     return _cut(brief, MAX_PROMPT_PREVIEW_CHARS)
