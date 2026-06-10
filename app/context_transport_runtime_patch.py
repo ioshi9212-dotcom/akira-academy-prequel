@@ -1,5 +1,5 @@
 """
-Runtime patch v7: medium-quality selective context + safe chunk transport + roster cleanup.
+Runtime patch v9: medium-quality selective context + visual header format + schedule-aware digest.
 
 Goals:
 - keep gameplay context selective, not full bundle;
@@ -35,23 +35,42 @@ from app import compact as base
 import app.compact_context_patch as ccp
 
 app = base.app
-app.version = "0.3.22-context-medium-v7"
+app.version = "0.3.24-context-format-v9"
 
 RUNTIME_DIGEST_FILE = "runtime/scene_context_digest.md"
+_ORIGINAL_BASE_OUTPUT_FORMAT_CONTRACT = base.output_format_contract
+_ORIGINAL_CCP_OUTPUT_FORMAT_CONTRACT = ccp.output_format_contract
 
 MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest
 
 Use this instead of loading the full heavy scene_format.md in normal gameplay.
 
+Visible scene format MUST be aesthetic markdown, not a plain technical list.
+
+Scene header format:
+- The scene must start with a compact emoji + markdown header.
+- Do NOT write raw field list like: "Дата:", "Погода:", "Акира:", "Рядом:" as plain lines.
+- Use a visual-novel header like this:
+
+### 🗓️ 1198-08-15 · позднее утро
+**📍 Академия Астрейн, главный двор — линия регистрации у западной арки**
+
+🌦️ *Ясно после ночного дождя; мокрые плиты двора светятся на солнце.*
+👤 **Акира:** *внешне спокойна; белые волосы распущены; на щеке пластырь Ливии.*
+🎒 **Рядом:** *дорожная сумка / багаж Акиры.*
+
+Then continue with living prose.
+
 Required feel:
 - Scene should read like visual-novel prose, not like a form/card/table.
-- Header may be compact: one line with date/time/place/weather if useful, not a large questionnaire.
+- Header must have emojis and bold markdown markers for place/Akira/nearby info.
+- Header should be compact and atmospheric, not a questionnaire.
 - Do not over-explain technical state in the visible scene.
 - Do not answer with technical commentary after the scene.
 - Keep the world moving: every scene needs a concrete hook, reaction, social pressure, small conflict, or transition.
 - Use atmospheric details, but do not drown the player action.
-- NPCs should act from loaded character files, relationship slice, and knowledge slice.
+- NPCs should act from loaded character files, relationship slice, calendar slice, and knowledge slice.
 - Do not flatten characters into one trait: Livia is not only “loud”; Kir is not only “sarcastic”; Akira is not only “cold”.
 - Use silence, glances, pauses, crowd pressure, and small physical reactions as scene tools.
 - Bottom blocks are allowed, but should be compact and organic, not a heavy RPG menu.
@@ -62,6 +81,16 @@ Dialogue:
 - Avoid long action text inside dialogue parentheses.
 - Akira does not speak unless the player wrote her direct speech outside parentheses.
 - Akira’s internal thoughts belong in the bottom “Мысли Акиры” block only.
+
+Bottom blocks format:
+### 🎯 Что можно сделать
+— ...
+
+### 💬 Что Акира могла бы сказать
+— ...
+
+### 🧠 Мысли Акиры
+...
 
 Pacing:
 - If the player asks to go/wait/eat/sleep, compress unimportant transit and land on the next meaningful beat.
@@ -74,11 +103,13 @@ MEDIUM_ENGINE_DIGEST = """
 
 Normal gameplay must balance speed and quality.
 - Required files are selective, but the scene should still feel complete.
+- Always check the Calendar slice / Schedule appearance rules before introducing Haru, Raiden, Kiara, Kael, or other non-roster characters.
+- Calendar entries are opportunities and constraints, not automatic active roster.
 - Use runtime digest for state/canon/rules and full character files for present characters.
-- If a character is not in roster/nearby/mentioned/scheduled, do not write them into the scene.
+- If a character is not in roster/nearby/mentioned/scheduled and not due by calendar, do not write them into the scene.
 - If current roster is stale, use repairSceneRoster instead of loading extra characters.
 - State update after scene must be explicit: backend does not infer from prose.
-- If relationships, knowledge, story lines, current location, roster, inventory, or obligations changed, send explicit apply-turn-result payload.
+- If relationships, knowledge, story lines, current location, roster, inventory, calendar beat, or obligations changed, send explicit apply-turn-result payload.
 """
 
 MEDIUM_SOURCE_USAGE_DIGEST = """
@@ -111,6 +142,57 @@ Use relationship slice to decide:
 Only use relationship pairs where both characters are in current scene focus unless a third character is explicitly mentioned or scheduled.
 If the scene changes a relationship, save it through relationship_changes.
 """
+
+
+def medium_output_format_contract() -> dict[str, Any]:
+    try:
+        original = _ORIGINAL_CCP_OUTPUT_FORMAT_CONTRACT()
+    except Exception:
+        try:
+            original = _ORIGINAL_BASE_OUTPUT_FORMAT_CONTRACT()
+        except Exception:
+            original = {}
+    if not isinstance(original, dict):
+        original = {}
+
+    rules = list(original.get("rules", []) or [])
+    required_rules = [
+        "Scene MUST start with compact emoji markdown header, not a plain field list.",
+        "Header format: ### 🗓️ date · time, then **📍 place**, 🌦️ weather, 👤 **Акира:**, 🎒 **Рядом:** when relevant.",
+        "Bottom blocks should use markdown headers with emojis: ### 🎯 Что можно сделать / ### 💬 Что Акира могла бы сказать / ### 🧠 Мысли Акиры.",
+        "Do not output technical commentary after a gameplay scene.",
+        "Use visual-novel prose after the header; do not write the scene as a card/table/form.",
+    ]
+    for rule in reversed(required_rules):
+        if rule not in rules:
+            rules.insert(0, rule)
+
+    original["rules"] = rules
+    original["scene_header_template"] = {
+        "required": True,
+        "style": "emoji_markdown_visual_novel",
+        "example": [
+            "### 🗓️ 1198-08-15 · позднее утро",
+            "**📍 Академия Астрейн, главный двор — линия регистрации у западной арки**",
+            "🌦️ *Ясно после ночного дождя; мокрые плиты двора светятся на солнце.*",
+            "👤 **Акира:** *внешне спокойна; белые волосы распущены; на щеке пластырь Ливии.*",
+            "🎒 **Рядом:** *дорожная сумка / багаж Акиры.*",
+        ],
+        "forbidden": [
+            "plain raw field list without emojis",
+            "large questionnaire-like header",
+            "technical session/status/API text in gameplay",
+        ],
+    }
+    original["bottom_blocks_template"] = {
+        "required": True,
+        "headers": [
+            "### 🎯 Что можно сделать",
+            "### 💬 Что Акира могла бы сказать",
+            "### 🧠 Мысли Акиры",
+        ],
+    }
+    return original
 
 
 MINIMAL_LOCK_FILES = [
@@ -358,6 +440,51 @@ def _json_block(title: str, value: Any, max_chars: int = 4500) -> str:
     return f"\n## {title}\n```json\n{text}\n```\n"
 
 
+def _date_in_range(current_date: str, key: str) -> bool:
+    if "_to_" not in key:
+        return key == current_date
+    start, end = key.split("_to_", 1)
+    return start <= current_date <= end
+
+
+def build_calendar_slice(current: dict[str, Any], academy_schedule: Any) -> dict[str, Any]:
+    current_date = str(current.get("current_date") or "")
+    current_time = str(current.get("current_time") or "")
+
+    result: dict[str, Any] = {
+        "current_date": current_date,
+        "current_time": current_time,
+        "matched_periods": {},
+        "default_day": {},
+        "freedom_rules": [],
+        "schedule_appearance_rules": {},
+        "calendar_check_rule": [
+            "Before introducing Haru/Raiden/Kiara/Kael, check this slice.",
+            "If character is only calendar-possible, foreshadow or background them; do not force direct meeting.",
+            "If character is active/nearby/mentioned/scheduled in current_state, character files may load and direct scene use is allowed.",
+        ],
+    }
+
+    if not isinstance(academy_schedule, dict):
+        return result
+
+    start_period = academy_schedule.get("start_period", {})
+    if isinstance(start_period, dict):
+        for key, value in start_period.items():
+            if _date_in_range(current_date, str(key)):
+                result["matched_periods"][key] = value
+
+    result["default_day"] = academy_schedule.get("default_day", {}) if isinstance(academy_schedule.get("default_day"), dict) else {}
+    freedom_rules = academy_schedule.get("freedom_rules", [])
+    result["freedom_rules"] = freedom_rules if isinstance(freedom_rules, list) else []
+
+    appearance_rules = academy_schedule.get("character_appearance_rules", {})
+    if isinstance(appearance_rules, dict):
+        result["schedule_appearance_rules"] = appearance_rules
+
+    return result
+
+
 def build_scene_context_digest(session_id: str) -> str:
     current = base.read_json("state/current_state.json", session_id, default={}) or {}
     future = base.read_json("state/future_locks_progress.json", session_id, default={}) or {}
@@ -375,17 +502,21 @@ def build_scene_context_digest(session_id: str) -> str:
         base.read_json("state/knowledge_state.json", session_id, default={}) or {},
         chars,
     )
-    inventory = base.compact_if_large(base.read_json("state/inventory_state.json", session_id, default={}) or {}, 1800)
-    academy_schedule = base.compact_if_large(base.read_json("state/academy_schedule.json", session_id, default={}) or {}, 1800)
+    inventory = base.compact_if_large(base.read_json("state/inventory_state.json", session_id, default={}) or {}, 2200)
+    academy_schedule_full = base.read_json("state/academy_schedule.json", session_id, default={}) or {}
+    academy_schedule = build_calendar_slice(current, academy_schedule_full)
 
     rule_digest = {
         "output": [
             "Gameplay only: no API/status/debug summary in final answer.",
+            "Scene must start with compact emoji markdown header.",
+            "Header example: ### 🗓️ date · time / **📍 place** / 🌦️ weather / 👤 **Акира:** / 🎒 **Рядом:**.",
             "Scene should read like visual-novel prose, not a technical card.",
-            "Compact header is allowed; avoid large form-like scene header unless needed.",
+            "Never use a plain raw field-list header without emojis.",
             "Dialogue format: **Name/descriptor** — speech. (*short italic remark*)",
             "Descriptions are separate italic paragraphs.",
             "Akira thoughts only in bottom block, not inside the scene body.",
+            "Bottom blocks use emoji markdown headers.",
             "No empty scene: add hook/reaction/conflict/consequence or time skip.",
             "Do not answer with technical commentary after a gameplay scene.",
         ],
@@ -416,7 +547,7 @@ def build_scene_context_digest(session_id: str) -> str:
     text += _json_block("Story lines slice", story_lines, 7600)
     text += _json_block("Knowledge slice", knowledge, 5200)
     text += _json_block("Inventory slice", inventory, 2200)
-    text += _json_block("Calendar slice", academy_schedule, 2600)
+    text += _json_block("Calendar slice", academy_schedule, 5200)
     text += "\n## State update reminder\nIf scene changes roster, use current_state_changes with roster fields as full replacement lists.\n"
     return text
 
@@ -607,7 +738,9 @@ base.compact_relationships = compact_relationships_scene_pairs_only
 base.compact_knowledge = compact_knowledge_scene_only
 base.compact_story_lines = compact_story_lines_scene_only
 base.deep_merge = deep_merge_roster_replace
+base.output_format_contract = medium_output_format_contract
 
+ccp.output_format_contract = medium_output_format_contract
 ccp.active_scene_characters = scene_character_ids
 ccp.recommended_files_for_context = lean_recommended_files_for_context
 ccp._read_required_file_for_bundle = read_required_file_for_bundle
