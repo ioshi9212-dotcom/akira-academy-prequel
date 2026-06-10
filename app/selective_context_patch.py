@@ -22,10 +22,11 @@ try:  # pragma: no cover - runtime optional import
 except Exception:  # pragma: no cover
     from app import compact_context_patch as runtime  # type: ignore
 
+import app.compact_context_patch as ccp
 from app import compact as base
 
 app = runtime.app
-app.version = "0.3.17-selective-context"
+app.version = "0.3.18-selective-context-hotfix"
 
 RUNTIME_DIGEST_FILE = "runtime/scene_context_digest.md"
 SELECTIVE_CONTEXT_LOCK_FILE = "gpt/locks/selective_context_runtime_lock.md"
@@ -366,7 +367,10 @@ def build_scene_context_digest(session_id: str) -> str:
     return "\n".join(parts) + "\n"
 
 
-_ORIGINAL_READ_REQUIRED_FILE = runtime._read_required_file_for_bundle
+# The required-files endpoints live in compact_context_patch.
+# If state_write_runtime_patch is installed, it does NOT expose _read_required_file_for_bundle.
+# Patch compact_context_patch directly; otherwise Railway crashes on import.
+_ORIGINAL_READ_REQUIRED_FILE = ccp._read_required_file_for_bundle
 
 
 def _read_required_file_for_bundle(path: str, session_id: str) -> tuple[str | None, str | None]:
@@ -375,19 +379,16 @@ def _read_required_file_for_bundle(path: str, session_id: str) -> tuple[str | No
     return _ORIGINAL_READ_REQUIRED_FILE(path, session_id)
 
 
-# Patch runtime + base selectors used by /context, /turn-contract, required-files manifest/chunks.
-runtime.active_scene_characters = active_scene_characters
-runtime.recommended_files_for_context = recommended_files_for_context
-runtime.compact_relationships = compact_relationships
-runtime.compact_story_lines = compact_story_lines
-runtime.compact_knowledge = compact_knowledge
-runtime._read_required_file_for_bundle = _read_required_file_for_bundle
+# Patch runtime + compact_context_patch + base selectors used by /context, /turn-contract,
+# required-files manifest/chunks and optional state-write route.
+for module in (runtime, ccp, base):
+    module.active_scene_characters = active_scene_characters
+    module.recommended_files_for_context = recommended_files_for_context
+    module.compact_relationships = compact_relationships
+    module.compact_story_lines = compact_story_lines
+    module.compact_knowledge = compact_knowledge
 
-base.active_scene_characters = active_scene_characters
-base.recommended_files_for_context = recommended_files_for_context
-base.compact_relationships = compact_relationships
-base.compact_story_lines = compact_story_lines
-base.compact_knowledge = compact_knowledge
+ccp._read_required_file_for_bundle = _read_required_file_for_bundle
 
 
 def patch_after_routes() -> None:
