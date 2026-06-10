@@ -1,5 +1,5 @@
 """
-Runtime patch v5: lean selective context + safe chunk transport + roster cleanup.
+Runtime patch v7: medium-quality selective context + safe chunk transport + roster cleanup.
 
 Goals:
 - keep gameplay context selective, not full bundle;
@@ -35,9 +35,83 @@ from app import compact as base
 import app.compact_context_patch as ccp
 
 app = base.app
-app.version = "0.3.21-context-transport-hotfix-v6"
+app.version = "0.3.22-context-medium-v7"
 
 RUNTIME_DIGEST_FILE = "runtime/scene_context_digest.md"
+
+MEDIUM_STYLE_FORMAT_DIGEST = """
+## Medium scene style digest
+
+Use this instead of loading the full heavy scene_format.md in normal gameplay.
+
+Required feel:
+- Scene should read like visual-novel prose, not like a form/card/table.
+- Header may be compact: one line with date/time/place/weather if useful, not a large questionnaire.
+- Do not over-explain technical state in the visible scene.
+- Do not answer with technical commentary after the scene.
+- Keep the world moving: every scene needs a concrete hook, reaction, social pressure, small conflict, or transition.
+- Use atmospheric details, but do not drown the player action.
+- NPCs should act from loaded character files, relationship slice, and knowledge slice.
+- Do not flatten characters into one trait: Livia is not only “loud”; Kir is not only “sarcastic”; Akira is not only “cold”.
+- Use silence, glances, pauses, crowd pressure, and small physical reactions as scene tools.
+- Bottom blocks are allowed, but should be compact and organic, not a heavy RPG menu.
+
+Dialogue:
+- Spoken line format: **Name/visible descriptor** — speech. (*short italic remark if needed*)
+- Descriptions are separate italic paragraphs.
+- Avoid long action text inside dialogue parentheses.
+- Akira does not speak unless the player wrote her direct speech outside parentheses.
+- Akira’s internal thoughts belong in the bottom “Мысли Акиры” block only.
+
+Pacing:
+- If the player asks to go/wait/eat/sleep, compress unimportant transit and land on the next meaningful beat.
+- Do not ask for permission to continue when the player already gave an action.
+- If a procedure is active (registration/scanner/check), do not auto-complete it unless the player action clearly does that.
+"""
+
+MEDIUM_ENGINE_DIGEST = """
+## Medium engine behavior digest
+
+Normal gameplay must balance speed and quality.
+- Required files are selective, but the scene should still feel complete.
+- Use runtime digest for state/canon/rules and full character files for present characters.
+- If a character is not in roster/nearby/mentioned/scheduled, do not write them into the scene.
+- If current roster is stale, use repairSceneRoster instead of loading extra characters.
+- State update after scene must be explicit: backend does not infer from prose.
+- If relationships, knowledge, story lines, current location, roster, inventory, or obligations changed, send explicit apply-turn-result payload.
+"""
+
+MEDIUM_SOURCE_USAGE_DIGEST = """
+## Medium source usage digest
+
+Priority order:
+1. Player input for Akira's direct speech/action.
+2. Current state and scene roster.
+3. Character files for present characters.
+4. Relationship slice for pairs in scene.
+5. Knowledge slice for who knows what.
+6. Story_lines slice for dated events, obligations, and next hooks.
+7. Rule digest / locks.
+
+Do not invent hidden knowledge for NPCs.
+If source is missing, write suspicion, question, wrong assumption, silence, or visible reaction instead of factual certainty.
+"""
+
+MEDIUM_RELATIONSHIP_DIGEST = """
+## Medium relationship memory digest
+
+Relationships are behavioral memory, not just scores.
+Use relationship slice to decide:
+- who stands closer or farther;
+- who covers tension with jokes;
+- who watches too carefully;
+- who tests boundaries;
+- who becomes jealous, protective, wary, curious, or annoyed.
+
+Only use relationship pairs where both characters are in current scene focus unless a third character is explicitly mentioned or scheduled.
+If the scene changes a relationship, save it through relationship_changes.
+"""
+
 
 MINIMAL_LOCK_FILES = [
     "gpt/locks/gameplay_response_gate.md",
@@ -237,7 +311,7 @@ def compact_knowledge_scene_only(state: Any, focus_ids: list[str]) -> Any:
     }
 
 
-def compact_story_lines_scene_only(state: Any, focus_ids: list[str], max_events: int = 12) -> Any:
+def compact_story_lines_scene_only(state: Any, focus_ids: list[str], max_events: int = 20) -> Any:
     if not isinstance(state, dict):
         return state
     focus = {canonical_id(x) for x in (focus_ids or ["akira"])}
@@ -307,10 +381,13 @@ def build_scene_context_digest(session_id: str) -> str:
     rule_digest = {
         "output": [
             "Gameplay only: no API/status/debug summary in final answer.",
+            "Scene should read like visual-novel prose, not a technical card.",
+            "Compact header is allowed; avoid large form-like scene header unless needed.",
             "Dialogue format: **Name/descriptor** — speech. (*short italic remark*)",
             "Descriptions are separate italic paragraphs.",
             "Akira thoughts only in bottom block, not inside the scene body.",
             "No empty scene: add hook/reaction/conflict/consequence or time skip.",
+            "Do not answer with technical commentary after a gameplay scene.",
         ],
         "state_write": [
             "Backend does not infer state from prose.",
@@ -322,19 +399,24 @@ def build_scene_context_digest(session_id: str) -> str:
         ],
         "relationships": [
             "Use only relationships between scene characters unless another character is explicitly mentioned or scheduled.",
+            "Relationships are behavioral memory, not only scores.",
         ],
     }
 
     text = "# Runtime scene context digest\n"
     text += "This digest replaces heavy global prompt/canon/state files for normal gameplay. Use exact character files also loaded in required_files.\n"
-    text += _json_block("Rule digest", rule_digest, 3600)
+    text += MEDIUM_STYLE_FORMAT_DIGEST + "\n"
+    text += MEDIUM_ENGINE_DIGEST + "\n"
+    text += MEDIUM_SOURCE_USAGE_DIGEST + "\n"
+    text += MEDIUM_RELATIONSHIP_DIGEST + "\n"
+    text += _json_block("Rule digest", rule_digest, 4200)
     text += _json_block("Scene character ids", chars, 1200)
-    text += _json_block("Current state", current, 3600)
-    text += _json_block("Relationship slice", relationships, 4000)
-    text += _json_block("Story lines slice", story_lines, 5000)
-    text += _json_block("Knowledge slice", knowledge, 3500)
-    text += _json_block("Inventory slice", inventory, 1800)
-    text += _json_block("Calendar slice", academy_schedule, 1800)
+    text += _json_block("Current state", current, 4600)
+    text += _json_block("Relationship slice", relationships, 5600)
+    text += _json_block("Story lines slice", story_lines, 7600)
+    text += _json_block("Knowledge slice", knowledge, 5200)
+    text += _json_block("Inventory slice", inventory, 2200)
+    text += _json_block("Calendar slice", academy_schedule, 2600)
     text += "\n## State update reminder\nIf scene changes roster, use current_state_changes with roster fields as full replacement lists.\n"
     return text
 
@@ -355,7 +437,7 @@ def read_required_file_for_bundle(path: str, session_id: str) -> tuple[str | Non
 
 def split_text_safe(content: str, part_chars: int) -> list[str]:
     # Keep file pieces reasonably small; response JSON overhead matters.
-    part_chars = max(6000, min(int(part_chars or 9000), 9000))
+    part_chars = max(7000, min(int(part_chars or 11000), 11000))
     if not content:
         return [""]
     return [content[i:i + part_chars] for i in range(0, len(content), part_chars)]
@@ -364,7 +446,7 @@ def split_text_safe(content: str, part_chars: int) -> list[str]:
 def required_file_parts_safe(
     session_id: str,
     *,
-    file_part_chars: int = 9000,
+    file_part_chars: int = 11000,
 ) -> tuple[list[str], list[Any], list[Any], list[str]]:
     current = base.read_json("state/current_state.json", session_id, default={}) or {}
     future = base.read_json("state/future_locks_progress.json", session_id, default={}) or {}
@@ -408,11 +490,11 @@ def required_file_parts_safe(
 def chunk_loaded_parts_safe(
     loaded_parts: list[Any],
     *,
-    max_chars: int = 24000,
+    max_chars: int = 30000,
     max_items: int = 3,
 ) -> list[list[Any]]:
     # Ignore dangerous caller values that can trigger ResponseTooLargeError.
-    max_chars = max(12000, min(int(max_chars or 24000), 26000))
+    max_chars = max(16000, min(int(max_chars or 30000), 32000))
     max_items = max(1, min(int(max_items or 3), 3))
 
     chunks: list[list[Any]] = []
@@ -437,7 +519,7 @@ def required_files_chunk_response_safe(
     session_id: str,
     *,
     chunk_index: int = 0,
-    max_chars: int = 24000,
+    max_chars: int = 30000,
     max_items: int = 3,
 ):
     sid = base.safe_session_id(session_id)
@@ -544,7 +626,7 @@ _remove_routes("/api/v1/sessions/{session_id}/required-files-bundle", {"GET"}, "
 def get_required_files_chunk_safe(
     session_id: str,
     chunk_index: int = 0,
-    max_chars: int = 24000,
+    max_chars: int = 30000,
     max_items: int = 3,
 ):
     return required_files_chunk_response_safe(
@@ -559,7 +641,7 @@ def get_required_files_chunk_safe(
 def get_required_files_bundle_safe(
     session_id: str,
     chunk_index: int = 0,
-    max_chars: int = 24000,
+    max_chars: int = 30000,
     max_items: int = 3,
 ):
     return required_files_chunk_response_safe(
