@@ -35,7 +35,7 @@ from app import compact as base
 import app.compact_context_patch as ccp
 
 app = base.app
-app.version = "0.3.20-context-transport-v5"
+app.version = "0.3.21-context-transport-hotfix-v6"
 
 RUNTIME_DIGEST_FILE = "runtime/scene_context_digest.md"
 
@@ -339,13 +339,18 @@ def build_scene_context_digest(session_id: str) -> str:
     return text
 
 
+# Save the original reader before monkey-patching ccp._read_required_file_for_bundle.
+# Without this, non-runtime required files recurse back into read_required_file_for_bundle.
+_ORIGINAL_READ_REQUIRED_FILE_FOR_BUNDLE = ccp._read_required_file_for_bundle
+
+
 def read_required_file_for_bundle(path: str, session_id: str) -> tuple[str | None, str | None]:
     safe_path = str(path).strip()
     if not safe_path:
         return None, None
     if safe_path == RUNTIME_DIGEST_FILE:
         return build_scene_context_digest(session_id), "runtime"
-    return ccp._read_required_file_for_bundle(safe_path, session_id)
+    return _ORIGINAL_READ_REQUIRED_FILE_FOR_BUNDLE(safe_path, session_id)
 
 
 def split_text_safe(content: str, part_chars: int) -> list[str]:
