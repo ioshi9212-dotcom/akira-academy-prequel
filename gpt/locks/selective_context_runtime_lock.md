@@ -1,23 +1,13 @@
-# Lock: selective context runtime
+# Selective Context Runtime Lock
 
-Normal gameplay must use selective context, not full bundle.
+Normal gameplay must use selective context, not full project bundle.
 
-## Default gameplay context
-Load only:
-- runtime/scene_context_digest.md;
-- active/nearby/speaking/addressed/looked_at/mentioned/scheduled character files;
-- minimal gameplay/output/state-write locks;
-- scene-relevant relationship/story/knowledge slices from the digest.
-
-Do not request every project file for normal gameplay.
-
-## Full context mode
-Full required-files bundle is allowed only for explicit technical diagnostics or when current_state has:
-- context_mode: full / diagnostic / debug
-- force_full_context: true
-- debug_full_required_files: true
-
-## Quality rule
-Selective context is not permission to flatten characters.
-If a character is active in the scene, their character.yaml must be loaded unless missing.
-Relationships used in the scene must be from the relationship slice or exact state JSON.
+Rules:
+- Load runtime/scene_context_digest.md.
+- Load full character.yaml/past.yaml only for active, nearby, mentioned, scheduled, addressed, looked_at scene characters.
+- Do not load full state/*.json files in normal gameplay; use digest slices.
+- Relationships must include only pairs where both characters are in current scene focus, unless a third character is explicitly mentioned or scheduled.
+- Roster fields in current_state are replacement lists, not append-only memory.
+- If a character has not appeared, is not nearby, not mentioned, and not scheduled, do not keep them active by inertia.
+- Use repairSceneRoster if active_character_ids are polluted by stale scene characters.
+- Chunk transport must stay safe: do not request huge max_chars/max_items values that can trigger ResponseTooLargeError.
