@@ -76,9 +76,11 @@ Do not send a gameplay response unless it includes:
 
 9. Visible scene before state / no status summary:
    - in gameplay mode, the final visible answer must be the gameplay scene, not a tool/status summary
-   - render the complete user-visible scene before applying state mutations
+   - gather runtime data first: current_state, loaded file chunks, character slices, relationship slice, knowledge slice, scene task and stop conditions
+   - render the complete user-visible scene into `visible_scene_text` before applying state mutations
    - apply-turn-result is persistence only; it never replaces the scene
-   - after apply-turn-result, the final answer must still contain the scene header, body and bottom blocks
+   - when calling apply-turn-result, pass `visible_scene_text` in the request body together with state changes
+   - after apply-turn-result, the final answer must be exactly `final_scene_text` / `visible_scene_text` from the tool response
    - if apply-turn-result was called before a visible scene was shown, output a repair-render of the already-saved scene without applying state again
    - forbidden final replacements: "Сцена отработана", "Ключевые моменты", "Следующая точка", "Если хочешь, могу отрендерить"
 
@@ -95,7 +97,7 @@ Do not send a gameplay response unless it includes:
    - any spoiler of director logic before the scene
 
 11. Save requirement:
-    After a meaningful scene, prepare/apply turn result for:
+    After a meaningful scene has been fully rendered into `visible_scene_text`, prepare/apply turn result for:
     - current_state if location/time/status changed
     - relationships if interaction changed attitude
     - knowledge_state if someone saw/heard/learned something
@@ -116,7 +118,7 @@ Do not send a gameplay response unless it includes:
     If an NPC answered for Akira on a direct challenge, rewrite before sending.
     If Akira disappears from a saturated dialogue, stop earlier and give the player the choice.
     If Akira speaks in the scene body without a current player-provided spoken line, rewrite before sending.
-    If the final answer became status/summary after apply-turn-result, rewrite as the visible gameplay scene.
+    If the final answer became status/summary after apply-turn-result, return `final_scene_text` / `visible_scene_text` verbatim.
     Do not apologize inside gameplay.
     Do not explain the mistake.
     Output only the corrected full scene.

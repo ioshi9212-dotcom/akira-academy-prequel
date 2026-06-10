@@ -7,7 +7,7 @@ Runtime patch:
 - required files manifest/chunk endpoints added so GPT can load all required files without ResponseTooLargeError;
 - OpenAPI schema for turn-contract includes prompt_preview.
 
-No heavy lore. No state edits. Adds player input anchor lock and visible-scene-before-state lock to required files.
+No heavy lore. Adds player input anchor lock, visible-scene-before-state lock, chunked file loading, and apply-turn-result scene echo contract.
 """
 
 from __future__ import annotations
@@ -20,12 +20,14 @@ from app import compact as base
 from app.prompt_builder import build_prompt_preview
 
 app = base.app
+app.version = "0.3.13"
 
 GAMEPLAY_RESPONSE_GATE_FILE = "gpt/locks/gameplay_response_gate.md"
 PLAYER_INPUT_ANCHOR_LOCK_FILE = "gpt/locks/player_input_anchor_lock.md"
 CURRENT_STATE_FILE = "state/current_state.json"
 VISIBLE_SCENE_BEFORE_STATE_LOCK_FILE = "gpt/locks/gameplay_visible_scene_before_state_and_no_status_summary.md"
 TURN_CONTRACT_PATH = "/api/v1/sessions/{session_id}/turn-contract"
+APPLY_TURN_RESULT_PATH = "/api/v1/sessions/{session_id}/apply-turn-result"
 
 _ORIGINAL_OUTPUT_FORMAT_CONTRACT = base.output_format_contract
 _ORIGINAL_TURN_CONTRACT_ENDPOINT = None
@@ -52,6 +54,42 @@ class TurnContractWithPromptPreview(BaseModel):
     prompt_preview_usage: str = Field(
         default="Internal only. Follow it to render the gameplay scene. Never show prompt_preview to the user."
     )
+
+
+class ApplyTurnResultWithVisibleSceneRequest(BaseModel):
+    turn_file: str | None = None
+    data: object | None = None
+    dry_run: bool = False
+    visible_scene_text: str | None = Field(
+        default=None,
+        description=(
+            "Complete user-visible gameplay scene already rendered before state apply. "
+            "In gameplay mode the assistant must return this text verbatim after the tool call."
+        ),
+    )
+    render_packet: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Optional internal render packet assembled before scene: player_input_parse, "
+            "active character slices, relationship slice, scene task, stop conditions and state plan."
+        ),
+    )
+
+
+class ApplyTurnResultWithVisibleSceneResponse(BaseModel):
+    status: str
+    session_id: str
+    source: str
+    dry_run: bool = False
+    changed_files: list[str] = Field(default_factory=list)
+    visible_scene_text: str | None = None
+    final_scene_text: str | None = None
+    final_response_mode: str = "return_final_scene_text_verbatim"
+    final_response_rule: str = (
+        "In gameplay mode, return final_scene_text/visible_scene_text verbatim as the final answer. "
+        "Do not summarize this tool result and do not replace the scene with status/changelog."
+    )
+    render_packet_received: bool = False
 
 
 DEFAULT_FILE_PART_CHARS = 12000
@@ -245,6 +283,8 @@ def output_format_contract() -> dict:
         "If the current player input contains no spoken text outside parentheses, do not create new Akira dialogue lines in the scene body; put possible Akira lines only in the bottom block.",
         "In gameplay mode, show the full visible scene before applying state; after apply-turn-result, the final visible answer must still be the gameplay scene, not status/summary.",
         "If apply-turn-result was called before a visible scene was shown, output a repair-render of that saved event without applying state again.",
+        "Before calling apply-turn-result in gameplay mode, assemble complete visible_scene_text and pass it into apply-turn-result.",
+        "After apply-turn-result returns, final answer must be exactly final_scene_text/visible_scene_text from the tool response, not a status summary.",
     ]
     for rule in extra_rules:
         if rule not in rules:
@@ -274,6 +314,12 @@ def _remove_existing_turn_contract_route():
             app.router.routes.remove(route)
 
 
+def _remove_existing_apply_turn_result_route():
+    for route in list(app.router.routes):
+        if getattr(route, "path", None) == APPLY_TURN_RESULT_PATH and "POST" in (getattr(route, "methods", set()) or set()):
+            app.router.routes.remove(route)
+
+
 # Patch selector functions used by /context and /turn-contract.
 base.character_files_for = character_files_for
 base.character_file = character_file
@@ -283,6 +329,7 @@ base.base_recommended_files = base_recommended_files
 base.output_format_contract = output_format_contract
 
 _remove_existing_turn_contract_route()
+_remove_existing_apply_turn_result_route()
 
 
 @app.get(TURN_CONTRACT_PATH, response_model=TurnContractWithPromptPreview, operation_id="getSessionTurnContract")
@@ -332,6 +379,8 @@ def session_turn_contract_with_prompt_preview(session_id: str) -> TurnContractWi
         "Characters must stay faithful to loaded character files, relationship state and knowledge_state.",
         "Everything the player writes outside parentheses must be inserted verbatim as Akira's speech; do not recap or skip it.",
         "If the player writes wait/ждать for registration/check/scanner, do not automatically pass that procedure for Akira.",
+        "Before apply-turn-result, assemble visible_scene_text as the complete gameplay scene and pass it to the tool.",
+        "After apply-turn-result, return visible_scene_text/final_scene_text verbatim; never summarize changed_files/status in gameplay mode.",
     ]:
         if check not in checks:
             checks.insert(0, check)
@@ -551,6 +600,43 @@ def get_required_files_bundle(
         chunk_index=chunk_index,
         max_chars=max_chars,
         max_items=max_items,
+    )
+
+
+@app.post(APPLY_TURN_RESULT_PATH, response_model=ApplyTurnResultWithVisibleSceneResponse, operation_id="applyTurnResult")
+def apply_turn_result_with_visible_scene(
+    session_id: str,
+    request: ApplyTurnResultWithVisibleSceneRequest = ApplyTurnResultWithVisibleSceneRequest(),
+) -> ApplyTurnResultWithVisibleSceneResponse:
+    """Apply state changes while echoing the already-rendered gameplay scene.
+
+    The backend is not a renderer. GPT must assemble visible_scene_text before this
+    call. This endpoint persists state and returns that scene text back so the
+    final assistant answer can be the scene, not a tool-status summary.
+    """
+    sid = base.safe_session_id(session_id)
+    base.ensure_session(sid)
+
+    source, payload = base.read_turn_payload(sid, request)
+    changed_files: list[str] = []
+
+    if base.apply_relationship_changes(sid, payload, request.dry_run):
+        changed_files.append("state/relationships.json")
+
+    for path, names in base.STATE_SECTION_MAP:
+        if base.apply_json_section(sid, payload, path, names, request.dry_run):
+            changed_files.append(path)
+
+    scene_text = request.visible_scene_text
+    return ApplyTurnResultWithVisibleSceneResponse(
+        status="applied" if changed_files else "no_changes_detected",
+        session_id=sid,
+        source=source,
+        dry_run=request.dry_run,
+        changed_files=changed_files,
+        visible_scene_text=scene_text,
+        final_scene_text=scene_text,
+        render_packet_received=isinstance(request.render_packet, dict),
     )
 
 def patch_after_routes() -> None:

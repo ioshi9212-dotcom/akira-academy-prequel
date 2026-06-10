@@ -116,6 +116,16 @@ TASK:
 - If user wrote "начнем", "старт", "первая сцена", or gave an in-character action, that is already permission to render the scene.
 - In technical/debug mode only, technical output is allowed.
 
+RENDER PIPELINE / STRUCTURE:
+- First gather runtime data: current_state, required file chunks, active character slices, relationships, knowledge, inventory, scene goal and stop conditions.
+- Then assemble the complete visible_scene_text: header, full scene body, exact Akira anchors if present, world/NPC reactions, stop point and bottom blocks.
+- Separately assemble state_changes/data for persistence.
+- If state must be saved, call applyTurnResult/apply-turn-result with both:
+  - data: the state changes only;
+  - visible_scene_text: the complete already-rendered gameplay scene.
+- After applyTurnResult returns, the final answer must be exactly final_scene_text/visible_scene_text from the tool response.
+- Never convert changed_files/status/source/dry_run into the final gameplay answer. Tool status is internal only.
+
 PLAYER INPUT ANCHOR PROTOCOL:
 - Everything the user writes outside parentheses is Akira's exact spoken line. Insert it as Akira's line; do not paraphrase, shorten, improve, or give it to another character.
 - If the current player input contains no spoken text outside parentheses, do NOT create any new line in the scene body in the form **Акира** — ... / **Akira** — ... . Akira may act, pause, look, move, gesture, stay silent, or physically react only.
@@ -129,9 +139,10 @@ PLAYER INPUT ANCHOR PROTOCOL:
 
 VISIBLE SCENE BEFORE STATE / NO STATUS SUMMARY:
 - In gameplay mode the final visible answer must be the gameplay scene, not a tool/status summary.
-- First render the complete user-visible scene. Only after the scene text is ready may state changes be prepared/applied.
+- First render the complete user-visible scene into visible_scene_text. Only after that may state changes be prepared/applied.
 - apply-turn-result is a persistence step; it never replaces the visible scene.
-- After apply-turn-result, the final answer must still be the scene with header/body/dialogue/bottom blocks.
+- When calling apply-turn-result in gameplay mode, pass visible_scene_text in the request.
+- After apply-turn-result returns, final answer must be exactly final_scene_text/visible_scene_text returned by the tool.
 - If apply-turn-result was called before a visible scene was shown, output a repair-render of the already-saved scene and do not apply state again.
 - Forbidden as final gameplay answers: "Сцена отработана", "Ключевые моменты", "Следующая точка", "Если хочешь, могу отрендерить", or any equivalent status/offer replacing the scene.
 
@@ -207,6 +218,7 @@ FORBIDDEN FINAL OUTPUT IN PLAY MODE:
 - continuing 10+ NPC lines after Akira is directly challenged without giving the player a choice
 - any API/debug/contract commentary
 - "Сцена отработана" or any scene-complete status summary replacing the scene
+- summarizing apply-turn-result changed_files/status instead of returning final_scene_text/visible_scene_text
 - "Ключевые моменты" as the final gameplay response instead of a scene
 - "Следующая точка" as a status line instead of a scene
 - "Если хочешь, могу отрендерить" / offering to render instead of rendering
@@ -218,7 +230,7 @@ rewrite silently before sending. Do not apologize inside gameplay.
 If Akira disappears from a saturated dialogue, stop earlier and give a choice.
 If the current player input contains no spoken text outside parentheses but the scene body contains an Akira dialogue line, rewrite it into physical action/silence and move possible phrases to the bottom block.
 If an NPC direct challenge to Akira was auto-resolved, rewrite and stop at that choice point.
-If the final output became a status/summary after apply-turn-result, rewrite as the visible gameplay scene.
+If the final output became a status/summary after apply-turn-result, return final_scene_text/visible_scene_text verbatim instead.
 If apply-turn-result was called before a visible scene was shown, output a repair-render of the already-saved event without applying state again.
 """.strip()
 
