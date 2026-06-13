@@ -13,7 +13,8 @@
 ## Старт
 
 - Дата старта: 15 августа 1198.
-- Место старта: Академия Астрейн, главный двор.
+- Место старта: Академия Астрейн, задний выход со стороны корта / баскетбольные площадки.
+- Акира приходит с Ливией через менее людный вход по совету Рэя.
 - Акире 17 лет.
 - Райдену 17 до 31 августа, затем 18.
 - Хару 18.
@@ -55,19 +56,25 @@
 - `canon/academy_zone_safety_rules.md` — общежитие, медблок, бассейн, барьеры, Эхо и закрытые зоны.
 - `canon/academy_discipline_ratings_admissions.md` — рейтинг, допуски, нарушения и последствия.
 - `canon/academy_unspoken_rules.md` — негласные студенческие правила и бытовая культура.
+- `canon/august_15_calendar.yaml` — активный порядок первого дня.
+- `canon/academy_core_1198.yaml` — короткий digest устройства Академии 1198.
 
 ### Characters
 
+Clean YAML-папки — основной источник персонажей.
+
 - `characters/character_id_index.md` — стабильные ID персонажей.
-- `characters/main/akira.md` — Акира.
-- `characters/main/raiden_sterling.md` — Райден Стэрлинг.
-- `characters/main/haru_foster.md` — Хару Фостер.
-- `characters/main/samuel_sterling.md` — Самуэль Стэрлинг.
-- `characters/main/jun_carter.md` — Джун Картер.
-- `characters/main/ray_carter.md` — Рэй Картер.
-- `characters/main/livia_cross.md` — Ливия Кросс.
-- `characters/hidden/eiren_vale.md` — Эйрен Вейл / Наблюдатель.
-- `characters/npc/npc_registry.md` — реестр NPC.
+- `characters/akira/character.yaml` — Акира.
+- `characters/akira/main.yaml` — краткая карточка Акиры, если используется.
+- `characters/akira/past.yaml` — прошлое Акиры, если используется.
+- `characters/livia/character.yaml` — Ливия.
+- `characters/kir/character.yaml` — Кир.
+- `characters/haru/character.yaml` или `characters/haru/main.yaml` — Хару.
+- `characters/raiden/character.yaml` или `characters/raiden/main.yaml` — Райден.
+- `characters/kiara/character.yaml` или `characters/kiara/main.yaml` — Киара.
+- `characters/kael_north/character.yaml` или `characters/kael_north/main.yaml` — Кэйл Норт.
+
+Старые `characters/main/*.md` — только fallback для legacy-ссылок, не основной источник.
 
 ### State
 
@@ -77,18 +84,20 @@
 - `state/power_state.json` — сила и публичные/скрытые уровни.
 - `state/rumors_state.json` — слухи.
 - `state/knowledge_state.json` — кто что знает.
-- `state/inventory_state.json` — реальные предметы и скрытый карман пространства.
-- `state/location_registry.md` — закреплённые локации.
+- `state/inventory_state.json` — реальные предметы, одежда и скрытый карман пространства.
+- `state/location_registry.md` — сыгранные/уточнённые локации, а не дубль всей карты.
 - `state/future_locks_progress.json` — продвижение к будущему канону.
 - `state/scene_history.json` — краткая история сцен.
 - `state/academy_schedule.json` — расписание и ритм академии.
 - `state/memory_update_rules.md` — правила обновления памяти.
 - `state/inventory_rules.md` — правила предметов и кармана пространства.
+- `state/story_lines.json` — сюжетные линии, события и открытые обязательства.
 
 ### GPT
 
 - `gpt/engine_prompt.md` — главный промпт движка.
 - `gpt/scene_format.md` — формат сцены.
+- `gpt/locks/academy_start_cleanup_lock.md` — фикс стартовой локации, одежды и устаревших дублей.
 
 ### Templates
 
@@ -97,13 +106,14 @@
 ## Как должен работать будущий GPT
 
 1. Читать текущий state.
-2. Читать карточки активных персонажей.
-3. Читать нужный canon и hidden lore, но не раскрывать его персонажам автоматически.
-4. Для любой сцены в академии читать `canon/academy_rules_index.md` и нужные тематические файлы правил.
-5. Писать сцену в формате из `gpt/scene_format.md`.
-6. Не тянуть время по минутам.
-7. Держать Акиру под управлением игрока.
-8. После сцены обновлять state-файлы: отношения, репутацию, знания, слухи, предметы, локации, историю сцены.
+2. Читать turn-contract / required files.
+3. Читать clean YAML-карточки активных персонажей.
+4. Читать нужный canon и hidden lore, но не раскрывать его персонажам автоматически.
+5. Для любой сцены в академии читать `canon/academy_rules_index.md` и нужные тематические файлы правил.
+6. Писать сцену в формате из `gpt/scene_format.md` / runtime digest.
+7. Не тянуть время по минутам.
+8. Держать Акиру под управлением игрока.
+9. После сцены обновлять state-файлы: отношения, репутацию, знания, слухи, предметы, локации, историю сцены.
 
 ## Запреты
 
@@ -115,3 +125,4 @@
 - Не добавлять старых персонажей из других проектов.
 - Не писать предметы, которых нет.
 - Не менять ID персонажей после фиксации.
+- Не считать выданную форму надетой без действия игрока или явного state.

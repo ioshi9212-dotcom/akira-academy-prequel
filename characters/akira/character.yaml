@@ -1,6 +1,6 @@
 id: akira
 file_type: character_main_profile
-version: full_context_v1
+version: full_context_v2_start_outfit_cleanup
 
 character_goal:
   primary: "Игровой персонаж и центр линии Академии: Акира должна раскрывать силу, контроль и связи постепенно через сцены."
@@ -53,12 +53,24 @@ appearance:
 
 academy_start:
   date: "1198-08-15"
+  start_location_id: "academy_back_court_exit"
+  start_location_text: "задний выход Академии со стороны корта / баскетбольные площадки"
+  start_route_reason: "меньше людей и толпы по совету Рэя"
   visible_mark: "ссадина на щеке под пластырем Ливии"
   hair_state_default: "волосы распущены"
-  outfit_default: "бордовый пиджак Академии · чёрная рубашка · юбка-шорты · ботинки"
-  carried_items_default: "стакан с кофе · телефон · ключ-карта"
+  outfit_default: "кроссовки · чёрные штаны карго · топ · бордовый худи"
+  outfit_rule: "Это стартовая одежда на 15 августа до переодевания. Не заменять её формой Академии без действия игрока или explicit state."
+  carried_items_default: "багаж с личными вещами; телефон внутри багажа, не в руках"
   room: "214, вместе с Ливией"
   room_window_rule: "окна не заперты и не заблокированы"
+  uniform_state:
+    uniform_worn_default: false
+    received_uniform_default: []
+    after_registration_possible_items:
+      - "бордовый пиджак/форменная куртка Академии"
+      - "чёрная рубашка или тёмная базовая рубашка"
+      - "тёмный низ по правилам Академии"
+    rule: "Полученная форма — предмет/комплект. Она не считается надетой, пока игрок не задаст переодевание или current_state не фиксирует uniform_worn=true."
 
 energy:
   type: "пространство"
@@ -116,3 +128,5 @@ forbidden:
   - "не раскрывать hidden lore через датчики/автора/NPC"
   - "не писать реплики Акиры без хода игрока"
   - "не знакомить Ливию и Кира с Акирой заново"
+  - "не переодевать Акиру в форму Академии без действия игрока или explicit state"
+  - "не писать телефон в руках/при себе, если он ещё внутри багажа"
