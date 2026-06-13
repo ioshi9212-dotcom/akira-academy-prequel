@@ -1,35 +1,41 @@
 """
-Runtime header/footer hotfix v13.
+Runtime header/footer hotfix v14.
 
-Purpose:
-- keep compact header/footer behavior;
-- optionally activate calendar module if present;
-- activate canon_lore module;
-- load scene_header_footer_lock, academy_start_cleanup_lock, calendar_usage_lock, lore_usage_lock.
+Active import order:
+1. calendar_context_runtime_patch, if present
+2. lore_context_runtime_patch, if present
+3. context_cleanup_runtime_patch
+
+Server entry remains:
+    app/server.py -> from app.context_transport_header_hotfix import app
 """
 
 from __future__ import annotations
 
-# Calendar module is optional here: it exists if the calendar patch was applied.
 try:
     import app.calendar_context_runtime_patch as calendar_patch  # noqa: F401
 except Exception:
     calendar_patch = None  # noqa: N816
 
-# Lore module is the new active canon-lore source.
-import app.lore_context_runtime_patch as lore_patch  # noqa: F401
+try:
+    import app.lore_context_runtime_patch as lore_patch  # noqa: F401
+except Exception:
+    lore_patch = None  # noqa: N816
+
+import app.context_cleanup_runtime_patch as cleanup_patch  # noqa: F401
 
 import app.context_transport_runtime_patch as rt
-from app.lore_context_runtime_patch import app
+from app.context_cleanup_runtime_patch import app
 
-app.version = "0.3.30-lore-header-hotfix-v13"
+app.version = "0.3.32-global-cleanup-header-v14"
 
 SCENE_HEADER_FOOTER_LOCK = "gpt/locks/scene_header_footer_lock.md"
 ACADEMY_START_CLEANUP_LOCK = "gpt/locks/academy_start_cleanup_lock.md"
 CALENDAR_USAGE_LOCK = "gpt/locks/calendar_usage_lock.md"
 LORE_USAGE_LOCK = "gpt/locks/lore_usage_lock.md"
+CONTEXT_CLEANUP_LOCK = "gpt/locks/context_cleanup_lock.md"
 
-for lock_path in [SCENE_HEADER_FOOTER_LOCK, ACADEMY_START_CLEANUP_LOCK, CALENDAR_USAGE_LOCK, LORE_USAGE_LOCK]:
+for lock_path in [SCENE_HEADER_FOOTER_LOCK, ACADEMY_START_CLEANUP_LOCK, CALENDAR_USAGE_LOCK, LORE_USAGE_LOCK, CONTEXT_CLEANUP_LOCK]:
     if lock_path not in rt.MINIMAL_LOCK_FILES:
         rt.MINIMAL_LOCK_FILES.append(lock_path)
 
