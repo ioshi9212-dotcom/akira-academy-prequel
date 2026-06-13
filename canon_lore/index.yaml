@@ -1,0 +1,70 @@
+lore_index_id: canon_lore_index
+version: v1
+format: yaml_lore_module
+
+purpose:
+  - "Новая чистая система лора вместо старой папки canon."
+  - "Старый canon не является источником истины после подключения canon_lore."
+  - "Этот индекс объясняет, какие лор-файлы читать всегда, а какие подтягивать по тегам, персонажам и сцене."
+
+always_load:
+  - "canon_lore/core/world_background.yaml"
+  - "canon_lore/academy/academy_background.yaml"
+  - "canon_lore/hidden/hidden_lore_policy.yaml"
+
+load_rules:
+  - "Сначала читать базовый фон из always_load."
+  - "Потом смотреть current_state, last_player_input, scene_goal, location, active/nearby/scheduled персонажей."
+  - "Если в сцене, тексте или цели встречается тема из tag_triggers, подтянуть соответствующие файлы."
+  - "Если одновременно есть akira и raiden в scene_character_ids, подтянуть canon_lore/hidden/raiden_akira_bond.yaml."
+  - "Скрытый лор использовать для подтекста, поведения, напряжения и авторской логики, но не раскрывать персонажам без сыгранного основания."
+
+tag_triggers:
+  echo:
+    keywords: ["эхо", "echo", "аномалия", "аномалии", "искажение", "разлом", "физическое эхо"]
+    files:
+      - "canon_lore/world/echo.yaml"
+
+  kairos:
+    keywords: ["кайрос", "кайросы", "kairos", "чистый кайрос", "гибрид", "не человек"]
+    files:
+      - "canon_lore/world/kairos.yaml"
+
+  continents_worlds:
+    keywords: ["континент", "материк", "второй мир", "два материка", "другой мир", "барьер"]
+    files:
+      - "canon_lore/world/continents_and_worlds.yaml"
+
+  energy:
+    keywords: ["энергия", "энергетический", "тип", "пространство", "стихия", "отклик", "импульс", "рейдер"]
+    files:
+      - "canon_lore/world/energy_system.yaml"
+
+  academy:
+    keywords: ["академия", "астрейн", "форма", "общежитие", "регистрация", "проверка", "рейтинг", "куратор", "инструктор"]
+    files:
+      - "canon_lore/academy/academy_rules.yaml"
+      - "canon_lore/academy/academy_locations.yaml"
+      - "canon_lore/academy/uniform_and_daily_life.yaml"
+
+  academy_combat:
+    keywords: ["тренировка", "спарринг", "стрельбище", "оружие", "рейдер", "проверка тела", "боевой блок"]
+    files:
+      - "canon_lore/academy/combat_training.yaml"
+
+character_pair_rules:
+  akira_raiden:
+    when_all_scene_character_ids: ["akira", "raiden"]
+    files:
+      - "canon_lore/hidden/raiden_akira_bond.yaml"
+    usage: "Использовать для подтекста и реакции между Акирой и Райденом. Не раскрывать hidden lore напрямую."
+
+visibility_levels:
+  public_world:
+    meaning: "Можно использовать как фон мира. Персонажи могут знать это, если по логике мира должны знать."
+  academy_common:
+    meaning: "Можно использовать как знания студентов/персонала Академии, если персонаж имеет доступ."
+  hidden_author:
+    meaning: "Авторская скрытая истина. Использовать для подтекста. Нельзя выдавать персонажам без сыгранного раскрытия."
+  system_rule:
+    meaning: "Инструкция для ИИ. Не является знанием персонажей."

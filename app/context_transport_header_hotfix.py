@@ -1,31 +1,35 @@
 """
-Runtime header/footer hotfix v12.
+Runtime header/footer hotfix v13.
 
 Purpose:
 - keep compact header/footer behavior;
-- load scene_header_footer_lock;
-- load academy_start_cleanup_lock;
-- load calendar_usage_lock;
-- activate the new calendar/ module through calendar_context_runtime_patch.
+- optionally activate calendar module if present;
+- activate canon_lore module;
+- load scene_header_footer_lock, academy_start_cleanup_lock, calendar_usage_lock, lore_usage_lock.
 """
 
 from __future__ import annotations
 
-from typing import Any
+# Calendar module is optional here: it exists if the calendar patch was applied.
+try:
+    import app.calendar_context_runtime_patch as calendar_patch  # noqa: F401
+except Exception:
+    calendar_patch = None  # noqa: N816
 
-import app.calendar_context_runtime_patch as calendar_patch
+# Lore module is the new active canon-lore source.
+import app.lore_context_runtime_patch as lore_patch  # noqa: F401
+
 import app.context_transport_runtime_patch as rt
-from app.calendar_context_runtime_patch import app
-from app import compact as base
-import app.compact_context_patch as ccp
+from app.lore_context_runtime_patch import app
 
-app.version = "0.3.28-calendar-header-hotfix-v12"
+app.version = "0.3.30-lore-header-hotfix-v13"
 
 SCENE_HEADER_FOOTER_LOCK = "gpt/locks/scene_header_footer_lock.md"
 ACADEMY_START_CLEANUP_LOCK = "gpt/locks/academy_start_cleanup_lock.md"
 CALENDAR_USAGE_LOCK = "gpt/locks/calendar_usage_lock.md"
+LORE_USAGE_LOCK = "gpt/locks/lore_usage_lock.md"
 
-for lock_path in [SCENE_HEADER_FOOTER_LOCK, ACADEMY_START_CLEANUP_LOCK, CALENDAR_USAGE_LOCK]:
+for lock_path in [SCENE_HEADER_FOOTER_LOCK, ACADEMY_START_CLEANUP_LOCK, CALENDAR_USAGE_LOCK, LORE_USAGE_LOCK]:
     if lock_path not in rt.MINIMAL_LOCK_FILES:
         rt.MINIMAL_LOCK_FILES.append(lock_path)
 
@@ -79,9 +83,6 @@ Required feel:
 - Do not answer with technical commentary after the scene.
 - Keep the world moving: every scene needs a concrete hook, reaction, social pressure, small conflict, consequence, or transition.
 - Use atmospheric details, but do not drown the player action.
-- NPCs must act from loaded character files, relationship slice, calendar slice, and knowledge slice.
-- Do not flatten characters into one trait: Livia is not only “loud”; Kir is not only “sarcastic”; Akira is not only “cold”.
+- NPCs must act from loaded character files, relationship slice, calendar slice, lore slice and knowledge slice.
+- Do not flatten characters into one trait.
 """
-
-# Compatibility exports: this module intentionally relies on context_transport_runtime_patch routes.
-# Importing calendar_context_runtime_patch is enough to mutate the runtime digest calendar source.
