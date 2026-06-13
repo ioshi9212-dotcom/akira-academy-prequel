@@ -1,6 +1,0 @@
-id: start_1198
-date: "1198-08-15"
-title: "Поступление в Академию"
-active_start: ["akira", "livia"]
-possible_today: ["kir", "kiara", "haru", "raiden", "kael_north"]
-rule: "Каждый переход двигает сюжет, отношения, знания, конфликт, репутацию, расписание, рейтинг, состояние или future hook."
