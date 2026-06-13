@@ -1,32 +1,31 @@
 """
-Runtime header/footer hotfix v11.
+Runtime header/footer hotfix v12.
 
 Purpose:
-- keep v10 compact header/footer behavior;
+- keep compact header/footer behavior;
 - load scene_header_footer_lock;
 - load academy_start_cleanup_lock;
-- fix visible header examples for Akira's start outfit and visible inventory.
-
-Install:
-    app/server.py -> from app.context_transport_header_hotfix import app
+- load calendar_usage_lock;
+- activate the new calendar/ module through calendar_context_runtime_patch.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+import app.calendar_context_runtime_patch as calendar_patch
 import app.context_transport_runtime_patch as rt
-from app.context_transport_runtime_patch import app
+from app.calendar_context_runtime_patch import app
 from app import compact as base
 import app.compact_context_patch as ccp
 
-app.version = "0.3.26-academy-start-cleanup-v11"
+app.version = "0.3.28-calendar-header-hotfix-v12"
 
 SCENE_HEADER_FOOTER_LOCK = "gpt/locks/scene_header_footer_lock.md"
 ACADEMY_START_CLEANUP_LOCK = "gpt/locks/academy_start_cleanup_lock.md"
+CALENDAR_USAGE_LOCK = "gpt/locks/calendar_usage_lock.md"
 
-# Ensure the locks are loaded through required-files chunks.
-for lock_path in [SCENE_HEADER_FOOTER_LOCK, ACADEMY_START_CLEANUP_LOCK]:
+for lock_path in [SCENE_HEADER_FOOTER_LOCK, ACADEMY_START_CLEANUP_LOCK, CALENDAR_USAGE_LOCK]:
     if lock_path not in rt.MINIMAL_LOCK_FILES:
         rt.MINIMAL_LOCK_FILES.append(lock_path)
 
@@ -85,4 +84,4 @@ Required feel:
 """
 
 # Compatibility exports: this module intentionally relies on context_transport_runtime_patch routes.
-# Importing it is enough to mutate rt.MINIMAL_LOCK_FILES and selected style digest.
+# Importing calendar_context_runtime_patch is enough to mutate the runtime digest calendar source.
