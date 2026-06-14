@@ -9,9 +9,10 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 3. turn-contract and required_files chunks.
 4. Character YAML files for active scene characters.
 5. relationships / knowledge_state / inventory / story_lines / calendar_runtime.
-6. calendar/ current day hooks.
-7. canon_lore/ background and hidden policy.
-8. Chat memory only as the user's latest action, not as source of truth.
+6. scene_history / last 15 gameplay scenes when exact 15-turn audit is due.
+7. calendar/ current day hooks.
+8. canon_lore/ background and hidden policy.
+9. Chat memory only as the user's latest action, not as source of truth unless it is visible gameplay scene text being audited from scene_history.
 
 ## Required loading
 
@@ -68,8 +69,64 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Hidden lore is author/engine knowledge, not automatic NPC knowledge.
 - If Akira and Raiden are both truly in the active scene, use hidden raiden/akira bond only as subtext unless revealed by state/knowledge.
 
+
+## Exact 15-turn compaction + chat/state audit
+
+This is mandatory on exact gameplay-turn milestones:
+
+- 15
+- 30
+- 45
+- 60
+- 75
+- 90
+- and every next multiple of 15.
+
+Use `story_lines.turn_counter.game_turn_number` or the closest available gameplay turn counter.
+
+Do not count technical/debug/API/file-check/rule-edit turns.
+
+At every exact 15-game-turn milestone, and also if a missed milestone is detected, do this before continuing normal scene logic:
+
+1. Read the last 15 gameplay scene entries from scene_history / recent scene text available in runtime digest.
+2. Extract played facts from the actual scene text, not only from current state:
+   - who appeared;
+   - who saw whom;
+   - who heard whose name;
+   - who knows a name;
+   - who spoke directly;
+   - important actions;
+   - important quotes;
+   - promises, threats, teasing, challenges, refusals;
+   - relationship triggers;
+   - knowledge sources;
+   - public witnesses;
+   - calendar beats that were actually played.
+3. Compare those facts with saved state:
+   - state/story_lines.json;
+   - state/knowledge_state.json;
+   - state/relationships.json;
+   - state/calendar_runtime.json;
+   - state/current_state.json;
+   - state/rumors_state.json and state/reputation_state.json if public reaction happened.
+4. If a played fact exists in scene_history/chat text but is missing from saved state, write it through apply-turn-result.
+5. If a played fact contradicts saved state, correct saved state if possible.
+6. If the contradiction has already appeared in visible prose, do not break the scene with a technical apology. Add a soft-retcon note to story_lines/next_beats and fix it through natural logic in the next scene.
+7. Only after this audit, compact repeated/minor events.
+
+Important: 15-turn compaction is not only compression. It is compression plus chat/state continuity audit.
+
+Example:
+If Haru and Raiden already appeared in the morning basketball scene, then a later evening scene must not treat them as first-seen strangers.
+If names were not exchanged, the correction is:
+- "seen before, not formally introduced";
+- "first normal conversation";
+- "first time Akira heard the name";
+not "first meeting".
+
 ## State write
 
 - Backend does not infer state from prose.
 - If scene changes relationships, knowledge, story_lines, inventory, reputation, rumors, future_locks, current_state or calendar_runtime, include explicit state payload.
+- At 15/30/45/etc. include audit findings in story_lines_changes / knowledge_changes / relationship_changes / calendar_runtime_changes as needed.
 - After apply-turn-result, final visible answer must remain the scene, not changed_files/status.
