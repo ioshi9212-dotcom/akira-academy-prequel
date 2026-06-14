@@ -5,6 +5,7 @@ Goals:
 - replace many old lock files with one compact runtime_scene_rules_digest.md;
 - reduce full character loading to characters truly present in the scene;
 - keep scheduled/delayed/mentioned characters as context inside digest, not full YAML files;
+- include last 15 gameplay scene texts only when exact 15-turn audit is due;
 - shrink runtime/scene_context_digest.md by using compact calendar/lore slices.
 """
 
@@ -19,7 +20,7 @@ from app.context_transport_runtime_patch import app
 from app import compact as base
 import app.compact_context_patch as ccp
 
-app.version = "0.3.33-runtime-speed-v15"
+app.version = "0.3.35-runtime-speed-15turn-audit-v15"
 
 RUNTIME_SCENE_RULES_DIGEST = "gpt/locks/runtime_scene_rules_digest.md"
 RUNTIME_DIGEST_FILE = "runtime/scene_context_digest.md"
@@ -208,6 +209,81 @@ def compact_calendar_slice(session_id: str, current: dict[str, Any]) -> dict[str
     }
 
 
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
+def _turn_counter_from_story(story_lines: Any) -> dict[str, Any]:
+    if not isinstance(story_lines, dict):
+        return {}
+    counter = story_lines.get("turn_counter", {})
+    return counter if isinstance(counter, dict) else {}
+
+
+def audit_due_status(story_lines: Any) -> dict[str, Any]:
+    counter = _turn_counter_from_story(story_lines)
+    game_turn_number = _safe_int(
+        counter.get("game_turn_number", counter.get("game_turn", counter.get("turn_number", counter.get("scene_count", 0)))),
+        0,
+    )
+    last_audit_turn = _safe_int(
+        counter.get("last_continuity_audit_turn", counter.get("last_compaction_turn", 0)),
+        0,
+    )
+    next_due = ((last_audit_turn // 15) + 1) * 15 if last_audit_turn >= 0 else 15
+    exact_due = game_turn_number > 0 and game_turn_number % 15 == 0 and last_audit_turn < game_turn_number
+    missed_due = game_turn_number >= next_due and last_audit_turn < next_due
+    return {
+        "game_turn_number": game_turn_number,
+        "last_continuity_audit_turn": last_audit_turn,
+        "next_continuity_audit_turn": next_due,
+        "audit_due": bool(exact_due or missed_due),
+        "exact_15_turn_milestone": bool(exact_due),
+        "missed_milestone_due": bool(missed_due and not exact_due),
+        "rule": "If audit_due=true, audit the last 15 gameplay scenes against saved state before normal continuation.",
+    }
+
+
+def recent_scene_history_slice(session_id: str, audit_due: bool) -> dict[str, Any]:
+    # Keep tiny during normal turns. Include actual last 15 scene texts only at 15/30/45... audit points.
+    history = base.read_json("state/scene_history.json", session_id, default=None)
+    if history is None:
+        history = base.read_json("scene_history.json", session_id, default=[]) or []
+    if not isinstance(history, list):
+        history = []
+    recent = history[-15:]
+    if not audit_due:
+        return {
+            "mode": "not_due",
+            "available_recent_scene_count": len(recent),
+            "note": "Last 15 scene texts are withheld until exact 15-turn audit is due.",
+        }
+    compact_recent = []
+    for item in recent:
+        if not isinstance(item, dict):
+            continue
+        compact_recent.append({
+            "turn_number": item.get("turn_number"),
+            "player_input": _cut(item.get("player_input", ""), 800),
+            "scene_text": _cut(item.get("scene_text", item.get("visible_scene_text", "")), 2400),
+            "notes": item.get("notes", []),
+        })
+    return {
+        "mode": "audit_due_include_last_15_scenes",
+        "recent_scene_count": len(compact_recent),
+        "audit_instruction": [
+            "Extract played facts from these scene texts, not only from state.",
+            "Compare with story_lines, knowledge_state, relationships, calendar_runtime and current_state.",
+            "If played facts are missing from state, write them through apply-turn-result.",
+            "Only after that compact repeated/minor events.",
+        ],
+        "recent_scenes": compact_recent,
+    }
+
+
 def build_scene_context_digest_fast(session_id: str) -> str:
     current = base.read_json("state/current_state.json", session_id, default={}) or {}
     future = base.read_json("state/future_locks_progress.json", session_id, default={}) or {}
@@ -218,8 +294,9 @@ def build_scene_context_digest_fast(session_id: str) -> str:
         base.read_json("state/relationships.json", session_id, default={}) or {},
         chars,
     )
+    story_lines_full = base.read_json("state/story_lines.json", session_id, default={}) or {}
     story_lines = rt.compact_story_lines_scene_only(
-        base.read_json("state/story_lines.json", session_id, default={}) or {},
+        story_lines_full,
         chars,
         max_events=12,
     )
@@ -231,6 +308,9 @@ def build_scene_context_digest_fast(session_id: str) -> str:
         base.read_json("state/inventory_state.json", session_id, default={}) or {},
         1800,
     )
+
+    audit_status = audit_due_status(story_lines_full)
+    recent_history = recent_scene_history_slice(session_id, bool(audit_status.get("audit_due")))
 
     calendar = compact_calendar_slice(session_id, current)
     lore = compact_lore_slice(session_id, current, chars, story_lines)
@@ -254,13 +334,15 @@ def build_scene_context_digest_fast(session_id: str) -> str:
     text = "# Runtime scene context digest — compact speed mode\n"
     text += "This digest is intentionally compact. Full immutable rules are in gpt/locks/runtime_scene_rules_digest.md.\n"
     text += _json_block("Current scene", current_scene, 5200)
+    text += _json_block("15-turn audit status", audit_status, 2200)
+    text += _json_block("Recent scene history for audit", recent_history, 15000 if audit_status.get("audit_due") else 1200)
     text += _json_block("Relationship slice", relationships, 4200)
     text += _json_block("Story lines slice", story_lines, 5200)
     text += _json_block("Knowledge slice", knowledge, 3600)
     text += _json_block("Inventory slice", inventory, 2000)
     text += _json_block("Calendar slice", calendar, 4200)
     text += _json_block("Lore slice", lore, 5200)
-    text += "\n## State update reminder\nIf scene changes relationships/story/knowledge/current_state/calendar_runtime/inventory/reputation/rumors/future_locks, write explicit apply-turn-result payload.\n"
+    text += "\n## State update reminder\nIf scene changes relationships/story/knowledge/current_state/calendar_runtime/inventory/reputation/rumors/future_locks, write explicit apply-turn-result payload. At 15/30/45/etc. compare last 15 scene texts with saved state before compacting.\n"
     return text
 
 
