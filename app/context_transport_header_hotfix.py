@@ -1,14 +1,12 @@
 """
-Runtime header/footer hotfix v15.
+Runtime header/footer hotfix v16.
 
 Active import order:
 1. calendar_context_runtime_patch
 2. lore_context_runtime_patch
 3. context_cleanup_runtime_patch
 4. runtime_speed_patch
-
-Server entry remains:
-    app/server.py -> from app.context_transport_header_hotfix import app
+5. scene_output_format_runtime_patch
 """
 
 from __future__ import annotations
@@ -33,32 +31,35 @@ import app.runtime_speed_patch as speed_patch  # noqa: F401
 import app.context_transport_runtime_patch as rt
 from app.runtime_speed_patch import app
 
-app.version = "0.3.34-speed-header-v15"
-
-# Old individual locks are intentionally not appended here.
-# Required files should use only:
-# - runtime/scene_context_digest.md
-# - gpt/locks/runtime_scene_rules_digest.md
-# - characters/character_id_index.md
-# - active character YAML files
-
 rt.MINIMAL_LOCK_FILES = ["gpt/locks/runtime_scene_rules_digest.md"]
 
+try:
+    import app.scene_output_format_runtime_patch as scene_format_patch  # noqa: F401
+except Exception:
+    scene_format_patch = None  # noqa: N816
+
+app.version = "0.3.36-scene-format-restore-v16"
+
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
-## Medium scene style digest — selected header/footer format
+## Medium scene style digest — strict Academy scene format
 
-Use compact visual header and visual-novel prose.
+Use the selected old Academy visual-novel header/footer format.
 
-Scene header:
-- Start with compact visual header.
-- Do not show hidden lore, hidden NPCs, future calendar events or API/debug fields.
-- Weather/location/items must reflect current_state.
-- If uniform_worn=false, do not write Academy uniform as worn clothing.
-- If phone is inside baggage, do not write phone as carried/visible.
+Header:
+🏛️ Академия Астрейн · 1198 г., 15 августа, пн
+🕒 Позднее утро · 📍 Главный двор Академии
+🌦️ Погода: ...
+⚙️ Активное состояние сцены: учитывать в тексте, действиях и предметах
 
-Required feel:
-- Continue with living visual-novel prose after the header.
-- Do not write the scene as a technical card/table/form.
-- Keep the world moving: every scene needs a concrete hook, reaction, social pressure, small conflict, consequence or transition.
-- NPCs must act from loaded character files, relationship slice, calendar slice, lore slice and knowledge slice.
+✦ ...
+🧥 ...
+◈ ...
+
+━━━━━━━━━━━━━━━━━━━━
+
+Rules:
+- Do not use the loose header format "🗓️ date / 📍 location / 👤 Akira / 🎒 nearby".
+- Dialogue line format: **Имя/видимый дескриптор** — Реплика. (*короткая ремарка*)
+- Bottom blocks use ✦ headings, not 🎯/💬/🧠.
+- Suggested Akira lines must be poisonous, dry, sharp and character-true.
 """
