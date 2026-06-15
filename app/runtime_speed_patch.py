@@ -1,10 +1,11 @@
 """
-Runtime speed patch v15.
+Runtime speed patch v16.
 
 Goals:
 - replace many old lock files with one compact runtime_scene_rules_digest.md;
 - reduce full character loading to characters truly present in the scene;
-- keep scheduled/delayed/mentioned characters as context inside digest, not full YAML files;
+- treat scheduled scene appearances as active characters for required files;
+- keep delayed/mentioned characters as context inside digest, not full YAML files;
 - include last 15 gameplay scene texts only when exact 15-turn audit is due;
 - shrink runtime/scene_context_digest.md by using compact calendar/lore slices.
 """
@@ -20,7 +21,7 @@ from app.context_transport_runtime_patch import app
 from app import compact as base
 import app.compact_context_patch as ccp
 
-app.version = "0.3.35-runtime-speed-15turn-audit-v15"
+app.version = "0.3.36-runtime-speed-scheduled-active-v16"
 
 RUNTIME_SCENE_RULES_DIGEST = "gpt/locks/runtime_scene_rules_digest.md"
 RUNTIME_DIGEST_FILE = "runtime/scene_context_digest.md"
@@ -45,11 +46,14 @@ ACTIVE_CHARACTER_FIELDS = [
     "observing_character_ids",
     "addressed_character_ids",
     "looked_at_character_ids",
+    # Calendar/current-beat appearances are scene participants, not archive context.
+    # If Haru is scheduled to appear with Raiden, both must get character files
+    # before the scene can safely render speech, presence or description.
+    "scheduled_character_ids",
 ]
 
 BACKGROUND_CHARACTER_FIELDS = [
     "mentioned_character_ids",
-    "scheduled_character_ids",
     "delayed_character_ids",
 ]
 
