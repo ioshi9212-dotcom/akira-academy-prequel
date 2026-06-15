@@ -5,7 +5,7 @@ Loads only when latest command contains `POV:` or `пов:`.
 ## Purpose
 
 POV switch temporarily moves the scene focus from Akira to another named character.  
-This is a normal prose scene from another character's camera, not a technical summary.
+This is a normal rich Academy visual-novel scene from another character's camera, not a technical summary and not a short cutscene.
 
 ## Examples
 
@@ -17,7 +17,7 @@ POV: Хару
 продолжить POV: Ливия
 ```
 
-## Rules
+## Core rules
 
 - Default gameplay POV is Akira.
 - POV switch lasts one response unless next command keeps POV.
@@ -26,14 +26,16 @@ POV: Хару
 - Akira does not gain knowledge from another POV unless she saw/heard/was told.
 - Relationships, knowledge, reputation, rumors, story_lines and calendar_runtime update normally for involved characters.
 - Do not break the POV character's personality.
+- Do not make the scene short just because POV mode is active.
 
-## Player input
+## Player input while POV is active
 
-While POV is active:
-- text outside parentheses is the POV character's exact speech;
-- text inside parentheses is POV character action/gesture/body state/intention;
-- do not give that speech to Akira;
-- possible lines go only in bottom block.
+- Text outside parentheses is the POV character's exact speech.
+- Text inside parentheses is POV character action/gesture/body state/intention.
+- Do not give that speech to Akira.
+- Never print the user's parenthetical action block as raw visible text.
+- Translate parenthetical actions into prose, micro-movement, or a short italic stage note.
+- Possible lines go only in bottom block.
 
 ## Header
 
@@ -49,6 +51,22 @@ If Akira is present:
 🎥 POV: Райден · Акира рядом, но фокус восприятия не её
 ```
 
+The rest of the header remains the old Academy format:
+
+```txt
+🏛️ Академия Астрейн · 1198 г., 15 августа, пн
+🕒 ... · 📍 ...
+🎥 POV: ...
+🌦️ ...
+⚙️ ...
+
+✦ состояние POV-персонажа
+🧥 одежда/форма
+◈ предметы/окружение
+
+━━━━━━━━━━━━━━━━━━━━
+```
+
 ## Bottom blocks
 
 Use POV-specific blocks:
@@ -57,7 +75,7 @@ Use POV-specific blocks:
 - ✦ Что Ливия могла бы сказать / Что Райден мог бы сказать / ...
 - ✦ Мысли Ливии / Мысли Райдена / ...
 
-Do not write "Мысли Акиры" unless Akira is current POV.
+Do not write `Мысли Акиры` unless Akira is current POV.
 
 ## Tone
 
@@ -65,3 +83,16 @@ Do not write "Мысли Акиры" unless Akira is current POV.
 - Raiden: short internal pressure, control, irritation, discipline, denial.
 - Haru: movement, heat, performance, playful pressure, humor over discomfort.
 - Kael North: observation, system logic, restraint, institutional pressure.
+
+## Scene richness
+
+POV scenes should keep the same quality as normal scenes:
+
+- sensory detail;
+- micro-movements;
+- pauses;
+- social pressure;
+- visible contradictions between what a character shows and thinks;
+- consequences for relationships/state when relevant.
+
+Do not turn POV into a short report or a few paragraphs of summary.
