@@ -1,5 +1,5 @@
 """
-Calendar context runtime patch v12.
+Calendar context runtime patch v13.
 
 This patch keeps the existing runtime pipeline but replaces the old
 state/academy_schedule.json calendar source with:
@@ -8,7 +8,7 @@ state/academy_schedule.json calendar source with:
 - calendar/calendar_index.yaml
 - calendar/days/{current_date}.yaml
 
-It does not delete or depend on old schedule files.
+The visible scene format reminder now matches the current old Academy header.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from app.context_transport_runtime_patch import app
 from app import compact as base
 import app.compact_context_patch as ccp
 
-app.version = "0.3.27-calendar-module-v12"
+app.version = "0.3.43-calendar-format-clean-v13"
 
 CALENDAR_INDEX_FILE = "calendar/calendar_index.yaml"
 CALENDAR_RUNTIME_FILE = "state/calendar_runtime.json"
@@ -101,11 +101,12 @@ def build_scene_context_digest(session_id: str) -> str:
     rule_digest = {
         "output": [
             "Gameplay only: no API/status/debug summary in final answer.",
-            "Scene must start with compact emoji markdown header.",
-            "Scene should read like visual-novel prose, not a technical card.",
+            "Scene must start with the current old Academy visual-novel header, not the obsolete loose 🗓️ card header.",
+            "Header: 🏛️ Академия Астрейн · date, then 🕒 time · 📍 location, 🌦️ weather, ⚙️ active scene state, then ✦/🧥/◈ lines and separator.",
             "Dialogue format: **Name/descriptor** — speech. (*short italic remark*)",
             "Descriptions are separate italic paragraphs.",
             "Akira thoughts only in bottom block, not inside the scene body.",
+            "Bottom blocks use ✦ headings.",
             "No empty scene: add hook/reaction/conflict/consequence or time skip.",
             "Do not answer with technical commentary after a gameplay scene.",
         ],
@@ -113,7 +114,7 @@ def build_scene_context_digest(session_id: str) -> str:
             "Calendar module is source of date hooks.",
             "Use calendar/day YAML as hooks, not as ready-made prose.",
             "Character absence from day file is not a ban after first introduction.",
-            "Character presence in a required beat makes the introduction/appearance required when the beat is reached.",
+            "Character presence in a required beat makes the introduction/appearance required when that beat is reached.",
             "If the day is saturated, guide toward ending the day rather than adding filler.",
         ],
         "state_write": [
