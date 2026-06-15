@@ -1,14 +1,22 @@
 """
-Runtime patch v9: medium-quality selective context + visual header format + schedule-aware digest.
+Runtime transport patch v10.
 
-Goals:
-- keep gameplay context selective, not full bundle;
-- stop stale active_characters from sticking forever;
-- expose repairSceneRoster endpoint;
-- reduce chunk calls without triggering ResponseTooLargeError.
+Purpose:
+- provide shared helpers used by later runtime patches;
+- keep required-files chunk endpoints safe;
+- remove the obsolete loose emoji-card scene header format from this base runtime layer.
 
-Install:
-    app/server.py -> from app.context_transport_runtime_patch import app
+Current visible scene format is the old Academy visual-novel header:
+🏛️ Академия Астрейн · 1198 г., 15 августа, пн
+🕒 Позднее утро · 📍 ...
+🌦️ Погода: ...
+⚙️ Активное состояние сцены: учитывать в тексте, действиях и предметах
+
+✦ ...
+🧥 ...
+◈ ...
+
+━━━━━━━━━━━━━━━━━━━━
 """
 
 from __future__ import annotations
@@ -16,86 +24,63 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-# Keep compatibility with previous patch chain.
-# state_write_runtime_patch may import compact_context_patch internally.
 try:
-    import app.state_write_runtime_patch as state_write_patch  # type: ignore
+    import app.state_write_runtime_patch as state_write_patch  # type: ignore  # noqa: F401
 except Exception:
     state_write_patch = None  # noqa: N816
-
-try:
-    import app.selective_context_patch as previous_selective  # type: ignore
-except Exception:
-    previous_selective = None  # noqa: N816
 
 from app import compact as base
 import app.compact_context_patch as ccp
 
 app = base.app
-app.version = "0.3.24-context-format-v9"
+app.version = "0.3.42-context-transport-clean-v10"
 
 RUNTIME_DIGEST_FILE = "runtime/scene_context_digest.md"
+RUNTIME_SCENE_RULES_DIGEST = "gpt/locks/runtime_scene_rules_digest.md"
 _ORIGINAL_BASE_OUTPUT_FORMAT_CONTRACT = base.output_format_contract
 _ORIGINAL_CCP_OUTPUT_FORMAT_CONTRACT = ccp.output_format_contract
+_ORIGINAL_READ_REQUIRED_FILE_FOR_BUNDLE = ccp._read_required_file_for_bundle
 
 MEDIUM_STYLE_FORMAT_DIGEST = """
-## Medium scene style digest
+## Medium scene style digest — current Academy visual-novel format
 
-Use this instead of loading the full heavy scene_format.md in normal gameplay.
+Use the selected old Academy visual-novel header/footer format.
+Do NOT use the obsolete loose card header with 🗓️ / 📍 / 👤 / 🎒 fields.
 
-Visible scene format MUST be aesthetic markdown, not a plain technical list.
+Required header:
+🏛️ Академия Астрейн · 1198 г., 15 августа, пн
+🕒 Позднее утро · 📍 Главный двор Академии
+🌦️ Погода: ...
+⚙️ Активное состояние сцены: учитывать в тексте, действиях и предметах
 
-Scene header format:
-- The scene must start with a compact emoji + markdown header.
-- Do NOT write raw field list like: "Дата:", "Погода:", "Акира:", "Рядом:" as plain lines.
-- Use a visual-novel header like this:
+✦ видимое состояние Акиры
+🧥 одежда/форма только из current_state
+◈ предметы при себе / рядом только из current_state
 
-### 🗓️ 1198-08-15 · позднее утро
-**📍 Академия Астрейн, главный двор — линия регистрации у западной арки**
+━━━━━━━━━━━━━━━━━━━━
 
-🌦️ *Ясно после ночного дождя; мокрые плиты двора светятся на солнце.*
-👤 **Акира:** *внешне спокойна; белые волосы распущены; на щеке пластырь Ливии.*
-🎒 **Рядом:** *дорожная сумка / багаж Акиры.*
+Dialogue format:
+**Имя/видимый дескриптор** — Реплика. (*короткая ремарка*)
 
-Then continue with living prose.
+Bottom blocks:
+━━━━━━━━━━━━━━━━━━━━
 
-Required feel:
-- Scene should read like visual-novel prose, not like a form/card/table.
-- Header must have emojis and bold markdown markers for place/Akira/nearby info.
-- Header should be compact and atmospheric, not a questionnaire.
-- Do not over-explain technical state in the visible scene.
-- Do not answer with technical commentary after the scene.
-- Keep the world moving: every scene needs a concrete hook, reaction, social pressure, small conflict, or transition.
-- Use atmospheric details, but do not drown the player action.
-- NPCs should act from loaded character files, relationship slice, calendar slice, and knowledge slice.
-- Do not flatten characters into one trait: Livia is not only “loud”; Kir is not only “sarcastic”; Akira is not only “cold”.
-- Use silence, glances, pauses, crowd pressure, and small physical reactions as scene tools.
-- Bottom blocks are allowed, but should be compact and organic, not a heavy RPG menu.
+✦ Что можно сделать
+Варианты ниже не считаются действием, пока игрок не выбрал.
 
-Dialogue:
-- Spoken line format: **Name/visible descriptor** — speech. (*short italic remark if needed*)
-- Descriptions are separate italic paragraphs.
-- Avoid long action text inside dialogue parentheses.
-- Akira does not speak unless the player wrote her direct speech outside parentheses.
-- Akira’s internal thoughts belong in the bottom “Мысли Акиры” block only.
+◈ ...
 
-Bottom blocks format:
-### 🎯 Что можно сделать
+✦ Что Акира могла бы сказать
+
+— “...”
+
+✦ Мысли Акиры
+
 — ...
 
-### 💬 Что Акира могла бы сказать
-— ...
-
-### 🧠 Мысли Акиры
-...
-
-Pacing:
-- If the player asks to go/wait/eat/sleep, compress unimportant transit and land on the next meaningful beat.
-- Do not ask for permission to continue when the player already gave an action.
-- If a procedure is active (registration/scanner/check), do not auto-complete it unless the player action clearly does that.
+Akira suggestion tone: poisonous, dry, sharp, socially dangerous, not cute-friendly, not generic helper jokes.
 """
 
 MEDIUM_ENGINE_DIGEST = """
@@ -103,13 +88,10 @@ MEDIUM_ENGINE_DIGEST = """
 
 Normal gameplay must balance speed and quality.
 - Required files are selective, but the scene should still feel complete.
-- Always check the Calendar slice / Schedule appearance rules before introducing Haru, Raiden, Kiara, Kael, or other non-roster characters.
-- Calendar entries are opportunities and constraints, not automatic active roster.
 - Use runtime digest for state/canon/rules and full character files for present characters.
+- Calendar entries are opportunities and constraints, not automatic active roster.
 - If a character is not in roster/nearby/mentioned/scheduled and not due by calendar, do not write them into the scene.
-- If current roster is stale, use repairSceneRoster instead of loading extra characters.
 - State update after scene must be explicit: backend does not infer from prose.
-- If relationships, knowledge, story lines, current location, roster, inventory, calendar beat, or obligations changed, send explicit apply-turn-result payload.
 """
 
 MEDIUM_SOURCE_USAGE_DIGEST = """
@@ -143,67 +125,7 @@ Only use relationship pairs where both characters are in current scene focus unl
 If the scene changes a relationship, save it through relationship_changes.
 """
 
-
-def medium_output_format_contract() -> dict[str, Any]:
-    try:
-        original = _ORIGINAL_CCP_OUTPUT_FORMAT_CONTRACT()
-    except Exception:
-        try:
-            original = _ORIGINAL_BASE_OUTPUT_FORMAT_CONTRACT()
-        except Exception:
-            original = {}
-    if not isinstance(original, dict):
-        original = {}
-
-    rules = list(original.get("rules", []) or [])
-    required_rules = [
-        "Scene MUST start with compact emoji markdown header, not a plain field list.",
-        "Header format: ### 🗓️ date · time, then **📍 place**, 🌦️ weather, 👤 **Акира:**, 🎒 **Рядом:** when relevant.",
-        "Bottom blocks should use markdown headers with emojis: ### 🎯 Что можно сделать / ### 💬 Что Акира могла бы сказать / ### 🧠 Мысли Акиры.",
-        "Do not output technical commentary after a gameplay scene.",
-        "Use visual-novel prose after the header; do not write the scene as a card/table/form.",
-    ]
-    for rule in reversed(required_rules):
-        if rule not in rules:
-            rules.insert(0, rule)
-
-    original["rules"] = rules
-    original["scene_header_template"] = {
-        "required": True,
-        "style": "emoji_markdown_visual_novel",
-        "example": [
-            "### 🗓️ 1198-08-15 · позднее утро",
-            "**📍 Академия Астрейн, главный двор — линия регистрации у западной арки**",
-            "🌦️ *Ясно после ночного дождя; мокрые плиты двора светятся на солнце.*",
-            "👤 **Акира:** *внешне спокойна; белые волосы распущены; на щеке пластырь Ливии.*",
-            "🎒 **Рядом:** *дорожная сумка / багаж Акиры.*",
-        ],
-        "forbidden": [
-            "plain raw field list without emojis",
-            "large questionnaire-like header",
-            "technical session/status/API text in gameplay",
-        ],
-    }
-    original["bottom_blocks_template"] = {
-        "required": True,
-        "headers": [
-            "### 🎯 Что можно сделать",
-            "### 💬 Что Акира могла бы сказать",
-            "### 🧠 Мысли Акиры",
-        ],
-    }
-    return original
-
-
-MINIMAL_LOCK_FILES = [
-    "gpt/locks/gameplay_response_gate.md",
-    "gpt/locks/player_input_anchor_lock.md",
-    "gpt/locks/gameplay_visible_scene_before_state_and_no_status_summary.md",
-    "gpt/locks/dialogue_format_strict_lock.md",
-    "gpt/locks/no_empty_scenes_lock.md",
-    "gpt/locks/state_update_payload_contract.md",
-    "gpt/locks/selective_context_runtime_lock.md",
-]
+MINIMAL_LOCK_FILES = [RUNTIME_SCENE_RULES_DIGEST]
 
 ROSTER_FIELDS = [
     "active_characters",
@@ -217,17 +139,22 @@ ROSTER_FIELDS = [
     "delayed_character_ids",
 ]
 
-CHARACTER_FIELDS = [
+ACTIVE_CHARACTER_FIELDS = [
     "active_characters",
     "nearby_characters",
     "speaking_character_ids",
     "observing_character_ids",
     "addressed_character_ids",
     "looked_at_character_ids",
+]
+
+BACKGROUND_CHARACTER_FIELDS = [
     "mentioned_character_ids",
     "scheduled_character_ids",
     "delayed_character_ids",
 ]
+
+CHARACTER_FIELDS = ACTIVE_CHARACTER_FIELDS + BACKGROUND_CHARACTER_FIELDS
 
 SCENE_GROUP_IDS = {
     "block_b_dorm_staff",
@@ -256,7 +183,7 @@ ID_ALIASES = {
 }
 
 
-def _unique(values: list[str]) -> list[str]:
+def _unique(values: list[Any]) -> list[str]:
     result: list[str] = []
     for value in values:
         item = str(value).strip() if value else ""
@@ -294,7 +221,13 @@ def scene_character_ids(current: dict[str, Any] | None = None, future: dict[str,
             if cid not in SCENE_GROUP_IDS and is_known_character_id(cid):
                 ids.append(cid)
 
-    # Future locks are allowed only when already due/active/triggered, not merely scheduled far ahead.
+    for thread in current.get("open_threads", []) or []:
+        if isinstance(thread, dict) and thread.get("status") in {"due", "active", "triggered"}:
+            for value in thread.get("participants", []) or []:
+                cid = canonical_id(value)
+                if cid not in SCENE_GROUP_IDS and is_known_character_id(cid):
+                    ids.append(cid)
+
     future = future or {}
     for lock in (future.get("locks") or {}).values():
         if not isinstance(lock, dict):
@@ -313,40 +246,29 @@ def character_files_for_context(cid: str, *, include_past: bool = True) -> list[
     folder = known_character_folder(cid)
     if not folder:
         return []
-    candidates = [
-        f"characters/{folder}/character.yaml",
-    ]
+    candidates = [f"characters/{folder}/character.yaml"]
     if include_past:
         candidates.append(f"characters/{folder}/past.yaml")
-    # main.yaml is small/optional; include after character/past only when it exists and does not bloat.
     candidates.append(f"characters/{folder}/main.yaml")
-    return [p for p in candidates if base.repo_file_exists(p)]
+    return [path for path in candidates if base.repo_file_exists(path)]
 
 
 def lean_recommended_files_for_context(current: dict[str, Any] | None = None, future: dict[str, Any] | None = None) -> list[str]:
     current = current or {}
     future = future or {}
-
     chars = scene_character_ids(current, future)
-    files: list[str] = []
+    files: list[str] = [RUNTIME_DIGEST_FILE]
 
-    # The digest contains compacted current_state, relationships, story_lines, knowledge and short rule digest.
-    files.append(RUNTIME_DIGEST_FILE)
-
-    # Keep only small critical locks as full files.
     for path in MINIMAL_LOCK_FILES:
         if base.repo_file_exists(path):
             files.append(path)
 
-    # Small id index helps with unknown names.
     if base.repo_file_exists("characters/character_id_index.md"):
         files.append("characters/character_id_index.md")
 
-    # Full active character slices. This is what preserves scene quality.
     for cid in chars:
         files.extend(character_files_for_context(cid, include_past=True))
 
-    # Hard cap on required file count as a safety valve, but do not drop active character.yaml.
     return _unique(files)
 
 
@@ -440,49 +362,74 @@ def _json_block(title: str, value: Any, max_chars: int = 4500) -> str:
     return f"\n## {title}\n```json\n{text}\n```\n"
 
 
-def _date_in_range(current_date: str, key: str) -> bool:
-    if "_to_" not in key:
-        return key == current_date
-    start, end = key.split("_to_", 1)
-    return start <= current_date <= end
+def medium_output_format_contract() -> dict[str, Any]:
+    try:
+        original = _ORIGINAL_CCP_OUTPUT_FORMAT_CONTRACT()
+    except Exception:
+        try:
+            original = _ORIGINAL_BASE_OUTPUT_FORMAT_CONTRACT()
+        except Exception:
+            original = {}
+    if not isinstance(original, dict):
+        original = {}
+
+    rules = list(original.get("rules", []) or [])
+    required_rules = [
+        "Scene MUST start with the old Academy visual-novel header: 🏛️ Академия Астрейн · date, then 🕒 time · 📍 location, 🌦️ weather, ⚙️ active scene state.",
+        "Forbidden header: loose card format with 🗓️ / 📍 / 👤 Акира / 🎒 Рядом fields.",
+        "Bottom blocks must use ✦ headings, not 🎯/💬/🧠 markdown headers.",
+        "Possible Akira lines must be poisonous, dry, sharp and socially dangerous.",
+        "Do not output technical commentary after a gameplay scene.",
+        "Use visual-novel prose after the header; do not write the scene as a card/table/form.",
+    ]
+    for rule in reversed(required_rules):
+        if rule not in rules:
+            rules.insert(0, rule)
+
+    original["rules"] = rules
+    original["scene_header_template"] = {
+        "required": True,
+        "style": "academy_old_visual_novel_header_v2",
+        "example": [
+            "🏛️ Академия Астрейн · 1198 г., 15 августа, пн",
+            "🕒 Позднее утро · 📍 Главный двор Академии",
+            "🌦️ Погода: прохладно, серое небо, влажный ветер",
+            "⚙️ Активное состояние сцены: учитывать в тексте, действиях и предметах",
+            "",
+            "✦ Спокойная внешне · пластырь на щеке · волосы распущены",
+            "🧥 Бордовый пиджак Академии · чёрная рубашка · юбка-шорты · высокие ботинки",
+            "◈ Дорожная сумка с личными вещами",
+            "",
+            "━━━━━━━━━━━━━━━━━━━━",
+        ],
+        "forbidden": [
+            "loose card header with 🗓️ / 📍 / 👤 / 🎒",
+            "plain raw field list without the old Academy header",
+            "technical session/status/API text in gameplay",
+        ],
+    }
+    original["bottom_blocks_template"] = {
+        "required": True,
+        "headers": [
+            "✦ Что можно сделать",
+            "✦ Что Акира могла бы сказать",
+            "✦ Мысли Акиры",
+        ],
+    }
+    return original
 
 
 def build_calendar_slice(current: dict[str, Any], academy_schedule: Any) -> dict[str, Any]:
-    current_date = str(current.get("current_date") or "")
-    current_time = str(current.get("current_time") or "")
-
-    result: dict[str, Any] = {
-        "current_date": current_date,
-        "current_time": current_time,
-        "matched_periods": {},
-        "default_day": {},
-        "freedom_rules": [],
-        "schedule_appearance_rules": {},
+    return {
+        "current_date": str(current.get("current_date") or ""),
+        "current_time": str(current.get("current_time") or ""),
+        "mode": "legacy_compact_calendar_slice",
+        "note": "New calendar module overrides this in normal runtime. Kept only as safe fallback.",
         "calendar_check_rule": [
-            "Before introducing Haru/Raiden/Kiara/Kael, check this slice.",
-            "If character is only calendar-possible, foreshadow or background them; do not force direct meeting.",
-            "If character is active/nearby/mentioned/scheduled in current_state, character files may load and direct scene use is allowed.",
+            "Use calendar module when available.",
+            "Do not turn the calendar into a dry academy guide.",
         ],
     }
-
-    if not isinstance(academy_schedule, dict):
-        return result
-
-    start_period = academy_schedule.get("start_period", {})
-    if isinstance(start_period, dict):
-        for key, value in start_period.items():
-            if _date_in_range(current_date, str(key)):
-                result["matched_periods"][key] = value
-
-    result["default_day"] = academy_schedule.get("default_day", {}) if isinstance(academy_schedule.get("default_day"), dict) else {}
-    freedom_rules = academy_schedule.get("freedom_rules", [])
-    result["freedom_rules"] = freedom_rules if isinstance(freedom_rules, list) else []
-
-    appearance_rules = academy_schedule.get("character_appearance_rules", {})
-    if isinstance(appearance_rules, dict):
-        result["schedule_appearance_rules"] = appearance_rules
-
-    return result
 
 
 def build_scene_context_digest(session_id: str) -> str:
@@ -503,39 +450,27 @@ def build_scene_context_digest(session_id: str) -> str:
         chars,
     )
     inventory = base.compact_if_large(base.read_json("state/inventory_state.json", session_id, default={}) or {}, 2200)
-    academy_schedule_full = base.read_json("state/academy_schedule.json", session_id, default={}) or {}
-    academy_schedule = build_calendar_slice(current, academy_schedule_full)
+    academy_schedule = build_calendar_slice(current, {})
 
     rule_digest = {
         "output": [
             "Gameplay only: no API/status/debug summary in final answer.",
-            "Scene must start with compact emoji markdown header.",
-            "Header example: ### 🗓️ date · time / **📍 place** / 🌦️ weather / 👤 **Акира:** / 🎒 **Рядом:**.",
-            "Scene should read like visual-novel prose, not a technical card.",
-            "Never use a plain raw field-list header without emojis.",
+            "Scene must start with old Academy visual-novel header, not loose 🗓️ card header.",
             "Dialogue format: **Name/descriptor** — speech. (*short italic remark*)",
             "Descriptions are separate italic paragraphs.",
             "Akira thoughts only in bottom block, not inside the scene body.",
-            "Bottom blocks use emoji markdown headers.",
+            "Bottom blocks use ✦ headings.",
             "No empty scene: add hook/reaction/conflict/consequence or time skip.",
-            "Do not answer with technical commentary after a gameplay scene.",
         ],
         "state_write": [
             "Backend does not infer state from prose.",
             "If relationships/story/knowledge/current_state change, send explicit state payload to apply-turn-result.",
             "Roster lists are replacement fields, not append-only fields.",
         ],
-        "knowledge": [
-            "NPC factual claims require known source; otherwise use question/suspicion/wrong assumption/silence.",
-        ],
-        "relationships": [
-            "Use only relationships between scene characters unless another character is explicitly mentioned or scheduled.",
-            "Relationships are behavioral memory, not only scores.",
-        ],
     }
 
     text = "# Runtime scene context digest\n"
-    text += "This digest replaces heavy global prompt/canon/state files for normal gameplay. Use exact character files also loaded in required_files.\n"
+    text += "This digest is a fallback/base layer. Later runtime patches may compact or extend it.\n"
     text += MEDIUM_STYLE_FORMAT_DIGEST + "\n"
     text += MEDIUM_ENGINE_DIGEST + "\n"
     text += MEDIUM_SOURCE_USAGE_DIGEST + "\n"
@@ -547,14 +482,9 @@ def build_scene_context_digest(session_id: str) -> str:
     text += _json_block("Story lines slice", story_lines, 7600)
     text += _json_block("Knowledge slice", knowledge, 5200)
     text += _json_block("Inventory slice", inventory, 2200)
-    text += _json_block("Calendar slice", academy_schedule, 5200)
+    text += _json_block("Calendar slice", academy_schedule, 2200)
     text += "\n## State update reminder\nIf scene changes roster, use current_state_changes with roster fields as full replacement lists.\n"
     return text
-
-
-# Save the original reader before monkey-patching ccp._read_required_file_for_bundle.
-# Without this, non-runtime required files recurse back into read_required_file_for_bundle.
-_ORIGINAL_READ_REQUIRED_FILE_FOR_BUNDLE = ccp._read_required_file_for_bundle
 
 
 def read_required_file_for_bundle(path: str, session_id: str) -> tuple[str | None, str | None]:
@@ -567,7 +497,6 @@ def read_required_file_for_bundle(path: str, session_id: str) -> tuple[str | Non
 
 
 def split_text_safe(content: str, part_chars: int) -> list[str]:
-    # Keep file pieces reasonably small; response JSON overhead matters.
     part_chars = max(7000, min(int(part_chars or 11000), 11000))
     if not content:
         return [""]
@@ -624,7 +553,6 @@ def chunk_loaded_parts_safe(
     max_chars: int = 30000,
     max_items: int = 3,
 ) -> list[list[Any]]:
-    # Ignore dangerous caller values that can trigger ResponseTooLargeError.
     max_chars = max(16000, min(int(max_chars or 30000), 32000))
     max_items = max(1, min(int(max_items or 3), 3))
 
@@ -655,11 +583,9 @@ def required_files_chunk_response_safe(
 ):
     sid = base.safe_session_id(session_id)
     base.ensure_session(sid)
-
     required_files, loaded_parts, _manifest, missing_files = required_file_parts_safe(sid)
     chunks = chunk_loaded_parts_safe(loaded_parts, max_chars=max_chars, max_items=max_items)
     chunks_total = len(chunks)
-
     safe_chunk_index = max(0, min(int(chunk_index or 0), max(chunks_total - 1, 0))) if chunks_total else 0
     selected = chunks[safe_chunk_index] if chunks_total else []
     has_more = bool(chunks_total and safe_chunk_index < chunks_total - 1)
@@ -685,7 +611,6 @@ def deep_merge_roster_replace(dst: Any, src: Any) -> Any:
         return dst
     if not isinstance(dst, dict):
         dst = {}
-
     for key, value in src.items():
         if key in ROSTER_FIELDS and isinstance(value, list):
             dst[key] = _unique([str(v) for v in value if v is not None])
@@ -731,7 +656,6 @@ def _remove_routes(path: str, methods: set[str] | None = None, operation_id: str
     app.router.routes = keep
 
 
-# Patch module globals used by compact_context_patch endpoints.
 base.active_scene_characters = scene_character_ids
 base.recommended_files_for_context = lean_recommended_files_for_context
 base.compact_relationships = compact_relationships_scene_pairs_only
@@ -749,8 +673,6 @@ ccp._required_file_parts = required_file_parts_safe
 ccp._chunk_loaded_parts = chunk_loaded_parts_safe
 ccp._required_files_chunk_response = required_files_chunk_response_safe
 
-
-# Re-register chunk endpoints with safe defaults and safe clamping.
 _remove_routes("/api/v1/sessions/{session_id}/required-files-chunk", {"GET"}, "getRequiredFilesChunk")
 _remove_routes("/api/v1/sessions/{session_id}/required-files-bundle", {"GET"}, "getRequiredFilesBundle")
 
@@ -785,11 +707,13 @@ def get_required_files_bundle_safe(
     )
 
 
+_remove_routes("/api/v1/sessions/{session_id}/repair/scene-roster", {"POST"}, "repairSceneRoster")
+
+
 @app.post("/api/v1/sessions/{session_id}/repair/scene-roster", operation_id="repairSceneRoster")
 def repair_scene_roster(session_id: str, request: RepairSceneRosterRequest = RepairSceneRosterRequest()):
     sid = base.safe_session_id(session_id)
     base.ensure_session(sid)
-
     current = base.read_json("state/current_state.json", sid, default={}) or {}
     current["active_characters"] = _unique([canonical_id(x) for x in request.active_character_ids])
     current["nearby_characters"] = _unique([str(x) for x in request.nearby_character_ids])
@@ -800,7 +724,6 @@ def repair_scene_roster(session_id: str, request: RepairSceneRosterRequest = Rep
     current["mentioned_character_ids"] = _unique([canonical_id(x) for x in request.mentioned_character_ids])
     current["scheduled_character_ids"] = _unique([canonical_id(x) for x in request.scheduled_character_ids])
     current["delayed_character_ids"] = _unique([canonical_id(x) for x in request.delayed_character_ids])
-
     base.write_json("state/current_state.json", current, sid)
     return {
         "status": "repaired",
@@ -811,7 +734,6 @@ def repair_scene_roster(session_id: str, request: RepairSceneRosterRequest = Rep
     }
 
 
-# Re-register health to expose version for diagnostics.
 _remove_routes("/health", {"GET"})
 
 
@@ -826,3 +748,7 @@ def health_with_version():
         "volume_seeded": (base.DATA / ".seeded").exists(),
         "public_base_url": base.BASE_URL,
     }
+
+
+rt_app = app
+app.version = "0.3.42-context-transport-clean-v10"
