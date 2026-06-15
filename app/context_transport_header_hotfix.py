@@ -1,11 +1,11 @@
-"""Runtime header/footer hotfix v19.
+"""Runtime header/footer hotfix v20.
 
 Connects runtime layers:
 - calendar/lore/cleanup/speed
 - scene format
 - state persistence
 - POV switch
-- compact turn-contract
+- compact turn-contract with rich-scene rules
 - world integrity diagnostics
 """
 from __future__ import annotations
@@ -50,12 +50,15 @@ try:
 except Exception:
     world_integrity_patch = None
 
-app.version = "0.3.47-pov-integrity-connected-v1"
+app.version = "0.3.48-rich-scene-pov-integrity-v2"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
-## Medium scene style digest — strict Academy scene format
+## Medium scene style digest — strict Academy rich scene format
 Use old Academy header/footer.
 Add 🎥 POV line only if explicit POV mode is active.
+Compact turn-contract is NOT permission to shorten visible scenes.
+Keep Academy VN richness: sensory detail, micro-movements, pauses, banter, social pressure, consequence.
+Never print raw player parenthetical action blocks; translate them into prose or short stage notes.
 Energy is visually/physically felt when relevant.
 Personal energy is in character cards, not separate per-type files.
 """
