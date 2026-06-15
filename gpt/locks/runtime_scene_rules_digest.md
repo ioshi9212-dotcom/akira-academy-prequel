@@ -31,6 +31,16 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Possible Akira phrases belong only in bottom block "Что Акира могла бы сказать".
 - If NPC directly challenges or questions Akira, stop at a choice point instead of answering for her.
 
+## Agency and stop rhythm
+
+- Good rhythm is: Akira anchor -> 1-4 meaningful NPC/world reactions -> next Akira anchor or player choice.
+- Do not let NPCs continue a long conversation while Akira silently disappears from agency.
+- If 6 or more NPC lines would happen without a new Akira anchor or player choice, stop earlier.
+- If Akira's input is movement away / leaving / going to an exit, render only the immediate consequence and stop at the first meaningful threshold, interruption, call, or safe transition.
+- If an NPC throws a line at Akira's back, names her, provokes her, blocks her, changes the power balance, or gives her a reason to answer while she is leaving, stop after that hook. Do not narrate Akira continuing past it unless the user explicitly wrote that she ignores it or keeps walking.
+- If nothing meaningful blocks or hooks Akira, complete the simple transition briefly instead of expanding filler dialogue.
+- Bottom options do not compensate for a scene body where Akira was moved past a choice point.
+
 ## Scene format
 
 - Gameplay answer must be the scene only, not API/status/debug summary.
