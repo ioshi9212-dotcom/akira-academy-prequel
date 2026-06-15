@@ -1,13 +1,7 @@
 lore_id: combat_training
 visibility: academy_common
-tags: ["academy", "combat", "training", "raider", "weapon"]
-
-summary:
-  - "Академия готовит не только теоретиков, но и практиков: физическая подготовка, энергия, тактика, стрельбище, спарринги."
-  - "Тренировки должны учитывать тело, усталость, контроль энергии, безопасность и наблюдение инструкторов."
-  - "Рейдерская подготовка — это контроль, реакция, выносливость, дисциплина и способность действовать под давлением."
-
-rules:
-  - "Не превращать тренировку в бессмысленную демонстрацию силы."
-  - "Если Акира контролирует энергию слишком ровно, система/люди могут заметить контроль, но не обязаны понять истинный масштаб."
-  - "Физическая сцена должна иметь последствия: дыхание, мышцы, боль, усталость, внимание окружающих."
+deprecated: true
+canonical_source: "canon_lore/academy/academy_full.yaml"
+tags: [academy, combat, training, shooting_range, pool, capture, deprecated, redirect]
+hashtags: ["#академия", "#тренировки", "#стрельбище", "#бассейн", "#захват", "#redirect"]
+rule: "Use academy_full.yaml and academy_locations.yaml for training blocks, shooting range, pool, capture/restraint and field preparation."

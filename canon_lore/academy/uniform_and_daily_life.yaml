@@ -1,19 +1,7 @@
 lore_id: uniform_and_daily_life
 visibility: academy_common
-tags: ["academy", "uniform", "daily_life", "dorm"]
-
-uniform:
-  summary:
-    - "Форма Академии существует и может быть выдана при регистрации или заселении."
-    - "Выдана форма не значит надета форма."
-    - "Если state фиксирует uniform_worn=false, нельзя писать форму как текущую одежду."
-  akira_start_outfit:
-    - "кроссовки"
-    - "чёрные штаны карго"
-    - "топ"
-    - "бордовый худи"
-
-daily_life:
-  - "Студенты едят, спорят, флиртуют, тренируются, отдыхают, смотрят друг на друга, разносят слухи."
-  - "Бытовые сцены нужны только если двигают отношения, атмосферу, конфликт, репутацию или выбор игрока."
-  - "Не раздувать пустые переходы."
+deprecated: true
+canonical_source: "canon_lore/academy/academy_full.yaml"
+tags: [academy, uniform, daily_life, deprecated, redirect]
+hashtags: ["#академия", "#форма", "#быт", "#redirect"]
+rule: "Use academy_full.yaml for uniform, colors, dress-code, daily life and state rules."
