@@ -64,7 +64,7 @@ jobs:
           print('OK: OpenAPI turn-contract schema includes prompt_preview')
           PY
 
-      - name: Verify runtime turn-contract loads clean YAML and gate
+      - name: Verify compact runtime required files
         run: |
           python - <<'PY'
           from fastapi.testclient import TestClient
@@ -84,17 +84,25 @@ jobs:
           required_set = set(required)
 
           must_have = {
-              'characters/akira/main.yaml',
+              'runtime/scene_context_digest.md',
+              'gpt/scene_format.md',
+              'gpt/locks/runtime_scene_rules_digest.md',
+              'characters/character_id_index.md',
               'characters/akira/character.yaml',
-              'characters/akira/past.yaml',
-              'characters/livia/main.yaml',
-              'characters/livia/character.yaml',
-              'gpt/locks/gameplay_response_gate.md',
+              'characters/akira/main.yaml',
           }
           missing = sorted(must_have - required_set)
           assert not missing, f'Missing required files: {missing}. Current required_files={required}'
 
-          assert 'characters/main/akira.md' not in required_set, 'legacy characters/main/akira.md should not load when clean YAML exists'
-          assert 'characters/main/livia_cross.md' not in required_set, 'legacy characters/main/livia_cross.md should not load when clean YAML exists'
-          print('OK: runtime turn-contract loads clean YAML, gate, and prompt_preview')
+          should_not_have = {
+              'gpt/locks/gameplay_response_gate.md',
+              'gpt/locks/player_input_anchor_lock.md',
+              'characters/main/akira.md',
+              'characters/main/livia_cross.md',
+              'characters/akira/past.yaml',
+          }
+          unexpected = sorted(should_not_have & required_set)
+          assert not unexpected, f'Unexpected old/heavy files in compact mode: {unexpected}. Current required_files={required}'
+
+          print('OK: compact runtime required files match current speed mode')
           PY
