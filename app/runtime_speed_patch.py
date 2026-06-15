@@ -1,10 +1,11 @@
 """
-Runtime speed patch v16.
+Runtime speed patch v17.
 
 Goals:
 - replace many old lock files with one compact runtime_scene_rules_digest.md;
 - reduce full character loading to characters truly present in the scene;
 - treat scheduled scene appearances as active characters for required files;
+- keep relationship slice limited to active/nearby scene focus;
 - keep delayed/mentioned characters as context inside digest, not full YAML files;
 - include last 15 gameplay scene texts only when exact 15-turn audit is due;
 - shrink runtime/scene_context_digest.md by using compact calendar/lore slices.
@@ -21,7 +22,7 @@ from app.context_transport_runtime_patch import app
 from app import compact as base
 import app.compact_context_patch as ccp
 
-app.version = "0.3.36-runtime-speed-scheduled-active-v16"
+app.version = "0.3.37-runtime-speed-relationship-focus-v17"
 
 RUNTIME_SCENE_RULES_DIGEST = "gpt/locks/runtime_scene_rules_digest.md"
 RUNTIME_DIGEST_FILE = "runtime/scene_context_digest.md"
@@ -46,10 +47,18 @@ ACTIVE_CHARACTER_FIELDS = [
     "observing_character_ids",
     "addressed_character_ids",
     "looked_at_character_ids",
-    # Calendar/current-beat appearances are scene participants, not archive context.
-    # If Haru is scheduled to appear with Raiden, both must get character files
-    # before the scene can safely render speech, presence or description.
+    # Calendar/current-beat appearances are scene participants for required files.
+    # This prevents missing character cards for scheduled arrivals.
     "scheduled_character_ids",
+]
+
+RELATIONSHIP_FOCUS_CHARACTER_FIELDS = [
+    "active_characters",
+    "nearby_characters",
+    "speaking_character_ids",
+    "observing_character_ids",
+    "addressed_character_ids",
+    "looked_at_character_ids",
 ]
 
 BACKGROUND_CHARACTER_FIELDS = [
@@ -64,12 +73,14 @@ PAST_TRIGGER_WORDS = [
 ]
 
 
-def active_scene_character_ids_fast(current: dict[str, Any] | None = None, future: dict[str, Any] | None = None) -> list[str]:
-    current = current or {}
-    future = future or {}
+def _scene_character_ids_from_fields(
+    current: dict[str, Any],
+    future: dict[str, Any],
+    fields: list[str],
+) -> list[str]:
     values: list[Any] = ["akira"]
 
-    for field in ACTIVE_CHARACTER_FIELDS:
+    for field in fields:
         current_values = current.get(field, []) or []
         if isinstance(current_values, list):
             values.extend(current_values)
@@ -86,6 +97,18 @@ def active_scene_character_ids_fast(current: dict[str, Any] | None = None, futur
         values.extend(lock.get("participants", []) or [])
 
     return _unique(values)
+
+
+def active_scene_character_ids_fast(current: dict[str, Any] | None = None, future: dict[str, Any] | None = None) -> list[str]:
+    current = current or {}
+    future = future or {}
+    return _scene_character_ids_from_fields(current, future, ACTIVE_CHARACTER_FIELDS)
+
+
+def relationship_focus_character_ids_fast(current: dict[str, Any] | None = None, future: dict[str, Any] | None = None) -> list[str]:
+    current = current or {}
+    future = future or {}
+    return _scene_character_ids_from_fields(current, future, RELATIONSHIP_FOCUS_CHARACTER_FIELDS)
 
 
 def background_character_ids(current: dict[str, Any] | None = None) -> dict[str, list[str]]:
@@ -292,11 +315,12 @@ def build_scene_context_digest_fast(session_id: str) -> str:
     current = base.read_json("state/current_state.json", session_id, default={}) or {}
     future = base.read_json("state/future_locks_progress.json", session_id, default={}) or {}
     chars = active_scene_character_ids_fast(current, future)
+    relationship_chars = relationship_focus_character_ids_fast(current, future)
     background_chars = background_character_ids(current)
 
     relationships = rt.compact_relationships_scene_pairs_only(
         base.read_json("state/relationships.json", session_id, default={}) or {},
-        chars,
+        relationship_chars,
     )
     story_lines_full = base.read_json("state/story_lines.json", session_id, default={}) or {}
     story_lines = rt.compact_story_lines_scene_only(
@@ -332,6 +356,7 @@ def build_scene_context_digest_fast(session_id: str) -> str:
         "visible_inventory": current.get("visible_inventory", []),
         "nearby_items": current.get("nearby_items", []),
         "active_character_ids_loaded_full": chars,
+        "relationship_focus_character_ids": relationship_chars,
         "background_character_ids_not_loaded_full": background_chars,
     }
 
