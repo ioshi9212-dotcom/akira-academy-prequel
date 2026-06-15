@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-MAX_PROMPT_PREVIEW_CHARS = 10000
+MAX_PROMPT_PREVIEW_CHARS = 8000
 
 
 def _cut(text: Any, limit: int = 700) -> str:
@@ -63,7 +63,9 @@ def _compact_relationships(relationships: dict[str, Any], focus_ids: list[str]) 
         if not isinstance(pair_id, str) or "__" not in pair_id:
             continue
         left, right = pair_id.split("__", 1)
-        if left not in focus and right not in focus:
+        # Prompt preview must stay scene-local: include only pairs where BOTH
+        # characters are in the current active/nearby focus.
+        if left not in focus or right not in focus:
             continue
         if isinstance(data, dict):
             result[pair_id] = {
@@ -75,9 +77,9 @@ def _compact_relationships(relationships: dict[str, Any], focus_ids: list[str]) 
                 "respect": data.get("respect"),
                 "curiosity": data.get("curiosity"),
                 "resentment": data.get("resentment"),
-                "notes": (data.get("notes") or [])[-5:] if isinstance(data.get("notes"), list) else data.get("notes"),
-                "open_threads": (data.get("open_threads") or [])[-5:] if isinstance(data.get("open_threads"), list) else data.get("open_threads"),
-                "behavior_next": (data.get("behavior_next") or [])[-5:] if isinstance(data.get("behavior_next"), list) else data.get("behavior_next"),
+                "notes": (data.get("notes") or [])[-3:] if isinstance(data.get("notes"), list) else data.get("notes"),
+                "open_threads": (data.get("open_threads") or [])[-3:] if isinstance(data.get("open_threads"), list) else data.get("open_threads"),
+                "behavior_next": (data.get("behavior_next") or [])[-3:] if isinstance(data.get("behavior_next"), list) else data.get("behavior_next"),
             }
     return result
 
@@ -96,7 +98,7 @@ def build_prompt_preview(
     active_ids = list(turn_contract.get("active_character_ids", []) or [])
     nearby_ids = list(turn_contract.get("nearby_character_ids", []) or [])
     focus_ids: list[str] = []
-    for item in ["akira"] + active_ids + nearby_ids + list(current_state.get("scheduled_character_ids", []) or []):
+    for item in ["akira"] + active_ids + nearby_ids:
         if item and item not in focus_ids:
             focus_ids.append(item)
 
@@ -133,7 +135,8 @@ PLAYER INPUT ANCHOR PROTOCOL:
 
 RHYTHM CONTROL:
 - Good rhythm: Akira anchor -> 1-4 meaningful NPC/world reactions -> next Akira anchor or choice point.
-- If 6-10 NPC lines pass without a new Akira anchor or a player choice, stop earlier.
+- If 6 or more NPC lines pass without a new Akira anchor or a player choice, stop earlier.
+- If Akira is leaving and an NPC throws a hook at her back, stop on that hook unless the player explicitly wrote that she ignores it.
 - If a day is overloaded, softly guide toward evening/sleep/next meaningful beat instead of adding filler.
 
 CHARACTER FIDELITY:
@@ -142,15 +145,15 @@ CHARACTER FIDELITY:
 - If a planned line or reaction contradicts a loaded character file, relationship state or knowledge source, rewrite it before sending.
 
 CURRENT STATE:
-{_dump(_compact_current_state(current_state), 2400)}
+{_dump(_compact_current_state(current_state), 1800)}
 
 FOCUS CHARACTERS:
 active_character_ids: {active_ids}
 nearby_character_ids: {nearby_ids}
-focus_ids_for_this_turn: {focus_ids}
+focus_ids_for_relationships: {focus_ids}
 
 REQUIRED FILES TO LOAD BEFORE SCENE:
-{_dump(required_files, 2600)}
+{_dump(required_files, 1800)}
 
 REQUIRED FILE LOADING PROTOCOL:
 - The list above is not enough by itself. It is only a manifest.
@@ -159,14 +162,14 @@ REQUIRED FILE LOADING PROTOCOL:
 - If chunks were not loaded, do not invent missing character relationships, calendar beats, lore, or state.
 
 KNOWLEDGE TABLE:
-{_dump(knowledge_table or turn_contract.get('knowledge_table', {}), 2200)}
+{_dump(knowledge_table or turn_contract.get('knowledge_table', {}), 1400)}
 
 RELATIONSHIP CONTEXT:
-{_dump(_compact_relationships(relationships or {}, focus_ids), 1800)}
+{_dump(_compact_relationships(relationships or {}, focus_ids), 1200)}
 
 STORY / FUTURE CONTEXT:
-story_lines_contract: {_dump(turn_contract.get('story_lines_contract', {}), 1200)}
-canon_locks: {_dump(turn_contract.get('canon_locks', []), 1000)}
+story_lines_contract: {_dump(turn_contract.get('story_lines_contract', {}), 900)}
+canon_locks: {_dump(turn_contract.get('canon_locks', []), 700)}
 
 OUTPUT GATE:
 A gameplay answer must include:
