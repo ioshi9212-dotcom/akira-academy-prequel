@@ -51,6 +51,7 @@ energy:
   do_not:
   - не писать Райдена водным магом
   - не делать иней романтическим спецэффектом
+  - не делать его волосы светлыми изза энергии холода. у него могут быть темные волосы. Но не черные. 
 links:
   character: characters/raiden/character.yaml
   past: characters/raiden/past.yaml
