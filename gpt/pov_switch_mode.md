@@ -1,27 +1,67 @@
 # POV Switch Mode
 
-Loads only when the latest player command contains `POV:` or `пов:`.
+Loads only when latest command contains `POV:` or `пов:`.
 
-Purpose: temporarily shift the scene focus from Akira to another named character, while time continues normally.
+## Purpose
 
-Rules:
-- Default gameplay focus is Akira unless POV mode is explicitly requested.
-- In POV mode, the named character is the scene focus for this response.
-- The character must stay faithful to their loaded character files.
-- Akira may be absent, present in the background, or present as an NPC.
-- Akira must not gain knowledge from this POV scene unless she actually saw, heard, was told, or otherwise had a clear source.
-- Time, location, relationships, rumors, reputation, story lines and calendar state may change if the scene causes consequences.
-- If the next player command does not request POV again, return to normal Akira focus.
+POV switch temporarily moves the scene focus from Akira to another named character.  
+This is a normal prose scene from another character's camera, not a technical summary.
 
-Header addition:
-`🎥 POV: Ливия · фокус сцены не Акира`
+## Examples
 
-If Akira is not present, use:
-`🎥 POV: Ливия · Акира этого не видит напрямую`
+```txt
+не продолжай сцену, POV: Ливия
+пов: Райден
+POV: Хару
+пов: Норт
+продолжить POV: Ливия
+```
 
-Bottom blocks should be for the current POV character:
-- Что можно сделать
-- Что POV-персонаж мог бы сказать
-- Мысли POV-персонажа
+## Rules
 
-Do not use POV mode as a technical summary. It must be a normal prose scene.
+- Default gameplay POV is Akira.
+- POV switch lasts one response unless next command keeps POV.
+- Time continues normally.
+- Akira may be absent, background, or present as NPC.
+- Akira does not gain knowledge from another POV unless she saw/heard/was told.
+- Relationships, knowledge, reputation, rumors, story_lines and calendar_runtime update normally for involved characters.
+- Do not break the POV character's personality.
+
+## Player input
+
+While POV is active:
+- text outside parentheses is the POV character's exact speech;
+- text inside parentheses is POV character action/gesture/body state/intention;
+- do not give that speech to Akira;
+- possible lines go only in bottom block.
+
+## Header
+
+Add POV line after time/location:
+
+```txt
+🎥 POV: Ливия · Акира этого не видит напрямую
+```
+
+If Akira is present:
+
+```txt
+🎥 POV: Райден · Акира рядом, но фокус восприятия не её
+```
+
+## Bottom blocks
+
+Use POV-specific blocks:
+
+- ✦ Что можно сделать
+- ✦ Что Ливия могла бы сказать / Что Райден мог бы сказать / ...
+- ✦ Мысли Ливии / Мысли Райдена / ...
+
+Do not write "Мысли Акиры" unless Akira is current POV.
+
+## Tone
+
+- Livia: fast, social, vivid, emotional, noisy surface with vulnerability.
+- Raiden: short internal pressure, control, irritation, discipline, denial.
+- Haru: movement, heat, performance, playful pressure, humor over discomfort.
+- Kael North: observation, system logic, restraint, institutional pressure.
