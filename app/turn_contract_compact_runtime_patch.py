@@ -1,10 +1,11 @@
 """
-Compact turn-contract runtime patch v2 — rich scene safe-stable.
+Compact turn-contract runtime patch v3 — balanced scene speed.
 
 Goal:
-- prevent getSessionTurnContract ResponseTooLargeError without reducing scene quality;
-- keep required_files and chunk loading full;
-- restore rich Academy visual-novel rhythm and prevent raw parenthetical player actions in visible prose.
+- prevent getSessionTurnContract ResponseTooLargeError without reducing character fidelity;
+- keep required_files and chunk loading full, but request larger chunks;
+- keep Academy visual-novel rhythm without forcing 900-1800 word scenes every turn;
+- prevent raw parenthetical player actions in visible prose.
 """
 from __future__ import annotations
 import json
@@ -53,14 +54,16 @@ def _compact_current_state(current: dict[str, Any]) -> dict[str, Any]:
 def _compact_output_format_contract() -> dict[str, Any]:
     return {
         "priority": "highest_for_scene_output",
-        "selected_style": "academy_old_visual_novel_header_v2_rich",
+        "selected_style": "academy_old_visual_novel_header_v2_balanced",
         "scene_length_policy": {
-            "default": "medium-rich visual novel scene, not ultra-short",
-            "normal_scene": "900-1800 words when multiple named characters are present or social tension exists",
-            "transition_scene": "500-900 words only if genuinely low-conflict / movement-only",
+            "default": "balanced visual novel scene: enough reaction, no forced chapter-length output",
+            "normal_scene": "350-900 words when multiple named characters are present or social tension exists",
+            "transition_scene": "120-350 words for movement-only, leaving, waiting, simple checks or low-conflict transitions",
+            "hard_stop": "stop at the first direct hook/question/challenge to the controlled character",
             "do_not": [
-                "do not collapse meaningful scenes into short summaries",
-                "do not skip NPC banter/reaction if active characters are loaded",
+                "do not collapse meaningful scenes into dry summaries",
+                "do not force 900-1800 word scenes by default",
+                "do not continue NPC-only dialogue after Akira reaches a choice point",
                 "do not output raw player parenthetical action blocks",
             ],
         },
@@ -95,14 +98,16 @@ def _compact_output_format_contract() -> dict[str, Any]:
             "— ...",
         ],
         "style_rhythm": [
-            "Preserve old Academy VN pacing: sensory detail, micro-movements, pauses, social tension, small banter.",
-            "Named active/nearby characters should react according to their cards if present and relevant.",
+            "Preserve Academy VN tone: sensory detail, pauses, social tension and character-specific reactions.",
+            "Use 1-4 meaningful NPC/world reactions per Akira anchor, then stop or ask for player choice.",
+            "Named active/nearby characters react only if relevant; do not give every loaded character a turn.",
             "Do not over-answer for the controlled character; stop at direct hooks/questions/challenges.",
             "Use loaded relationships and knowledge; do not flatten characters into generic NPCs.",
         ],
         "forbidden": [
             "loose 🗓️/📍/👤/🎒 header",
-            "short dry summary instead of scene",
+            "dry summary instead of scene",
+            "forced chapter-length scene on a simple action",
             "raw player parenthetical action blocks",
             "API/debug/status instead of scene",
             "NPC answering for controlled character",
@@ -131,9 +136,9 @@ def _compact_knowledge(knowledge: dict[str, Any], chars: list[str]) -> dict[str,
         data = knowledge.get(cid)
         if isinstance(data, dict):
             dumped = json.dumps(data, ensure_ascii=False, default=str)
-            result[cid] = data if len(dumped) <= 1400 else {
+            result[cid] = data if len(dumped) <= 1200 else {
                 "_summary": "large; load full state if needed",
-                "keys": list(data.keys())[:20],
+                "keys": list(data.keys())[:16],
             }
     return result
 
@@ -145,33 +150,34 @@ def _compact_inventory(inventory: dict[str, Any], current: dict[str, Any]) -> di
     return {
         "visible_inventory": current.get("visible_inventory", []),
         "nearby_items": current.get("nearby_items", []),
-        "akira_inventory_keys": list(inv.keys())[:24],
+        "akira_inventory_keys": list(inv.keys())[:18],
     }
 
 
 def _prompt_preview_compact(session_id: str, current: dict[str, Any], required_files: list[str], chars: list[str]) -> str:
     payload = json.dumps(_compact_current_state(current), ensure_ascii=False, indent=2, default=str)
     required = json.dumps(required_files, ensure_ascii=False, indent=2, default=str)
-    text = f"""PLAY MODE RENDER BRIEF — COMPACT CONTRACT, RICH SCENE
+    text = f"""PLAY MODE RENDER BRIEF — COMPACT CONTRACT, BALANCED SCENE
 session_id: {session_id}
 
 THIS CONTRACT IS COMPACT ONLY TO AVOID ResponseTooLargeError.
-DO NOT make the visible scene compact/short because of this.
+Keep character fidelity, but do not force long scenes.
 
 REQUIRED FLOW:
 1. Use getRequiredFilesManifest.
-2. Then getRequiredFilesChunk chunk_index=0..until has_more=false.
-3. Required_files are still full quality source files. Use them before writing prose.
+2. Then getRequiredFilesChunk with chunk_index=0, max_chars=60000, max_items=6; continue with next_chunk_index until has_more=false.
+3. Required_files are still full source files. Use them before writing prose.
 4. Output gameplay scene only, no API/debug/status summary.
 5. Assemble visible_scene_text before apply-turn-result and pass it to the tool.
 6. After apply-turn-result, return visible_scene_text/final_scene_text verbatim.
 
 SCENE QUALITY / LENGTH:
-- Default scene should keep the previous Academy visual novel richness.
-- If active/nearby named characters are present, include meaningful micro-reactions, banter, observation, tension and consequence.
-- Normal multi-character scene: roughly 900-1800 words unless the user explicitly asks short.
-- Do not collapse into a short summary.
-- Do not remove social texture just because the contract is compact.
+- Default scene should keep Academy visual novel tone, but stay compact enough for normal play.
+- Normal multi-character scene: roughly 350-900 words.
+- Simple transition / leaving / waiting / movement-only scene: roughly 120-350 words.
+- Use 1-4 meaningful NPC/world reactions per Akira anchor, then stop or give player choice.
+- If an NPC directly hooks/challenges/questions Akira, stop there instead of moving her past it.
+- Do not force every loaded character to speak.
 
 PLAYER INPUT ANCHOR:
 - Outside parentheses = exact speech of the controlled character.
@@ -188,15 +194,15 @@ FORMAT:
 - In POV mode, bottom suggested lines and thoughts belong to POV character.
 
 CURRENT STATE:
-{payload[:2600]}
+{payload[:2200]}
 
 ACTIVE/FOCUS CHARACTER IDS:
 {chars}
 
 REQUIRED FILES TO LOAD:
-{required[:3200]}
+{required[:2200]}
 """
-    return text[:9000]
+    return text[:7000]
 
 
 def _remove_route(path: str, method: str = "GET") -> None:
@@ -226,10 +232,10 @@ def session_turn_contract_compact(session_id: str):
 
     checks = [
         "Call getRequiredFilesManifest after getSessionTurnContract.",
-        "Call getRequiredFilesChunk from chunk_index=0 until has_more=false before rendering gameplay.",
+        "Call getRequiredFilesChunk with max_chars=60000 and max_items=6 from chunk_index=0 until has_more=false before rendering gameplay.",
         "Use all loaded chunks; turn-contract is only compact routing metadata, not the full source.",
-        "Do not shorten the visible scene just because turn-contract is compact.",
-        "Keep old Academy VN rhythm: micro-actions, social texture, reactions, banter, consequence.",
+        "Do not shorten meaningful character fidelity, but do not force chapter-length scenes.",
+        "Keep Academy VN rhythm: micro-actions, social texture, reactions, consequence, then stop at a choice point.",
         "Never print raw player parenthetical action blocks; translate them into prose/stage notes.",
         "Return scene only in gameplay mode, no technical summary.",
         "Assemble visible_scene_text before apply-turn-result and pass it to the tool.",
@@ -261,6 +267,7 @@ def session_turn_contract_compact(session_id: str):
             "old loose header format",
             "technical summary instead of scene",
             "raw player parenthetical action blocks",
+            "forced long scene for a simple action",
         ],
         "required_checks_before_answer": checks,
         "knowledge_table": _compact_knowledge(knowledge, scene_chars),
@@ -271,4 +278,4 @@ def session_turn_contract_compact(session_id: str):
     })
 
 
-app.version = "0.3.48-rich-scene-compact-contract-v2"
+app.version = "0.3.49-balanced-scene-compact-contract-v3"
