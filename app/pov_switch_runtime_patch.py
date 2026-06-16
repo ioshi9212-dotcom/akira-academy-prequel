@@ -1,8 +1,9 @@
-"""POV switch runtime patch v1.
+"""POV switch runtime patch v2.
 
 Activated only by explicit `POV:` / `пов:` in latest input.
-Adds POV rules file + target character files to required_files.
-Adds POV metadata to runtime digest.
+Default Akira gameplay is not POV mode. `пов: Акира` is ignored as default.
+Adds POV rules file + target character files only for non-Akira POV targets.
+Adds POV metadata to runtime digest only when non-Akira POV is active.
 """
 from __future__ import annotations
 
@@ -41,17 +42,30 @@ def pov_mode_info(current: dict[str, Any] | None = None) -> dict[str, Any]:
     low = text.lower().replace("ё", "е")
     if not re.search(r"\b(pov|пов)\s*[:：]", low):
         return {"active": False}
+
     m = re.search(r"(?:pov|пов)\s*[:：]\s*([А-Яа-яA-Za-z_\-]+)", text, re.IGNORECASE)
     raw = m.group(1).strip() if m else ""
     key = raw.lower().replace("ё", "е")
     target = POV_ALIASES.get(key, rt.canonical_id(key))
+
+    # Akira is the default gameplay POV. Do not load POV rules for her.
+    if target == "akira":
+        return {
+            "active": False,
+            "ignored": True,
+            "target_raw": raw,
+            "target_character_id": "akira",
+            "reason": "akira_is_default_pov",
+        }
+
     if not rt.is_known_character_id(target):
         return {"active": True, "target_raw": raw, "target_character_id": None, "error": "unknown_pov_target"}
+
     return {
         "active": True,
         "target_raw": raw,
         "target_character_id": target,
-        "mode": "explicit_pov_switch",
+        "mode": "explicit_non_akira_pov_switch",
         "duration_rule": "one scene unless next command explicitly keeps POV",
         "speech_rule": "outside parentheses is POV character exact speech",
         "action_rule": "inside parentheses is POV character action/intention",
@@ -75,6 +89,7 @@ def recommended_files_with_pov(current=None, future=None):
         files = list(_ORIGINAL_RECOMMENDED(current, future) or [])
     except TypeError:
         files = list(base.recommended_files_for_context(current or {}, future or {}) or [])
+
     pov = pov_mode_info(current or {})
     target = pov.get("target_character_id")
     if pov.get("active"):
@@ -99,7 +114,7 @@ def build_scene_context_digest_with_pov(session_id: str) -> str:
 
 ## POV switch mode — active
 
-Explicit POV switch requested.
+Explicit non-Akira POV switch requested.
 
 - POV target: {raw} / {target}
 - Text outside parentheses belongs to POV character.
@@ -122,4 +137,4 @@ base.recommended_files_for_context = recommended_files_with_pov
 ccp.active_scene_characters = scene_character_ids_with_pov
 ccp.recommended_files_for_context = recommended_files_with_pov
 
-app.version = "0.3.47-pov-switch-v1"
+app.version = "0.3.48-pov-switch-non-akira-only"
