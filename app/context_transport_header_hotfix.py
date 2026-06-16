@@ -50,7 +50,7 @@ try:
 except Exception:
     world_integrity_patch = None
 
-app.version = "0.3.48-rich-scene-pov-integrity-v2"
+app.version = "0.3.51-balanced-scene-living-npc-v3"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy rich scene format
