@@ -1,11 +1,11 @@
-"""Runtime header/footer hotfix v20.
+"""Runtime header/footer hotfix v21.
 
 Connects runtime layers:
 - calendar/lore/cleanup/speed
 - scene format
 - state persistence
 - POV switch
-- compact turn-contract with rich-scene rules
+- compact turn-contract with balanced scene rules
 - world integrity diagnostics
 """
 from __future__ import annotations
@@ -50,15 +50,55 @@ try:
 except Exception:
     world_integrity_patch = None
 
-app.version = "0.3.51-balanced-scene-living-npc-v3"
+app.version = "0.3.52-format-stop-balanced-v3"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
-## Medium scene style digest — strict Academy rich scene format
-Use old Academy header/footer.
-Add 🎥 POV line only if explicit POV mode is active.
-Compact turn-contract is NOT permission to shorten visible scenes.
-Keep Academy VN richness: sensory detail, micro-movements, pauses, banter, social pressure, consequence.
-Never print raw player parenthetical action blocks; translate them into prose or short stage notes.
-Energy is visually/physically felt when relevant.
+## Medium scene style digest — strict Academy balanced scene format
+
+Use the old Academy header fully. Do not shorten it into a tiny card.
+
+Required visible header shape:
+🏛️ Академия Астрейн · 1198 г., date/day
+🕒 time · 📍 location
+🎥 POV line only if explicit POV mode is active
+🌦️ Weather/atmosphere line
+⚙️ Active scene state
+blank line
+✦ visible POV/controlled-character state
+🧥 outfit line if relevant/current_state supports it
+◈ visible items/nearby items if relevant/current_state supports it
+blank line
+━━━━━━━━━━━━━━━━━━━━
+
+Dialogue format is strict:
+**Name or visible descriptor** — Speech. (*short remark*)
+
+Never write dialogue as:
+Name — Speech
+without bold speaker name.
+
+Descriptions are normal prose paragraphs.
+Do not split prose into dramatic one-word or one-line fragments.
+Do not stack empty micro-paragraphs for rhythm.
+Use compact paragraphs of 1-4 sentences when possible.
+
+Balanced scene rule:
+Compact turn-contract DOES allow visible scenes to stay balanced and stop early.
+Do not force rich/chapter-length scenes.
+Do not keep expanding after Akira reaches a choice point.
+Use 1-4 meaningful NPC/world reactions per Akira anchor, then stop or offer player choice.
+If an NPC directly questions, challenges, provokes, blocks, names, or hooks Akira, stop after that hook and let the player answer.
+If Akira is leaving/moving away, render only the immediate consequence and stop at the first meaningful threshold or interruption.
+
+Living-space rule:
+In public Academy spaces, 1-3 short ambient student/minor NPC reactions are allowed when useful.
+They must stay brief and local; they must not steal agency or become long dialogue.
+
+Player input rule:
+Never print raw player parenthetical action blocks.
+Parenthetical thoughts/motives/judgments are POV-only guidance.
+NPCs must not read, answer, mirror, confirm or deny inner thoughts unless spoken aloud or visibly observable.
+
+Energy is visually/physically felt only when relevant.
 Personal energy is in character cards, not separate per-type files.
 """
