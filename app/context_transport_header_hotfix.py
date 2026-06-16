@@ -7,6 +7,7 @@ Connects runtime layers:
 - POV switch
 - compact turn-contract with balanced scene rules
 - world integrity diagnostics
+- one-call scene startup action
 - stable Custom GPT Actions OpenAPI schema
 """
 from __future__ import annotations
@@ -50,8 +51,12 @@ try:
     import app.world_integrity_pov_runtime_patch as world_integrity_patch  # noqa: F401
 except Exception:
     world_integrity_patch = None
+try:
+    import app.gpt_scene_startup_runtime_patch as gpt_scene_startup_patch  # noqa: F401,E402
+except Exception:
+    gpt_scene_startup_patch = None
 
-app.version = "0.3.54-stable-gpt-actions-openapi"
+app.version = "0.3.55-one-call-scene-startup"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy balanced scene format
@@ -61,6 +66,7 @@ In gameplay mode, never ask the user to provide starting conditions if tools/ses
 Do not answer with "I cannot start blind" or "send location/time/state".
 First use the current session and call the available session/context tools.
 Required startup flow:
+0. If beginSceneSetup is available, use it first for any start/continue command.
 1. getSessionContext if available.
 2. getSessionTurnContract.
 3. getRequiredFilesManifest.
