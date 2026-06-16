@@ -27,32 +27,9 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Text outside parentheses is Akira's exact spoken line.
 - Insert it verbatim as Akira's speech.
 - Text inside parentheses is action, gesture, pause, movement, intention or body state. It is not speech.
-- If text inside parentheses contains Akira's inner thoughts, motives, judgments, explanations, assumptions, or author-side notes, treat that material as POV-only guidance.
-- NPCs may not answer, mirror, confirm, deny, or precisely react to parenthetical inner thoughts unless Akira said them aloud or made them visibly observable.
-- NPCs may infer only from visible action, spoken words, tone, posture, timing, known facts, and public scene pressure.
 - If user gave no spoken text outside parentheses, do not invent Akira dialogue in the scene body.
 - Possible Akira phrases belong only in bottom block "Что Акира могла бы сказать".
 - If NPC directly challenges or questions Akira, stop at a choice point instead of answering for her.
-
-## Agency and stop rhythm
-
-- Good rhythm is: Akira anchor -> 1-4 meaningful NPC/world reactions -> next Akira anchor or player choice.
-- Do not let NPCs continue a long conversation while Akira silently disappears from agency.
-- If 6 or more NPC lines would happen without a new Akira anchor or player choice, stop earlier.
-- If Akira's input is movement away / leaving / going to an exit, render only the immediate consequence and stop at the first meaningful threshold, interruption, call, or safe transition.
-- If an NPC throws a line at Akira's back, names her, provokes her, blocks her, changes the power balance, or gives her a reason to answer while she is leaving, stop after that hook. Do not narrate Akira continuing past it unless the user explicitly wrote that she ignores it or keeps walking.
-- If nothing meaningful blocks or hooks Akira, complete the simple transition briefly instead of expanding filler dialogue.
-- Bottom options do not compensate for a scene body where Akira was moved past a choice point.
-
-## Ambient NPC and living scene
-
-- Academy scenes should not feel sterile. When public space, student flow, dorm routes, canteen, training halls, registration, corridors or group movement are active, include 1-3 short ambient reactions from nearby unnamed students or minor NPCs when it naturally adds pressure, gossip, interruption, curiosity, annoyance or humor.
-- Ambient NPCs may whisper, mutter, laugh, ask a small practical question, block a path by accident, react to Akira/Livia/Kir/Haru/Raiden, or create a minor social complication.
-- Keep ambient NPCs local and lightweight: use descriptors such as "новичок у стены", "девушка из потока", "старший студент у перил" unless a named character is already active/scheduled/loaded.
-- Do not give ambient NPCs hidden lore, private knowledge, exact relationship knowledge, or long dialogue.
-- Do not force ambient NPCs into every scene; use them to keep inhabited spaces alive, not to steal agency or expand filler.
-- Interesting named characters may enter only when current_state, calendar_runtime, open_threads, scheduled/nearby ids, or loaded required files support their presence.
-- Loading a character file means the character is available for faithful behavior if relevant; it does not mean every loaded character must speak.
 
 ## Scene format
 
