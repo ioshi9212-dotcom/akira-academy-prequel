@@ -1,8 +1,8 @@
-"""Runtime header/footer hotfix v20.
+"""Runtime header/footer hotfix v21.
 
-Keeps runtime simple, but serves a minimal GPT-compatible OpenAPI schema.
-The gameplay API routes stay unchanged; only /openapi.json is simplified for
-Custom GPT Actions import.
+Keeps runtime simple, serves a minimal GPT-compatible OpenAPI schema,
+and enables explicit non-Akira POV mode only when latest input contains
+`POV:` / `пов:` with a non-Akira target.
 """
 from __future__ import annotations
 
@@ -30,8 +30,12 @@ try:
     import app.scene_output_format_runtime_patch as scene_format_patch  # noqa: F401
 except Exception:
     scene_format_patch = None
+try:
+    import app.pov_switch_runtime_patch as pov_switch_patch  # noqa: F401
+except Exception:
+    pov_switch_patch = None
 
-app.version = "0.3.43-gpt-openapi-3-1-validator-fix"
+app.version = "0.3.49-explicit-non-akira-pov-enabled"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy scene format
