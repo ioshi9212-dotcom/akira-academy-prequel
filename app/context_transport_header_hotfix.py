@@ -1,4 +1,4 @@
-"""Runtime header/footer hotfix v19.
+"""Runtime header/footer hotfix v20.
 
 Keeps runtime simple, but serves a minimal GPT-compatible OpenAPI schema.
 The gameplay API routes stay unchanged; only /openapi.json is simplified for
@@ -31,7 +31,7 @@ try:
 except Exception:
     scene_format_patch = None
 
-app.version = "0.3.42-gpt-compatible-openapi-minimal"
+app.version = "0.3.43-gpt-openapi-3-1-validator-fix"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy scene format
@@ -39,16 +39,102 @@ Use old Academy header/footer. Energy should be visually/physically felt when re
 """
 
 
-def _object_schema() -> dict:
-    return {"type": "object", "additionalProperties": True}
+def _object_schema(properties: dict | None = None, *, required: list[str] | None = None) -> dict:
+    schema = {
+        "type": "object",
+        "properties": properties or {},
+        "additionalProperties": True,
+    }
+    if required:
+        schema["required"] = required
+    return schema
 
 
-def _response(description: str = "Successful Response") -> dict:
+def _response_schema(kind: str) -> dict:
+    if kind == "health":
+        return _object_schema(
+            {
+                "status": {"type": "string"},
+                "app": {"type": "string"},
+                "version": {"type": "string"},
+                "public_base_url": {"type": "string"},
+            }
+        )
+    if kind == "session":
+        return _object_schema(
+            {
+                "session_id": {"type": "string"},
+                "title": {"type": "string"},
+                "created_at": {"type": "string"},
+                "updated_at": {"type": "string"},
+            },
+            required=["session_id"],
+        )
+    if kind == "context":
+        return _object_schema(
+            {
+                "session_id": {"type": "string"},
+                "current_state": _object_schema(),
+                "story_lines": _object_schema(),
+                "relationships": _object_schema(),
+                "knowledge_state": _object_schema(),
+                "recommended_files": {"type": "array", "items": {"type": "string"}},
+            }
+        )
+    if kind == "turn_contract":
+        return _object_schema(
+            {
+                "session_id": {"type": "string"},
+                "active_character_ids": {"type": "array", "items": {"type": "string"}},
+                "nearby_character_ids": {"type": "array", "items": {"type": "string"}},
+                "required_files": {"type": "array", "items": {"type": "string"}},
+                "output_format_contract": _object_schema(),
+                "prompt_preview": {"type": "string"},
+            }
+        )
+    if kind == "manifest":
+        return _object_schema(
+            {
+                "session_id": {"type": "string"},
+                "required_files": {"type": "array", "items": {"type": "string"}},
+                "files": {"type": "array", "items": _object_schema()},
+                "missing_files": {"type": "array", "items": {"type": "string"}},
+                "chunks_total": {"type": "integer"},
+                "loaded_count": {"type": "integer"},
+                "missing_count": {"type": "integer"},
+            }
+        )
+    if kind == "chunk":
+        return _object_schema(
+            {
+                "session_id": {"type": "string"},
+                "chunk_index": {"type": "integer"},
+                "chunks_total": {"type": "integer"},
+                "has_more": {"type": "boolean"},
+                "next_chunk_index": {"type": "integer"},
+                "loaded_files": {"type": "array", "items": _object_schema()},
+                "missing_files": {"type": "array", "items": {"type": "string"}},
+            }
+        )
+    if kind == "apply":
+        return _object_schema(
+            {
+                "status": {"type": "string"},
+                "session_id": {"type": "string"},
+                "changed_files": {"type": "array", "items": {"type": "string"}},
+                "visible_scene_text": {"type": "string"},
+                "final_scene_text": {"type": "string"},
+            }
+        )
+    return _object_schema()
+
+
+def _response(description: str, kind: str) -> dict:
     return {
         "description": description,
         "content": {
             "application/json": {
-                "schema": _object_schema(),
+                "schema": _response_schema(kind),
             }
         },
     }
@@ -63,9 +149,32 @@ def _session_path_param() -> dict:
     }
 
 
+def _chunk_query_params() -> list[dict]:
+    return [
+        {
+            "name": "chunk_index",
+            "in": "query",
+            "required": False,
+            "schema": {"type": "integer", "default": 0},
+        },
+        {
+            "name": "max_chars",
+            "in": "query",
+            "required": False,
+            "schema": {"type": "integer", "default": 30000},
+        },
+        {
+            "name": "max_items",
+            "in": "query",
+            "required": False,
+            "schema": {"type": "integer", "default": 3},
+        },
+    ]
+
+
 def _minimal_gpt_openapi() -> dict:
     return {
-        "openapi": "3.0.3",
+        "openapi": "3.1.0",
         "info": {
             "title": "Akira Academy Prequel Actions",
             "version": app.version,
@@ -76,7 +185,7 @@ def _minimal_gpt_openapi() -> dict:
                 "get": {
                     "operationId": "health",
                     "summary": "Check API health and runtime version",
-                    "responses": {"200": _response("API health status")},
+                    "responses": {"200": _response("API health status", "health")},
                 }
             },
             "/api/v1/sessions": {
@@ -87,19 +196,17 @@ def _minimal_gpt_openapi() -> dict:
                         "required": False,
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
+                                "schema": _object_schema(
+                                    {
                                         "session_id": {"type": "string"},
                                         "title": {"type": "string"},
                                         "reset": {"type": "boolean"},
-                                    },
-                                    "additionalProperties": False,
-                                }
+                                    }
+                                )
                             }
                         },
                     },
-                    "responses": {"200": _response("Created session")},
+                    "responses": {"200": _response("Created session", "session")},
                 }
             },
             "/api/v1/sessions/{session_id}/context": {
@@ -107,7 +214,7 @@ def _minimal_gpt_openapi() -> dict:
                     "operationId": "getSessionContext",
                     "summary": "Get compact context for a session",
                     "parameters": [_session_path_param()],
-                    "responses": {"200": _response("Compact session context")},
+                    "responses": {"200": _response("Compact session context", "context")},
                 }
             },
             "/api/v1/sessions/{session_id}/turn-contract": {
@@ -115,7 +222,7 @@ def _minimal_gpt_openapi() -> dict:
                     "operationId": "getSessionTurnContract",
                     "summary": "Get turn contract, required files and output rules",
                     "parameters": [_session_path_param()],
-                    "responses": {"200": _response("Turn contract")},
+                    "responses": {"200": _response("Turn contract", "turn_contract")},
                 }
             },
             "/api/v1/sessions/{session_id}/required-files-manifest": {
@@ -123,63 +230,23 @@ def _minimal_gpt_openapi() -> dict:
                     "operationId": "getRequiredFilesManifest",
                     "summary": "Get required files manifest and chunk count",
                     "parameters": [_session_path_param()],
-                    "responses": {"200": _response("Required files manifest")},
+                    "responses": {"200": _response("Required files manifest", "manifest")},
                 }
             },
             "/api/v1/sessions/{session_id}/required-files-chunk": {
                 "get": {
                     "operationId": "getRequiredFilesChunk",
                     "summary": "Get one chunk of required file contents",
-                    "parameters": [
-                        _session_path_param(),
-                        {
-                            "name": "chunk_index",
-                            "in": "query",
-                            "required": False,
-                            "schema": {"type": "integer", "default": 0},
-                        },
-                        {
-                            "name": "max_chars",
-                            "in": "query",
-                            "required": False,
-                            "schema": {"type": "integer", "default": 30000},
-                        },
-                        {
-                            "name": "max_items",
-                            "in": "query",
-                            "required": False,
-                            "schema": {"type": "integer", "default": 3},
-                        },
-                    ],
-                    "responses": {"200": _response("Required files chunk")},
+                    "parameters": [_session_path_param()] + _chunk_query_params(),
+                    "responses": {"200": _response("Required files chunk", "chunk")},
                 }
             },
             "/api/v1/sessions/{session_id}/required-files-bundle": {
                 "get": {
                     "operationId": "getRequiredFilesBundle",
                     "summary": "Backward-compatible required files chunk endpoint",
-                    "parameters": [
-                        _session_path_param(),
-                        {
-                            "name": "chunk_index",
-                            "in": "query",
-                            "required": False,
-                            "schema": {"type": "integer", "default": 0},
-                        },
-                        {
-                            "name": "max_chars",
-                            "in": "query",
-                            "required": False,
-                            "schema": {"type": "integer", "default": 30000},
-                        },
-                        {
-                            "name": "max_items",
-                            "in": "query",
-                            "required": False,
-                            "schema": {"type": "integer", "default": 3},
-                        },
-                    ],
-                    "responses": {"200": _response("Required files chunk")},
+                    "parameters": [_session_path_param()] + _chunk_query_params(),
+                    "responses": {"200": _response("Required files chunk", "chunk")},
                 }
             },
             "/api/v1/sessions/{session_id}/apply-turn-result": {
@@ -191,20 +258,18 @@ def _minimal_gpt_openapi() -> dict:
                         "required": False,
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
+                                "schema": _object_schema(
+                                    {
                                         "turn_file": {"type": "string"},
                                         "data": _object_schema(),
                                         "dry_run": {"type": "boolean", "default": False},
                                         "visible_scene_text": {"type": "string"},
-                                    },
-                                    "additionalProperties": True,
-                                }
+                                    }
+                                )
                             }
                         },
                     },
-                    "responses": {"200": _response("Apply result")},
+                    "responses": {"200": _response("Apply result", "apply")},
                 }
             },
         },
