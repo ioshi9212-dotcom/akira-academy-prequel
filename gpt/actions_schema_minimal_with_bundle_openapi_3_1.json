@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Akira Academy Prequel API",
-    "version": "0.3.12"
+    "title": "Akira Academy Prequel Actions",
+    "version": "0.3.53-startup-toolflow-format-v3"
   },
   "servers": [
     {
@@ -13,7 +13,7 @@
     "/health": {
       "get": {
         "operationId": "health",
-        "summary": "Check API health",
+        "summary": "Check API health and runtime version",
         "responses": {
           "200": {
             "description": "API health status",
@@ -24,6 +24,7 @@
                   "properties": {
                     "status": {"type": "string"},
                     "app": {"type": "string"},
+                    "version": {"type": "string"},
                     "data_dir": {"type": "string"},
                     "volume_seeded": {"type": "boolean"},
                     "public_base_url": {"type": "string"}
@@ -48,7 +49,8 @@
                 "type": "object",
                 "properties": {
                   "session_id": {"type": "string"},
-                  "title": {"type": "string"}
+                  "title": {"type": "string"},
+                  "reset": {"type": "boolean", "description": "Accepted for GPT compatibility; runtime may ignore it."}
                 },
                 "additionalProperties": false
               }
@@ -69,6 +71,7 @@
                     "updated_at": {"type": "string"},
                     "context": {"type": "string"}
                   },
+                  "required": ["session_id"],
                   "additionalProperties": true
                 }
               }
@@ -82,36 +85,15 @@
         "operationId": "getSessionContext",
         "summary": "Get compact context for a session",
         "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {"type": "string"}
-          }
+          {"name": "session_id", "in": "path", "required": true, "schema": {"type": "string"}}
         ],
         "responses": {
           "200": {
-            "description": "Session context",
+            "description": "Compact session context",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "session_id": {"type": "string"},
-                    "current_state": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "story_lines": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "relationships": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "reputation_state": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "power_state": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "rumors_state": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "knowledge_state": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "inventory_state": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "future_locks_progress": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "academy_schedule": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "api_usage_note": {"type": "string"},
-                    "recommended_files": {"type": "array", "items": {"type": "string"}}
-                  },
-                  "additionalProperties": true
+                  "$ref": "#/components/schemas/CompactContextResponse"
                 }
               }
             }
@@ -122,14 +104,9 @@
     "/api/v1/sessions/{session_id}/turn-contract": {
       "get": {
         "operationId": "getSessionTurnContract",
-        "summary": "Get turn contract, required files, output rules and prompt preview",
+        "summary": "Get turn contract, required files and output rules",
         "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {"type": "string"}
-          }
+          {"name": "session_id", "in": "path", "required": true, "schema": {"type": "string"}}
         ],
         "responses": {
           "200": {
@@ -137,21 +114,52 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "session_id": {"type": "string"},
-                    "active_character_ids": {"type": "array", "items": {"type": "string"}},
-                    "nearby_character_ids": {"type": "array", "items": {"type": "string"}},
-                    "required_files": {"type": "array", "items": {"type": "string"}},
-                    "prompt_preview": {"type": "string"},
-                    "prompt_preview_usage": {"type": "string"},
-                    "output_format_contract": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "knowledge_table": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "inventory_contract": {"type": "object", "properties": {}, "additionalProperties": true},
-                    "required_checks_before_answer": {"type": "array", "items": {"type": "string"}},
-                    "canon_locks": {"type": "array", "items": {"type": "string"}}
-                  },
-                  "additionalProperties": true
+                  "$ref": "#/components/schemas/TurnContractResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}/required-files-manifest": {
+      "get": {
+        "operationId": "getRequiredFilesManifest",
+        "summary": "Get manifest of required files and chunk count",
+        "parameters": [
+          {"name": "session_id", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Required files manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequiredFilesManifestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}/required-files-chunk": {
+      "get": {
+        "operationId": "getRequiredFilesChunk",
+        "summary": "Get one size-limited chunk of required file contents",
+        "parameters": [
+          {"name": "session_id", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "chunk_index", "in": "query", "required": false, "schema": {"type": "integer", "default": 0}},
+          {"name": "max_chars", "in": "query", "required": false, "schema": {"type": "integer", "default": 30000}},
+          {"name": "max_items", "in": "query", "required": false, "schema": {"type": "integer", "default": 3}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Required files chunk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequiredFilesChunkResponse"
                 }
               }
             }
@@ -162,76 +170,20 @@
     "/api/v1/sessions/{session_id}/required-files-bundle": {
       "get": {
         "operationId": "getRequiredFilesBundle",
-        "summary": "Load all required files for a session in one call",
+        "summary": "Backward-compatible chunked required files endpoint",
         "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {"type": "string"}
-          }
+          {"name": "session_id", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "chunk_index", "in": "query", "required": false, "schema": {"type": "integer", "default": 0}},
+          {"name": "max_chars", "in": "query", "required": false, "schema": {"type": "integer", "default": 30000}},
+          {"name": "max_items", "in": "query", "required": false, "schema": {"type": "integer", "default": 3}}
         ],
         "responses": {
           "200": {
-            "description": "Required files bundle",
+            "description": "Required files chunk",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "session_id": {"type": "string"},
-                    "required_files": {"type": "array", "items": {"type": "string"}},
-                    "loaded_files": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "path": {"type": "string"},
-                          "content": {"type": "string"}
-                        },
-                        "required": ["path", "content"],
-                        "additionalProperties": false
-                      }
-                    },
-                    "missing_files": {"type": "array", "items": {"type": "string"}},
-                    "loaded_count": {"type": "integer"},
-                    "missing_count": {"type": "integer"},
-                    "usage_note": {"type": "string"}
-                  },
-                  "required": ["session_id", "required_files", "loaded_files", "missing_files", "loaded_count", "missing_count"],
-                  "additionalProperties": true
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/files/{file_path}": {
-      "get": {
-        "operationId": "getProjectFile",
-        "summary": "Read one project file by path",
-        "parameters": [
-          {
-            "name": "file_path",
-            "in": "path",
-            "required": true,
-            "schema": {"type": "string"}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Project file content",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "path": {"type": "string"},
-                    "content": {"type": "string"}
-                  },
-                  "required": ["path", "content"],
-                  "additionalProperties": true
+                  "$ref": "#/components/schemas/RequiredFilesChunkResponse"
                 }
               }
             }
@@ -256,7 +208,7 @@
                   "type": "object",
                   "properties": {
                     "path": {"type": "string"},
-                    "data": {"type": "object", "properties": {}, "additionalProperties": true}
+                    "data": {"type": "object", "additionalProperties": true}
                   },
                   "required": ["path", "data"],
                   "additionalProperties": true
@@ -267,10 +219,69 @@
         }
       }
     },
+    "/api/v1/files/{file_path}": {
+      "get": {
+        "operationId": "getProjectFile",
+        "summary": "Read one project file by path",
+        "parameters": [
+          {"name": "file_path", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Project file content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "path": {"type": "string"},
+                    "content": {"type": "string"}
+                  },
+                  "required": ["path", "content"],
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}/repair/scene-roster": {
+      "post": {
+        "operationId": "repairSceneRoster",
+        "summary": "Repair current scene roster fields in session state",
+        "parameters": [
+          {"name": "session_id", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "active_character_ids": {"type": "array", "items": {"type": "string"}},
+                  "nearby_character_ids": {"type": "array", "items": {"type": "string"}},
+                  "speaking_character_ids": {"type": "array", "items": {"type": "string"}},
+                  "observing_character_ids": {"type": "array", "items": {"type": "string"}},
+                  "addressed_character_ids": {"type": "array", "items": {"type": "string"}},
+                  "looked_at_character_ids": {"type": "array", "items": {"type": "string"}},
+                  "mentioned_character_ids": {"type": "array", "items": {"type": "string"}},
+                  "scheduled_character_ids": {"type": "array", "items": {"type": "string"}},
+                  "delayed_character_ids": {"type": "array", "items": {"type": "string"}}
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {"200": {"description": "Roster repaired"}}
+      }
+    },
     "/api/v1/sessions/{session_id}/apply-turn-result": {
       "post": {
         "operationId": "applyTurnResult",
-        "summary": "Apply meaningful scene changes to session state",
+        "summary": "Apply meaningful scene changes to session state and echo visible scene text",
         "parameters": [
           {"name": "session_id", "in": "path", "required": true, "schema": {"type": "string"}}
         ],
@@ -282,8 +293,10 @@
                 "type": "object",
                 "properties": {
                   "turn_file": {"type": "string"},
-                  "data": {"type": "object", "properties": {}, "additionalProperties": true},
-                  "dry_run": {"type": "boolean", "default": false}
+                  "data": {"type": "object", "additionalProperties": true},
+                  "dry_run": {"type": "boolean", "default": false},
+                  "visible_scene_text": {"type": "string"},
+                  "render_packet": {"type": "object", "additionalProperties": true}
                 },
                 "additionalProperties": false
               }
@@ -296,20 +309,129 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {"type": "string"},
-                    "session_id": {"type": "string"},
-                    "source": {"type": "string"},
-                    "dry_run": {"type": "boolean"},
-                    "changed_files": {"type": "array", "items": {"type": "string"}}
-                  },
-                  "additionalProperties": true
+                  "$ref": "#/components/schemas/ApplyTurnResultResponse"
                 }
               }
             }
           }
         }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CompactContextResponse": {
+        "type": "object",
+        "properties": {
+          "session_id": {"type": "string"},
+          "current_state": {"type": "object", "additionalProperties": true},
+          "story_lines": {"type": "object", "additionalProperties": true},
+          "relationships": {"type": "object", "additionalProperties": true},
+          "reputation_state": {"type": "object", "additionalProperties": true},
+          "power_state": {"type": "object", "additionalProperties": true},
+          "rumors_state": {"type": "object", "additionalProperties": true},
+          "knowledge_state": {"type": "object", "additionalProperties": true},
+          "inventory_state": {"type": "object", "additionalProperties": true},
+          "future_locks_progress": {"type": "object", "additionalProperties": true},
+          "academy_schedule": {"type": "object", "additionalProperties": true},
+          "api_usage_note": {"type": "string"},
+          "recommended_files": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": true
+      },
+      "TurnContractResponse": {
+        "type": "object",
+        "properties": {
+          "session_id": {"type": "string"},
+          "active_character_ids": {"type": "array", "items": {"type": "string"}},
+          "nearby_character_ids": {"type": "array", "items": {"type": "string"}},
+          "required_files": {"type": "array", "items": {"type": "string"}},
+          "output_format_contract": {"type": "object", "additionalProperties": true},
+          "akira_behavior_profile_contract": {"type": "object", "additionalProperties": true},
+          "story_lines_contract": {"type": "object", "additionalProperties": true},
+          "allowed_new_facts_this_turn": {"type": "array", "items": {"type": "string"}},
+          "forbidden_new_facts_this_turn": {"type": "array", "items": {"type": "string"}},
+          "required_checks_before_answer": {"type": "array", "items": {"type": "string"}},
+          "knowledge_table": {"type": "object", "additionalProperties": true},
+          "inventory_contract": {"type": "object", "additionalProperties": true},
+          "canon_locks": {"type": "array", "items": {"type": "string"}},
+          "prompt_preview": {"type": "string"},
+          "prompt_preview_usage": {"type": "string"}
+        },
+        "additionalProperties": true
+      },
+      "RequiredFileManifestItem": {
+        "type": "object",
+        "properties": {
+          "path": {"type": "string"},
+          "exists": {"type": "boolean"},
+          "source": {"type": "string"},
+          "size_chars": {"type": "integer"},
+          "parts_total": {"type": "integer"}
+        },
+        "additionalProperties": true
+      },
+      "RequiredFilesManifestResponse": {
+        "type": "object",
+        "properties": {
+          "session_id": {"type": "string"},
+          "required_files": {"type": "array", "items": {"type": "string"}},
+          "files": {"type": "array", "items": {"$ref": "#/components/schemas/RequiredFileManifestItem"}},
+          "missing_files": {"type": "array", "items": {"type": "string"}},
+          "loaded_count": {"type": "integer"},
+          "missing_count": {"type": "integer"},
+          "total_parts": {"type": "integer"},
+          "default_chunk_chars": {"type": "integer"},
+          "default_chunk_items": {"type": "integer"},
+          "chunks_total": {"type": "integer"},
+          "usage_note": {"type": "string"}
+        },
+        "additionalProperties": true
+      },
+      "RequiredFileBundleItem": {
+        "type": "object",
+        "properties": {
+          "path": {"type": "string"},
+          "content": {"type": "string"},
+          "part_index": {"type": "integer"},
+          "parts_total": {"type": "integer"},
+          "content_chars": {"type": "integer"}
+        },
+        "additionalProperties": true
+      },
+      "RequiredFilesChunkResponse": {
+        "type": "object",
+        "properties": {
+          "session_id": {"type": "string"},
+          "required_files": {"type": "array", "items": {"type": "string"}},
+          "chunk_index": {"type": "integer"},
+          "chunks_total": {"type": "integer"},
+          "has_more": {"type": "boolean"},
+          "next_chunk_index": {"type": ["integer", "null"]},
+          "loaded_files": {"type": "array", "items": {"$ref": "#/components/schemas/RequiredFileBundleItem"}},
+          "missing_files": {"type": "array", "items": {"type": "string"}},
+          "loaded_count": {"type": "integer"},
+          "missing_count": {"type": "integer"},
+          "total_loaded_parts": {"type": "integer"},
+          "usage_note": {"type": "string"}
+        },
+        "additionalProperties": true
+      },
+      "ApplyTurnResultResponse": {
+        "type": "object",
+        "properties": {
+          "status": {"type": "string"},
+          "session_id": {"type": "string"},
+          "source": {"type": "string"},
+          "dry_run": {"type": "boolean"},
+          "changed_files": {"type": "array", "items": {"type": "string"}},
+          "visible_scene_text": {"type": ["string", "null"]},
+          "final_scene_text": {"type": ["string", "null"]},
+          "final_response_mode": {"type": "string"},
+          "final_response_rule": {"type": "string"},
+          "render_packet_received": {"type": "boolean"}
+        },
+        "additionalProperties": true
       }
     }
   }
