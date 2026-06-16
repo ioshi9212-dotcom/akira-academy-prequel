@@ -1,0 +1,67 @@
+name: Actions Runtime Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      live_base_url:
+        description: "Optional deployed API base URL for live Railway smoke test"
+        required: false
+        default: "https://akira-academy-prequel-production.up.railway.app"
+  push:
+    paths:
+      - "app/**"
+      - "state/**"
+      - "characters/**"
+      - "gpt/actions_schema_minimal_with_bundle_openapi_3_1.json"
+      - "gpt/custom_gpt_instructions_ULTRA_COMPACT_COMPACT.md"
+      - "tests/actions_runtime_smoke.py"
+      - ".github/workflows/actions-runtime-smoke.yml"
+  pull_request:
+    paths:
+      - "app/**"
+      - "state/**"
+      - "characters/**"
+      - "gpt/actions_schema_minimal_with_bundle_openapi_3_1.json"
+      - "gpt/custom_gpt_instructions_ULTRA_COMPACT_COMPACT.md"
+      - "tests/actions_runtime_smoke.py"
+      - ".github/workflows/actions-runtime-smoke.yml"
+
+jobs:
+  local-runtime-smoke:
+    name: Local runtime/API contract smoke
+    runs-on: ubuntu-latest
+    env:
+      DATA_DIR: ${{ runner.temp }}/akira-smoke-data
+      PUBLIC_BASE_URL: https://akira-academy-prequel-production.up.railway.app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt httpx
+
+      - name: Run local runtime smoke diagnostic
+        run: python tests/actions_runtime_smoke.py --local
+
+  live-railway-smoke:
+    name: Live Railway GPT Actions smoke
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run live Railway smoke diagnostic
+        run: python tests/actions_runtime_smoke.py --live-url "${{ inputs.live_base_url }}"
