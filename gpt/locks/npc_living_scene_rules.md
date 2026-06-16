@@ -1,18 +1,20 @@
 # NPC Living Scene Rules
 
-Short rule file for non-main, invented Academy NPCs.
+Short rule file for invented Academy NPCs who are not part of the fixed character roster yet.
 
 ## Purpose
 
-The Academy is inhabited. Use invented NPCs to make spaces feel alive, but do not replace main/supporting characters with random faces.
+The Academy is inhabited. Invented NPCs may appear to make public spaces feel alive, create social pressure, provide witnesses, and open small future hooks.
 
-## Two NPC types
+Do not replace main/supporting characters with random NPCs when an existing character should logically carry the scene.
+
+## NPC types
 
 ### 1. Background NPCs
 
 Use as atmosphere only:
 - students passing by;
-- staff at desks/doors/medical/canteen;
+- staff at desks, doors, medical, canteen, dorm blocks;
 - someone reacting to energy, reputation, noise, clothing, ranking, rumor;
 - small groups whispering, laughing, avoiding, watching.
 
@@ -87,5 +89,5 @@ Suggested payload key:
 
 - Do not create a new important NPC when an existing main/supporting character should logically carry the scene.
 - Do not make every random student secretly important.
-- Do not give NPCs hidden knowledge without source.
+- Do not give NPCs hidden knowledge without a source.
 - If unsure, keep them background and do not save.
