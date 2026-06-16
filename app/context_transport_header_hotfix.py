@@ -1,8 +1,8 @@
-"""Runtime header/footer hotfix v21.
+"""Runtime header/footer hotfix v22.
 
 Keeps runtime simple, serves a minimal GPT-compatible OpenAPI schema,
-and enables explicit non-Akira POV mode only when latest input contains
-`POV:` / `пов:` with a non-Akira target.
+enables living NPC memory, and enables explicit non-Akira POV mode only when
+latest input contains `POV:` / `пов:` with a non-Akira target.
 """
 from __future__ import annotations
 
@@ -31,11 +31,15 @@ try:
 except Exception:
     scene_format_patch = None
 try:
+    import app.npc_living_runtime_patch as npc_living_patch  # noqa: F401
+except Exception:
+    npc_living_patch = None
+try:
     import app.pov_switch_runtime_patch as pov_switch_patch  # noqa: F401
 except Exception:
     pov_switch_patch = None
 
-app.version = "0.3.49-explicit-non-akira-pov-enabled"
+app.version = "0.3.51-living-npc-pov-enabled"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy scene format
