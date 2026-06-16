@@ -7,6 +7,7 @@ Connects runtime layers:
 - POV switch
 - compact turn-contract with balanced scene rules
 - world integrity diagnostics
+- stable Custom GPT Actions OpenAPI schema
 """
 from __future__ import annotations
 
@@ -50,7 +51,7 @@ try:
 except Exception:
     world_integrity_patch = None
 
-app.version = "0.3.53-startup-toolflow-format-v3"
+app.version = "0.3.54-stable-gpt-actions-openapi"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy balanced scene format
@@ -115,3 +116,10 @@ NPCs must not read, answer, mirror, confirm or deny inner thoughts unless spoken
 Energy is visually/physically felt only when relevant.
 Personal energy is in character cards, not separate per-type files.
 """
+
+# Keep this import last: it overrides app.openapi after all runtime routes are registered,
+# so Custom GPT sees stable operationIds instead of FastAPI-generated names.
+try:
+    import app.gpt_actions_openapi_runtime_patch as gpt_actions_openapi_patch  # noqa: F401,E402
+except Exception:
+    gpt_actions_openapi_patch = None
