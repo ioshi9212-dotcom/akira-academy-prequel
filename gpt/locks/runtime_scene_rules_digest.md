@@ -44,6 +44,16 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - If nothing meaningful blocks or hooks Akira, complete the simple transition briefly instead of expanding filler dialogue.
 - Bottom options do not compensate for a scene body where Akira was moved past a choice point.
 
+## Ambient NPC and living scene
+
+- Academy scenes should not feel sterile. When public space, student flow, dorm routes, canteen, training halls, registration, corridors or group movement are active, include 1-3 short ambient reactions from nearby unnamed students or minor NPCs when it naturally adds pressure, gossip, interruption, curiosity, annoyance or humor.
+- Ambient NPCs may whisper, mutter, laugh, ask a small practical question, block a path by accident, react to Akira/Livia/Kir/Haru/Raiden, or create a minor social complication.
+- Keep ambient NPCs local and lightweight: use descriptors such as "новичок у стены", "девушка из потока", "старший студент у перил" unless a named character is already active/scheduled/loaded.
+- Do not give ambient NPCs hidden lore, private knowledge, exact relationship knowledge, or long dialogue.
+- Do not force ambient NPCs into every scene; use them to keep inhabited spaces alive, not to steal agency or expand filler.
+- Interesting named characters may enter only when current_state, calendar_runtime, open_threads, scheduled/nearby ids, or loaded required files support their presence.
+- Loading a character file means the character is available for faithful behavior if relevant; it does not mean every loaded character must speak.
+
 ## Scene format
 
 - Gameplay answer must be the scene only, not API/status/debug summary.

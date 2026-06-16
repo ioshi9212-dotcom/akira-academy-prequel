@@ -5,7 +5,9 @@ Goal:
 - prevent getSessionTurnContract ResponseTooLargeError without reducing character fidelity;
 - keep required_files and chunk loading full, but request larger chunks;
 - keep Academy visual-novel rhythm without forcing 900-1800 word scenes every turn;
-- prevent raw parenthetical player actions in visible prose.
+- prevent raw parenthetical player actions in visible prose;
+- allow lightweight ambient NPC reactions in inhabited Academy spaces;
+- prevent NPCs from reading parenthetical inner thoughts.
 """
 from __future__ import annotations
 import json
@@ -67,6 +69,22 @@ def _compact_output_format_contract() -> dict[str, Any]:
                 "do not output raw player parenthetical action blocks",
             ],
         },
+        "ambient_npc_policy": {
+            "rule": "In public Academy spaces, add 1-3 short ambient NPC/student reactions when they naturally create pressure, gossip, interruption, curiosity, annoyance or humor.",
+            "allowed": [
+                "unnamed student whisper/mutter/laugh",
+                "minor practical question",
+                "accidental path block",
+                "short reaction to visible behavior",
+                "local social complication",
+            ],
+            "limits": [
+                "do not give ambient NPCs hidden lore or private knowledge",
+                "do not turn ambient NPCs into long dialogue",
+                "do not force ambient NPCs into every scene",
+                "interesting named characters enter only when state/calendar/open_threads/scheduled/nearby/loaded files support it",
+            ],
+        },
         "header_template": [
             "🏛️ Академия Астрейн · 1198 г., 15 августа, пн",
             "🕒 Позднее утро · 📍 Главный двор Академии",
@@ -85,6 +103,8 @@ def _compact_output_format_contract() -> dict[str, Any]:
         "player_input_rendering": {
             "outside_parentheses": "exact spoken line of controlled character: Akira by default, POV character in POV mode",
             "inside_parentheses": "action/gesture/intention/body state; translate into prose or short italic stage note; NEVER print raw parenthetical block as standalone text",
+            "inner_parentheses": "thoughts, motives, judgments, assumptions and author-side explanations inside parentheses are POV-only guidance; NPCs must not answer, mirror, confirm, deny or precisely react to them unless spoken aloud or visibly observable",
+            "npc_inference_limit": "NPCs may infer only from visible action, spoken words, tone, posture, timing, known facts and public scene pressure",
             "no_spoken_text": "do not invent controlled character speech in body; suggested lines only in bottom block",
         },
         "bottom_blocks": [
@@ -101,6 +121,7 @@ def _compact_output_format_contract() -> dict[str, Any]:
             "Preserve Academy VN tone: sensory detail, pauses, social tension and character-specific reactions.",
             "Use 1-4 meaningful NPC/world reactions per Akira anchor, then stop or ask for player choice.",
             "Named active/nearby characters react only if relevant; do not give every loaded character a turn.",
+            "In inhabited Academy spaces, allow lightweight unnamed NPC reactions so the scene does not feel sterile.",
             "Do not over-answer for the controlled character; stop at direct hooks/questions/challenges.",
             "Use loaded relationships and knowledge; do not flatten characters into generic NPCs.",
         ],
@@ -108,7 +129,9 @@ def _compact_output_format_contract() -> dict[str, Any]:
             "loose 🗓️/📍/👤/🎒 header",
             "dry summary instead of scene",
             "forced chapter-length scene on a simple action",
+            "sterile public scene with no local student/world reaction when social pressure is present",
             "raw player parenthetical action blocks",
+            "NPC reading or precisely answering parenthetical inner thoughts",
             "API/debug/status instead of scene",
             "NPC answering for controlled character",
         ],
@@ -178,12 +201,17 @@ SCENE QUALITY / LENGTH:
 - Use 1-4 meaningful NPC/world reactions per Akira anchor, then stop or give player choice.
 - If an NPC directly hooks/challenges/questions Akira, stop there instead of moving her past it.
 - Do not force every loaded character to speak.
+- In public Academy spaces, allow 1-3 short unnamed student/minor NPC reactions when they add pressure, gossip, interruption, curiosity, annoyance or humor.
+- Do not give ambient NPCs hidden lore/private knowledge or long dialogue.
 
 PLAYER INPUT ANCHOR:
 - Outside parentheses = exact speech of the controlled character.
 - Default controlled character is Akira.
 - If explicit POV mode file is loaded, controlled character is the POV target.
 - Inside parentheses = action/gesture/intention/body state. Translate into prose or short stage note.
+- Parenthetical thoughts, motives, judgments, assumptions and author-side explanations are POV-only guidance.
+- NPCs must not answer, mirror, confirm, deny or precisely react to parenthetical inner thoughts unless spoken aloud or visibly observable.
+- NPCs may infer only from visible action, spoken words, tone, posture, timing, known facts and public scene pressure.
 - NEVER print the user's parenthetical action block as standalone raw text.
 - If no spoken text exists outside parentheses, do not invent controlled-character speech in the scene body.
 
@@ -236,7 +264,9 @@ def session_turn_contract_compact(session_id: str):
         "Use all loaded chunks; turn-contract is only compact routing metadata, not the full source.",
         "Do not shorten meaningful character fidelity, but do not force chapter-length scenes.",
         "Keep Academy VN rhythm: micro-actions, social texture, reactions, consequence, then stop at a choice point.",
+        "In public Academy spaces, allow 1-3 short ambient student/minor NPC reactions when useful; do not make the space sterile.",
         "Never print raw player parenthetical action blocks; translate them into prose/stage notes.",
+        "Never let NPCs read, answer, mirror, confirm or deny parenthetical inner thoughts unless spoken aloud or visibly observable.",
         "Return scene only in gameplay mode, no technical summary.",
         "Assemble visible_scene_text before apply-turn-result and pass it to the tool.",
         "After apply-turn-result, return visible_scene_text/final_scene_text verbatim.",
@@ -258,12 +288,16 @@ def session_turn_contract_compact(session_id: str):
             "neutral sensory details",
             "minor gestures/pauses/tone",
             "small social reactions from present characters",
+            "short ambient reactions from local unnamed students/minor NPCs in public Academy spaces",
             "scene consequences derived from loaded context",
         ],
         "forbidden_new_facts_this_turn": [
             "hidden lore as NPC knowledge without source",
             "new items without state update",
             "NPC answering for controlled character",
+            "NPC reading or precisely answering parenthetical inner thoughts",
+            "long ambient NPC dialogue without loaded support",
+            "named character entrance without state/calendar/open_thread/scheduled/nearby/loaded support",
             "old loose header format",
             "technical summary instead of scene",
             "raw player parenthetical action blocks",
@@ -278,4 +312,4 @@ def session_turn_contract_compact(session_id: str):
     })
 
 
-app.version = "0.3.49-balanced-scene-compact-contract-v3"
+app.version = "0.3.51-balanced-scene-living-npc-v3"
