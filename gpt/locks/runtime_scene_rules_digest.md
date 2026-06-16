@@ -27,6 +27,9 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Text outside parentheses is Akira's exact spoken line.
 - Insert it verbatim as Akira's speech.
 - Text inside parentheses is action, gesture, pause, movement, intention or body state. It is not speech.
+- If text inside parentheses contains Akira's inner thoughts, motives, judgments, explanations, assumptions, or author-side notes, treat that material as POV-only guidance.
+- NPCs may not answer, mirror, confirm, deny, or precisely react to parenthetical inner thoughts unless Akira said them aloud or made them visibly observable.
+- NPCs may infer only from visible action, spoken words, tone, posture, timing, known facts, and public scene pressure.
 - If user gave no spoken text outside parentheses, do not invent Akira dialogue in the scene body.
 - Possible Akira phrases belong only in bottom block "Что Акира могла бы сказать".
 - If NPC directly challenges or questions Akira, stop at a choice point instead of answering for her.
