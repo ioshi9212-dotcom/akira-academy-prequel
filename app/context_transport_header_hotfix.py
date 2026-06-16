@@ -1,4 +1,4 @@
-"""Runtime header/footer hotfix v21.
+"""Runtime header/footer hotfix v22.
 
 Connects runtime layers:
 - calendar/lore/cleanup/speed
@@ -50,10 +50,23 @@ try:
 except Exception:
     world_integrity_patch = None
 
-app.version = "0.3.52-format-stop-balanced-v3"
+app.version = "0.3.53-startup-toolflow-format-v3"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy balanced scene format
+
+Startup/tool loading rule:
+In gameplay mode, never ask the user to provide starting conditions if tools/session data can be used.
+Do not answer with "I cannot start blind" or "send location/time/state".
+First use the current session and call the available session/context tools.
+Required startup flow:
+1. getSessionContext if available.
+2. getSessionTurnContract.
+3. getRequiredFilesManifest.
+4. getRequiredFilesChunk from chunk_index=0 until has_more=false.
+If getSessionContext is too large, continue with getSessionTurnContract + manifest + chunks instead of asking the user.
+Only ask the user for session_id if no current session can be identified by available tools.
+After data is loaded, output gameplay scene only.
 
 Use the old Academy header fully. Do not shorten it into a tiny card.
 
