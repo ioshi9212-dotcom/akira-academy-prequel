@@ -5,7 +5,12 @@ This script intentionally checks the exact startup chain used by the Custom GPT:
 health -> createSession -> getSessionContext -> getSessionTurnContract
 -> getRequiredFilesManifest -> getRequiredFilesChunk loop.
 
-It supports two modes:
+It also verifies that /openapi.json exposes the stable GPT operationIds.
+This is important because Custom GPT imports tools from OpenAPI. If the live
+schema exposes FastAPI-generated names like root__get instead of health or
+getSessionContext, the runtime can be healthy while the GPT still cannot start.
+
+Modes:
 - --local: import app.server and run endpoints with FastAPI TestClient.
 - --live-url URL: call a deployed Railway/public API URL.
 """
@@ -36,6 +41,12 @@ EXPECTED_OPERATION_IDS = {
     "getProjectFile",
     "repairSceneRoster",
     "applyTurnResult",
+}
+FORBIDDEN_FASTAPI_OPERATION_IDS = {
+    "root__get",
+    "list_sessions_api_v1_sessions_get",
+    "session_context_api_v1_sessions__session_id__context_get",
+    "repair_session_start_state_api_v1_sessions__session_id__repair_start_state_post",
 }
 EXPECTED_LOCAL_ROUTES = {
     ("GET", "/health"),
@@ -71,14 +82,13 @@ def load_static_schema() -> dict[str, Any]:
     return schema
 
 
-def check_static_schema() -> None:
-    schema = load_static_schema()
+def extract_operation_ids(schema: dict[str, Any]) -> set[str]:
     paths = schema.get("paths")
     if not isinstance(paths, dict) or not paths:
-        fail("Static schema has no paths")
+        fail("OpenAPI schema has no paths", details=schema)
 
     operation_ids: set[str] = set()
-    for path, methods in paths.items():
+    for _path, methods in paths.items():
         if not isinstance(methods, dict):
             continue
         for method, spec in methods.items():
@@ -86,12 +96,27 @@ def check_static_schema() -> None:
                 continue
             if isinstance(spec, dict) and spec.get("operationId"):
                 operation_ids.add(str(spec["operationId"]))
+    return operation_ids
 
+
+def check_schema_operation_ids(schema: dict[str, Any], *, label: str) -> None:
+    operation_ids = extract_operation_ids(schema)
     missing = sorted(EXPECTED_OPERATION_IDS - operation_ids)
-    if missing:
-        fail("Static schema is missing required operationIds", details={"missing": missing, "seen": sorted(operation_ids)})
+    forbidden = sorted(operation_ids & FORBIDDEN_FASTAPI_OPERATION_IDS)
+    if missing or forbidden:
+        fail(
+            f"{label} OpenAPI schema exposes wrong tool operations",
+            details={
+                "missing_required_operationIds": missing,
+                "forbidden_fastapi_operationIds": forbidden,
+                "seen_operationIds": sorted(operation_ids),
+            },
+        )
+    ok(f"{label} OpenAPI schema contains stable GPT operationIds")
 
-    ok("static GPT Actions schema contains required operationIds")
+
+def check_static_schema() -> None:
+    check_schema_operation_ids(load_static_schema(), label="static")
 
 
 def import_local_app():
@@ -180,6 +205,13 @@ def assert_status(status: int, data: Any, method: str, path: str) -> None:
 
 
 def run_toolflow(request: Callable[[str, str, Any | None], tuple[int, Any]], *, mode_label: str) -> None:
+    print(f"\n=== {mode_label}: live/imported OpenAPI ===")
+    status, openapi = request("GET", "/openapi.json", None)
+    assert_status(status, openapi, "GET", "/openapi.json")
+    if not isinstance(openapi, dict):
+        fail("/openapi.json did not return an object", details=openapi)
+    check_schema_operation_ids(openapi, label=mode_label)
+
     print(f"\n=== {mode_label}: health ===")
     status, health = request("GET", "/health", None)
     assert_status(status, health, "GET", "/health")
