@@ -1,5 +1,5 @@
 lore_index_id: canon_lore_index
-version: v5_cleanup_academy_energy
+version: v6_cleanup_academy_redirects
 format: yaml_lore_module
 
 purpose:
@@ -17,11 +17,7 @@ active_academy_files:
   background: "canon_lore/academy/academy_background.yaml"
   locations: "canon_lore/academy/academy_locations.yaml"
   full: "canon_lore/academy/academy_full.yaml"
-  npc_social_rules: "canon_lore/academy/academy_npc_social_rules.yaml"
-  deprecated_redirects:
-    - "canon_lore/academy/academy_rules.yaml"
-    - "canon_lore/academy/uniform_and_daily_life.yaml"
-    - "canon_lore/academy/combat_training.yaml"
+  npc_social_rules: "gpt/locks/npc_living_scene_rules.md"
 
 active_world_files:
   energy_system: "canon_lore/world/energy_system.yaml"
@@ -185,7 +181,7 @@ tag_triggers:
       - "бедные"
       - "фоновые"
     files:
-      - "canon_lore/academy/academy_npc_social_rules.yaml"
+      - "gpt/locks/npc_living_scene_rules.md"
 
 character_energy_policy:
   storage: "character_card_energy_block"
@@ -198,24 +194,3 @@ character_energy_policy:
     livia: "characters/livia/main.yaml"
     haru: "characters/haru/main.yaml"
     raiden: "characters/raiden/main.yaml"
-    kir: "characters/kir/main.yaml"
-    kiara: "characters/kiara/main.yaml"
-
-character_pair_rules:
-  akira_raiden:
-    when_all_scene_character_ids:
-      - "akira"
-      - "raiden"
-    files:
-      - "canon_lore/hidden/raiden_akira_bond.yaml"
-    usage: "Использовать для подтекста и реакции между Акирой и Райденом; не раскрывать hidden lore напрямую."
-
-visibility_levels:
-  public_world:
-    meaning: "Можно использовать как фон мира. Персонажи могут знать это, если по логике мира должны знать."
-  academy_common:
-    meaning: "Можно использовать как знания студентов/персонала Академии, если персонаж имеет доступ."
-  hidden_author:
-    meaning: "Авторская скрытая истина. Использовать для подтекста. Нельзя выдавать персонажам без сыгранного раскрытия."
-  system_rule:
-    meaning: "Инструкция для ИИ. Не является знанием персонажей."
