@@ -1,7 +1,0 @@
-lore_id: academy_rules
-visibility: academy_common
-deprecated: true
-canonical_source: "canon_lore/academy/academy_full.yaml"
-tags: [academy, rules, deprecated, redirect]
-hashtags: ["#академия", "#правила", "#redirect"]
-rule: "Use academy_full.yaml for discipline, rules, staff behavior, ratings, access and consequences."
