@@ -1,7 +1,0 @@
-lore_id: uniform_and_daily_life
-visibility: academy_common
-deprecated: true
-canonical_source: "canon_lore/academy/academy_full.yaml"
-tags: [academy, uniform, daily_life, deprecated, redirect]
-hashtags: ["#академия", "#форма", "#быт", "#redirect"]
-rule: "Use academy_full.yaml for uniform, colors, dress-code, daily life and state rules."
