@@ -31,6 +31,18 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Possible Akira phrases belong only in bottom block "Что Акира могла бы сказать".
 - If NPC directly challenges or questions Akira, stop at a choice point instead of answering for her.
 
+## Player action boundary
+
+- The latest explicit player action is the hard boundary of the scene.
+- Do not move Akira beyond the last action the user wrote.
+- Do not complete implied next steps, next locations, next procedures, next time block, or next plot beat unless the player explicitly wrote them.
+- Movement verbs usually mean start/progress, not automatic completion.
+- "идти к выходу" = Akira starts/goes toward the exit; do not make her already outside unless the user wrote that.
+- "выбрать стол чтобы сесть" = she chooses/approaches/starts sitting; do not make her already eating unless the user wrote eating.
+- "пройти регистрацию, отдать документы" = registration/documents may complete; do not escort her to a room or start the next academy procedure unless written.
+- NPCs may react, interrupt, speak, block, follow, notice, or provoke at the boundary. Stop there and wait for the next player input.
+- Time skip only if the player explicitly writes: "пропустить время", "до утра", "если ничего не случится", "перейти к...", or equivalent.
+
 ## Scene format
 
 - Gameplay answer must be the scene only, not API/status/debug summary.
@@ -38,6 +50,9 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Then visual-novel prose.
 - Spoken line format: **Name/descriptor** — speech. (*short remark*)
 - Descriptions are separate italic paragraphs.
+- Write only what visibly happens now. No long literary water, no decorative philosophy, no bloated emotional explanation.
+- Prefer concrete action/reaction/visible detail over abstract narration.
+- Keep paragraphs short. One beat = one visible action, reaction, line, or consequence.
 - Bottom blocks:
   - Что можно сделать
   - Что Акира могла бы сказать
@@ -48,9 +63,22 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 
 - Character behavior comes from loaded character files first.
 - Do not flatten characters into generic friendly NPCs.
+- Do not flatten Academy students into convenient fearful background.
+- Academy students are often status-conscious, strong, ambitious, jealous, arrogant, curious, competitive, or socially risky.
+- Akira's sharp look can make some people pause, but it must not make everyone suddenly silent, afraid, respectful, or avoidant.
+- Use varied reactions: someone backs off, someone mocks, someone challenges, someone pushes status, someone flirts, someone envies, someone watches, someone spreads a rumor, someone ignores her.
+- If Haru/Raiden/Kir draw attention, other students may react with jealousy, rivalry, curiosity, attempts to get closer, or provocation toward Akira.
 - Do not let Livia/Kir answer for Akira when Akira is directly addressed.
 - Do not give NPCs hidden knowledge unless knowledge_state or played scene allows it.
 - If a line contradicts character file, relationship, knowledge or scene pressure, rewrite before sending.
+
+## Rumors and social media
+
+- Rumors and social media are background pressure and consequences, not the main plot of every scene.
+- They must be mixed and believable: neutral observations, jokes, envy, wrong guesses, admiration, mockery, fear, status games, screenshots, private chats, exaggerations.
+- Do not make all rumors kind, all rumors hostile, or all students synchronized into one opinion.
+- Use rumor/social reaction only when the scene is public, witnessed, reputation-relevant, or connected to a visible high-status person/event.
+- If no one could plausibly know something, rumors must be guesses, questions, distortions, or visible reactions, not factual knowledge.
 
 ## Calendar
 
