@@ -1,7 +1,8 @@
 """
-Scene output format runtime patch v16.
+Scene output format runtime patch v17.
 
 Restores the selected old Academy visual-novel output format after speed mode.
+Adds concise prose, player action boundary and Academy social reaction reminders.
 """
 
 from __future__ import annotations
@@ -78,6 +79,26 @@ Required header:
 Dialogue:
 **Имя/видимый дескриптор** — Реплика. (*короткая ремарка*)
 
+Scene prose:
+- Write only what visibly happens now.
+- Keep paragraphs short and concrete.
+- No long literary water, decorative philosophy, or bloated emotional explanation.
+- Prefer action/reaction/dialogue over abstract atmosphere.
+
+Player action boundary:
+- The player's latest explicit action is the hard scene boundary.
+- Do not move Akira beyond the last written action.
+- Do not complete implied next steps, new locations, procedures, time skips, or plot beats.
+- "идти к выходу" means she starts/goes toward the exit, not that she already left.
+- "выбрать стол чтобы сесть" means choose/approach/start sitting, not already eating.
+- NPCs may react or interrupt at the boundary; stop there and wait.
+
+Academy social reactions:
+- Students are status-conscious, strong, ambitious, jealous, curious, arrogant, competitive or reckless.
+- Akira's sharp look must not make everyone silent, afraid, obedient or respectful.
+- Use varied reactions: challenge, mockery, jealousy, curiosity, gossip, provocation, avoidance, indifference.
+- Rumors/social media must be mixed and believable, not all kind or all hostile.
+
 Bottom blocks:
 ━━━━━━━━━━━━━━━━━━━━
 
@@ -146,10 +167,17 @@ def strict_output_format_contract() -> dict[str, Any]:
             "Dialogue text is plain.",
             "Optional stage note must be short and italic in parentheses.",
             "Descriptions are separate italic paragraphs.",
+            "Write only what visibly happens now; no long literary water or decorative philosophy.",
+            "The latest explicit player action is the hard scene boundary; do not move Akira beyond it.",
+            "Do not complete implied next steps, new locations, procedures or time skips unless player wrote them.",
+            "NPCs may react at the boundary, but the scene must stop there and wait for the next input.",
+            "Academy students are not convenient fearful background; reactions must be varied and status-aware.",
+            "Akira's sharp look must not make everyone silent, afraid, obedient or respectful.",
+            "Rumors/social media must be mixed, believable and source-limited, not all kind or all hostile.",
             "No direct Akira thoughts inside the scene.",
             "Akira thoughts only in bottom block: Мысли Акиры.",
             "No invented Akira speech in the scene body unless the player wrote it outside parentheses.",
-            "If output format or Akira suggestion tone is wrong, rewrite before sending.",
+            "If output format, action boundary, prose density or Akira suggestion tone is wrong, rewrite before sending.",
         ],
     }
 
@@ -162,4 +190,4 @@ base.output_format_contract = strict_output_format_contract
 
 ccp.recommended_files_for_context = recommended_files_with_scene_format
 
-app.version = "0.3.36-scene-output-format-v16"
+app.version = "0.3.52-scene-boundary-style-social-v17"
