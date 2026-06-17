@@ -1,7 +1,0 @@
-lore_id: combat_training
-visibility: academy_common
-deprecated: true
-canonical_source: "canon_lore/academy/academy_full.yaml"
-tags: [academy, combat, training, shooting_range, pool, capture, deprecated, redirect]
-hashtags: ["#академия", "#тренировки", "#стрельбище", "#бассейн", "#захват", "#redirect"]
-rule: "Use academy_full.yaml and academy_locations.yaml for training blocks, shooting range, pool, capture/restraint and field preparation."
