@@ -35,6 +35,48 @@ Use when the NPC can affect story:
 
 If an NPC becomes important, save them into `state/session_npcs.json` through apply-turn-result.
 
+## Academy NPC behavior
+
+Academy NPCs are not convenient props.
+
+They are students/staff in a status-heavy, competitive academy. Many are strong, ambitious, proud, jealous, curious, bored, arrogant, insecure, or socially strategic.
+
+Do not make all NPCs react the same way to Akira.
+
+Akira's sharp look or cold tone may affect one person, but it should not make the whole room go silent, afraid, obedient, or respectful.
+
+Use varied reactions:
+- one student backs off;
+- another laughs or mocks;
+- another pushes harder;
+- another tries to provoke;
+- another watches for gossip;
+- another envies attention from Haru/Raiden/Kir;
+- another makes a wrong assumption;
+- another ignores Akira because they have their own status.
+
+NPCs can be brave, stupid, proud, petty, flirty, ambitious, jealous, or reckless. Do not make them too helpful unless their role/reason supports it.
+
+## Rumors and social media
+
+Use rumors/social media as believable background pressure or consequence, not as a constant main plot.
+
+They should be mixed:
+- neutral observations;
+- jokes;
+- envy;
+- wrong guesses;
+- private chat fragments;
+- admiration;
+- mockery;
+- exaggeration;
+- status games;
+- fear or caution only when justified.
+
+Do not make all rumors kind, all rumors hostile, or all students synchronized into one opinion.
+
+If NPCs do not know a fact, rumors must be guesses, questions, visible reactions, or distortions — not hidden truth.
+
 ## Save criteria
 
 Save an NPC only if at least one is true:
