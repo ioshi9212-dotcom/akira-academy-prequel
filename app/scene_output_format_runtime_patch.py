@@ -1,8 +1,8 @@
 """
-Scene output format runtime patch v17.
+Scene output format runtime patch v18.
 
 Restores the selected old Academy visual-novel output format after speed mode.
-Adds concise prose, player action boundary and Academy social reaction reminders.
+Adds concise prose, player action boundary, immediate object continuity and Academy social reaction reminders.
 """
 
 from __future__ import annotations
@@ -79,6 +79,14 @@ Required header:
 Dialogue:
 **Имя/видимый дескриптор** — Реплика. (*короткая ремарка*)
 
+Immediate continuity:
+- Read the latest visible scene facts before writing the next beat.
+- Track where objects are and who holds them: ball, tray, cup, phone, documents, bag, door, chair, food, weapons.
+- Bottom-block options are not facts until the player chooses them.
+- If Haru caught the ball and it is in his hands, do not put the ball back near Akira's foot unless someone visibly moves it there.
+- Do not resurrect old object positions from stale state, old setup, or old suggested options.
+- If object position is uncertain, write a visible clarifying beat instead of teleporting it.
+
 Scene prose:
 - Write only what visibly happens now.
 - Keep paragraphs short and concrete.
@@ -133,7 +141,7 @@ def strict_output_format_contract() -> dict[str, Any]:
             "",
             "✦ видимое состояние Акиры",
             "🧥 одежда/форма только из current_state",
-            "◈ предметы при себе / рядом только из current_state",
+            "◈ предметы при себе / рядом только из current_state / последнего видимого кадра",
             "",
             "━━━━━━━━━━━━━━━━━━━━",
         ],
@@ -167,6 +175,10 @@ def strict_output_format_contract() -> dict[str, Any]:
             "Dialogue text is plain.",
             "Optional stage note must be short and italic in parentheses.",
             "Descriptions are separate italic paragraphs.",
+            "Use latest visible scene facts for immediate continuity before stale state or old suggested options.",
+            "Bottom-block options are not facts until player chooses them.",
+            "Track object holders and positions; do not teleport the ball, tray, documents, phone, bag, food or other props.",
+            "If Haru caught the ball, do not place it back at Akira's foot unless someone visibly moves it.",
             "Write only what visibly happens now; no long literary water or decorative philosophy.",
             "The latest explicit player action is the hard scene boundary; do not move Akira beyond it.",
             "Do not complete implied next steps, new locations, procedures or time skips unless player wrote them.",
@@ -177,7 +189,7 @@ def strict_output_format_contract() -> dict[str, Any]:
             "No direct Akira thoughts inside the scene.",
             "Akira thoughts only in bottom block: Мысли Акиры.",
             "No invented Akira speech in the scene body unless the player wrote it outside parentheses.",
-            "If output format, action boundary, prose density or Akira suggestion tone is wrong, rewrite before sending.",
+            "If output format, immediate continuity, action boundary, prose density or Akira suggestion tone is wrong, rewrite before sending.",
         ],
     }
 
@@ -190,4 +202,4 @@ base.output_format_contract = strict_output_format_contract
 
 ccp.recommended_files_for_context = recommended_files_with_scene_format
 
-app.version = "0.3.52-scene-boundary-style-social-v17"
+app.version = "0.3.53-immediate-continuity-v18"
