@@ -5,14 +5,14 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 ## Source priority
 
 1. User's latest direct instruction.
-2. API/session current_state.
-3. turn-contract and required_files chunks.
-4. Character YAML files for active scene characters.
-5. relationships / knowledge_state / inventory / story_lines / calendar_runtime.
-6. scene_history / last 15 gameplay scenes when exact 15-turn audit is due.
+2. Latest visible scene facts from scene_history / recent played messages.
+3. API/session current_state.
+4. turn-contract and required_files chunks.
+5. Character YAML files for active scene characters.
+6. relationships / knowledge_state / inventory / story_lines / calendar_runtime.
 7. calendar/ current day hooks.
 8. canon_lore/ background and hidden policy.
-9. Chat memory only as the user's latest action, not as source of truth unless it is visible gameplay scene text being audited from scene_history.
+9. Chat memory only as visible gameplay scene text or the user's latest action, not as loose source of truth.
 
 ## Required loading
 
@@ -21,6 +21,18 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Then call getRequiredFilesChunk from chunk_index=0 until has_more=false.
 - Use all loaded chunks before writing the scene.
 - Do not write gameplay from memory only.
+- Before writing the next scene, read and respect the last visible scene facts available in scene_history / runtime digest / recent played messages.
+
+## Immediate continuity
+
+- The last visible scene is binding for physical continuity unless the player explicitly changes it.
+- Track concrete object positions and holders: ball, tray, cup, phone, documents, bag, door, chair, food, clothes, weapons, cards.
+- If the last scene says Haru caught the ball and it is in his hands, the ball must stay in Haru's hands until a visible action moves it.
+- Do not resurrect an object near Akira just because an old option, old setup, or previous state mentioned it there.
+- Bottom block options are not facts. "Можно пнуть мяч" does not mean the ball is near Akira unless the visible scene currently puts it there.
+- If an offered option contradicts the latest visible fact, do not repeat that option next turn; correct the scene logic silently.
+- If current_state is stale but the latest scene visibly changed an object/person/place, prefer the latest scene for the immediate next beat and write the change into state if it matters.
+- If uncertain where an object/person is, use neutral continuity: visible pause, someone holding it, someone putting it down, or a clarification beat. Do not teleport it.
 
 ## Player input anchor
 
@@ -125,6 +137,7 @@ At every exact 15-game-turn milestone, and also if a missed milestone is detecte
    - who spoke directly;
    - important actions;
    - important quotes;
+   - object positions and holders;
    - promises, threats, teasing, challenges, refusals;
    - relationship triggers;
    - knowledge sources;
@@ -146,6 +159,7 @@ Important: 15-turn compaction is not only compression. It is compression plus ch
 
 Example:
 If Haru and Raiden already appeared in the morning basketball scene, then a later evening scene must not treat them as first-seen strangers.
+If the ball was caught by Haru in the previous visible beat, the next beat must not place the ball near Akira's foot unless someone visibly moved it there.
 If names were not exchanged, the correction is:
 - "seen before, not formally introduced";
 - "first normal conversation";
@@ -156,5 +170,6 @@ not "first meeting".
 
 - Backend does not infer state from prose.
 - If scene changes relationships, knowledge, story_lines, inventory, reputation, rumors, future_locks, current_state or calendar_runtime, include explicit state payload.
+- If a scene changes an object holder/location and that object can matter next beat, save or mention it in story_lines/current_state so the next scene does not reset it.
 - At 15/30/45/etc. include audit findings in story_lines_changes / knowledge_changes / relationship_changes / calendar_runtime_changes as needed.
 - After apply-turn-result, final visible answer must remain the scene, not changed_files/status.
