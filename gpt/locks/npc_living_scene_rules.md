@@ -14,7 +14,7 @@ Do not replace main/supporting characters with random NPCs when an existing char
 
 Use as atmosphere only:
 - students passing by;
-- staff at desks, doors, medical, canteen, dorm blocks;
+- staff at desks, doors, canteen, dorm blocks;
 - someone reacting to energy, reputation, noise, clothing, ranking, rumor;
 - small groups whispering, laughing, avoiding, watching.
 
@@ -29,11 +29,33 @@ Rules:
 
 Use when the NPC can affect story:
 - repeats across scenes;
-- has a name, role, goal, conflict, promise, threat, useful information, debt, rivalry, crush, grudge, duty, rumor-source, or future hook;
+- has a name, role, goal, conflict, useful information, duty, rumor-source, or future hook;
 - changes relationship/reputation/knowledge/calendar/story direction;
 - becomes a witness or source that matters later.
 
 If an NPC becomes important, save them into `state/session_npcs.json` through apply-turn-result.
+
+## Canon character identity boundary
+
+Invented NPCs and fixed canon characters are different layers.
+
+- Do not rename a random or unnamed NPC into an existing fixed character later.
+- Do not promote an invented NPC into a fixed character if their shown appearance, role, course/year, energy, relationships, location, first-appearance timing, or behavior contradicts that character's card/calendar.
+- A fixed named character may enter only if the current roster, calendar/current day, scheduled/delayed state, explicit player action, or already played setup allows it.
+- If the scene needs a background student before a fixed character's scheduled introduction, keep that person as an invented NPC with a neutral descriptor or new session NPC identity.
+- If a background NPC was already shown with details that do not match a fixed character card, they must remain separate.
+- If unsure, keep the person unnamed/background; do not attach a canon name.
+
+## Witness and knowledge boundary
+
+Characters only know what they saw, heard, were told, or can plausibly infer from visible signs.
+
+- A delayed/absent character must not reference a previous scene as if they witnessed it.
+- If a character arrived late, they know only what happened after arrival unless another character told them.
+- Do not let a character identify a person by an event/location they did not see.
+- If they need to refer to someone from an unobserved scene, use uncertainty: `тот рыжий?`, `тот парень?`, `я пропустил что-то?`.
+- If scene_history says they were not present and knowledge_state has no report, they cannot know specific scene details.
+- If the player introduces a delayed character through Akira's action, use their card from that moment onward, but do not grant retroactive knowledge.
 
 ## Academy NPC behavior
 
@@ -71,7 +93,7 @@ They should be mixed:
 - mockery;
 - exaggeration;
 - status games;
-- fear or caution only when justified.
+- caution only when justified.
 
 Do not make all rumors kind, all rumors hostile, or all students synchronized into one opinion.
 
@@ -132,4 +154,5 @@ Suggested payload key:
 - Do not create a new important NPC when an existing main/supporting character should logically carry the scene.
 - Do not make every random student secretly important.
 - Do not give NPCs hidden knowledge without a source.
+- Do not rename an invented NPC into a fixed character after the NPC was already described.
 - If unsure, keep them background and do not save.
