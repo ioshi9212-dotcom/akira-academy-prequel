@@ -34,6 +34,15 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - If current_state is stale but the latest scene visibly changed an object/person/place, prefer the latest scene for the immediate next beat and write the change into state if it matters.
 - If uncertain where an object/person is, use neutral continuity: visible pause, someone holding it, someone putting it down, or a clarification beat. Do not teleport it.
 
+## Visible-source rule for Akira's unspoken context
+
+- Невысказанный внутренний текст Акиры — это подсказка для её напряжения, паузы, намерения или риска, а не факт мира.
+- Мир, NPC, сотрудники, процедуры, устройства, случайности и среда не должны удобно отвечать на невысказанный внутренний текст Акиры.
+- Нельзя создавать удобное совпадение, внезапное объяснение, исключение из процедуры, отмену проверки или реплику NPC только потому, что Акира подумала о такой проблеме.
+- Персонажи могут реагировать только на видимое: паузу, взгляд, напряжение, молчание, жест, задержку ответа, смену позы или уже известный факт.
+- Если Акира мысленно задаёт срок, план, приоритет или опасение, другие не знают этого без слов, явного жеста, видимого предмета или заранее сыгранной договорённости.
+- Выводы персонажей по видимым признакам могут быть неверными, неполными или социально предвзятыми.
+
 ## Player input anchor
 
 - Text outside parentheses is Akira's exact spoken line.
@@ -70,6 +79,7 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
   - Что Акира могла бы сказать
   - Мысли Акиры
 - No empty scenes: every scene needs reaction, hook, conflict, consequence, relationship movement, reputation movement, time movement or useful transition.
+- Meaningful beat must come from visible scene pressure, procedure, NPC goal, witness, relationship or consequence, not from a convenient answer to Akira's unspoken context.
 
 ## Character fidelity
 
@@ -171,5 +181,6 @@ not "first meeting".
 - Backend does not infer state from prose.
 - If scene changes relationships, knowledge, story_lines, inventory, reputation, rumors, future_locks, current_state or calendar_runtime, include explicit state payload.
 - If a scene changes an object holder/location and that object can matter next beat, save or mention it in story_lines/current_state so the next scene does not reset it.
+- Do not save Akira's unspoken internal text as another character's knowledge without visible source.
 - At 15/30/45/etc. include audit findings in story_lines_changes / knowledge_changes / relationship_changes / calendar_runtime_changes as needed.
 - After apply-turn-result, final visible answer must remain the scene, not changed_files/status.
