@@ -1,8 +1,8 @@
 """
-Scene output format runtime patch v18.
+Scene output format runtime patch v19.
 
 Restores the selected old Academy visual-novel output format after speed mode.
-Adds concise prose, player action boundary, immediate object continuity and Academy social reaction reminders.
+Adds concise prose, player action boundary, immediate object continuity, visible-source handling and Academy social reaction reminders.
 """
 
 from __future__ import annotations
@@ -81,11 +81,18 @@ Dialogue:
 
 Immediate continuity:
 - Read the latest visible scene facts before writing the next beat.
-- Track where objects are and who holds them: ball, tray, cup, phone, documents, bag, door, chair, food, weapons.
+- Track where objects are and who holds them: ball, tray, cup, phone, documents, bag, door, chair, food.
 - Bottom-block options are not facts until the player chooses them.
 - If Haru caught the ball and it is in his hands, do not put the ball back near Akira's foot unless someone visibly moves it there.
 - Do not resurrect old object positions from stale state, old setup, or old suggested options.
 - If object position is uncertain, write a visible clarifying beat instead of teleporting it.
+
+Unspoken Akira context:
+- Akira's unspoken text is context for her tension, hesitation or intent, not a visible fact.
+- Other characters and scene systems may react only to visible signs: pause, glance, guarded gesture, changed posture, silence, delayed answer or tension.
+- Do not make the scene answer, solve, mirror or cancel an unspoken Akira worry unless there is a visible source in the scene.
+- If Akira internally chooses a plan, time limit or priority, others do not know it unless she says it, clearly shows it, or it was established in visible dialogue.
+- Meaningful scene movement must come from visible pressure, character goals, procedure, public witness or consequence.
 
 Scene prose:
 - Write only what visibly happens now.
@@ -179,6 +186,9 @@ def strict_output_format_contract() -> dict[str, Any]:
             "Bottom-block options are not facts until player chooses them.",
             "Track object holders and positions; do not teleport the ball, tray, documents, phone, bag, food or other props.",
             "If Haru caught the ball, do not place it back at Akira's foot unless someone visibly moves it.",
+            "Akira unspoken text is context only, not a visible fact and not scene-system knowledge.",
+            "Characters and scene systems may react only to visible signs, not to an unspoken Akira plan or worry.",
+            "Do not make procedure, coincidence, NPC line or scene event conveniently answer Akira's unspoken context.",
             "Write only what visibly happens now; no long literary water or decorative philosophy.",
             "The latest explicit player action is the hard scene boundary; do not move Akira beyond it.",
             "Do not complete implied next steps, new locations, procedures or time skips unless player wrote them.",
@@ -189,7 +199,7 @@ def strict_output_format_contract() -> dict[str, Any]:
             "No direct Akira thoughts inside the scene.",
             "Akira thoughts only in bottom block: Мысли Акиры.",
             "No invented Akira speech in the scene body unless the player wrote it outside parentheses.",
-            "If output format, immediate continuity, action boundary, prose density or Akira suggestion tone is wrong, rewrite before sending.",
+            "If output format, immediate continuity, visible-source rule, action boundary, prose density or Akira suggestion tone is wrong, rewrite before sending.",
         ],
     }
 
@@ -202,4 +212,4 @@ base.output_format_contract = strict_output_format_contract
 
 ccp.recommended_files_for_context = recommended_files_with_scene_format
 
-app.version = "0.3.53-immediate-continuity-v18"
+app.version = "0.3.54-visible-source-scene-rule-v19"
