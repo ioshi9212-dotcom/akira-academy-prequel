@@ -1,5 +1,5 @@
 """
-Response size guard runtime patch v1.
+Response size guard runtime patch v2.
 
 Keeps getSessionContext and getSessionTurnContract small so GPT Actions do not stop
 with ResponseTooLargeError after a long session.
@@ -49,6 +49,21 @@ def _unique(values: list[Any]) -> list[str]:
     return result
 
 
+def _canonical_id(value: Any) -> str:
+    try:
+        return rt.canonical_id(value)
+    except Exception:
+        return str(value or "").strip()
+
+
+def _known_character_folder(cid: str) -> str | None:
+    try:
+        return rt.known_character_folder(cid)
+    except Exception:
+        folders = getattr(ccp, "NEW_CHARACTER_FOLDERS", {}) or {}
+        return folders.get(cid)
+
+
 def _safe_read_json(path: str, session_id: str, default: Any) -> Any:
     try:
         return base.read_json(path, session_id, default=default) or default
@@ -78,55 +93,110 @@ def _compact_text(value: Any, limit: int = 900) -> Any:
 
 
 def _scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
-    try:
-        chars = base.active_scene_characters(current, future)
-        if chars:
-            return _unique(chars)
-    except Exception:
-        pass
     fields = [
-        "active_characters", "nearby_characters", "speaking_character_ids",
-        "observing_character_ids", "addressed_character_ids", "looked_at_character_ids",
-        "mentioned_character_ids", "scheduled_character_ids", "delayed_character_ids",
+        "active_characters",
+        "nearby_characters",
+        "speaking_character_ids",
+        "observing_character_ids",
+        "addressed_character_ids",
+        "looked_at_character_ids",
+        "mentioned_character_ids",
+        "scheduled_character_ids",
+        "delayed_character_ids",
     ]
     values: list[Any] = ["akira"]
     for field in fields:
         values.extend(current.get(field, []) or [])
-    return _unique(values)
+
+    for thread in current.get("open_threads", []) or []:
+        if isinstance(thread, dict) and thread.get("status") in {"due", "active", "triggered"}:
+            values.extend(thread.get("participants", []) or [])
+
+    for lock in (future.get("locks") or {}).values():
+        if isinstance(lock, dict) and lock.get("status") in {"due", "active", "triggered"}:
+            values.extend(lock.get("participants", []) or [])
+
+    result: list[str] = []
+    for value in values:
+        cid = _canonical_id(value)
+        if not cid or cid in {"students", "staff", "crowd", "academy_staff", "new_students_block_b"}:
+            continue
+        if _known_character_folder(cid) or cid == "akira":
+            result.append(cid)
+    return _unique(result)
+
+
+def _character_files_compact(cid: str) -> list[str]:
+    folder = _known_character_folder(cid)
+    if not folder:
+        return []
+    files: list[str] = []
+    for rel in (
+        f"characters/{folder}/character.yaml",
+        f"characters/{folder}/main.yaml",
+    ):
+        try:
+            if base.repo_file_exists(rel):
+                files.append(rel)
+        except Exception:
+            pass
+    return files
 
 
 def _required_files(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
-    try:
-        files = base.recommended_files_for_context(current, future)
-        if files:
-            return _unique(files)
-    except Exception:
-        pass
-    try:
-        files = ccp.recommended_files_for_context(current, future)
-        if files:
-            return _unique(files)
-    except Exception:
-        pass
-    return [
+    files: list[str] = []
+    for rel in (
         "runtime/scene_context_digest.md",
         "gpt/locks/runtime_scene_rules_digest.md",
         "gpt/scene_format.md",
         "characters/character_id_index.md",
-        "characters/akira/character.yaml",
-        "characters/akira/past.yaml",
-        "characters/akira/main.yaml",
-    ]
+    ):
+        try:
+            if base.repo_file_exists(rel) or rel == "runtime/scene_context_digest.md":
+                files.append(rel)
+        except Exception:
+            files.append(rel)
+
+    for cid in _scene_chars(current, future):
+        files.extend(_character_files_compact(cid))
+
+    # Keep useful light rule file if present; avoid old heavy locks and past.yaml in compact turn-contract.
+    for rel in (
+        "gpt/locks/npc_living_scene_rules.md",
+    ):
+        try:
+            if base.repo_file_exists(rel):
+                files.append(rel)
+        except Exception:
+            pass
+
+    return _unique(files)
 
 
 def _current_state_slice(current: dict[str, Any]) -> dict[str, Any]:
     keys = [
-        "current_date", "current_time", "current_location_id", "current_location_text",
-        "current_scene_goal", "akira_behavior_profile", "akira_state", "current_outfit",
-        "uniform_worn", "visible_inventory", "nearby_items", "active_characters",
-        "nearby_characters", "scheduled_character_ids", "delayed_character_ids",
-        "mentioned_character_ids", "speaking_character_ids", "observing_character_ids",
-        "addressed_character_ids", "looked_at_character_ids", "last_player_input", "open_threads",
+        "current_date",
+        "current_time",
+        "current_location_id",
+        "current_location_text",
+        "current_scene_goal",
+        "akira_behavior_profile",
+        "akira_state",
+        "current_outfit",
+        "uniform_worn",
+        "visible_inventory",
+        "nearby_items",
+        "active_characters",
+        "nearby_characters",
+        "scheduled_character_ids",
+        "delayed_character_ids",
+        "mentioned_character_ids",
+        "speaking_character_ids",
+        "observing_character_ids",
+        "addressed_character_ids",
+        "looked_at_character_ids",
+        "last_player_input",
+        "open_threads",
     ]
     return {key: _compact_text(current.get(key), 1000) for key in keys if key in current}
 
@@ -187,7 +257,7 @@ class SizeGuardContextResponse(BaseModel):
     )
 
 
-class SizeGuardTurnContractResponse(BaseModel):
+class TurnContractWithPromptPreview(BaseModel):
     session_id: str
     mode: str = "size_guard_turn_contract"
     active_character_ids: list[str] = Field(default_factory=list)
@@ -264,8 +334,8 @@ def get_session_context_size_guard(session_id: str) -> SizeGuardContextResponse:
     )
 
 
-@app.get(TURN_CONTRACT_PATH, response_model=SizeGuardTurnContractResponse, operation_id="getSessionTurnContract")
-def get_session_turn_contract_size_guard(session_id: str) -> SizeGuardTurnContractResponse:
+@app.get(TURN_CONTRACT_PATH, response_model=TurnContractWithPromptPreview, operation_id="getSessionTurnContract")
+def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPromptPreview:
     sid = base.safe_session_id(session_id)
     base.ensure_session(sid)
     current = _safe_read_json("state/current_state.json", sid, {})
@@ -288,7 +358,7 @@ def get_session_turn_contract_size_guard(session_id: str) -> SizeGuardTurnContra
         "Do not rename invented/session NPCs into fixed canon characters.",
     ]
 
-    return SizeGuardTurnContractResponse(
+    return TurnContractWithPromptPreview(
         session_id=sid,
         active_character_ids=_unique(current.get("active_characters", []) or []),
         nearby_character_ids=_unique(current.get("nearby_characters", []) or []),
@@ -307,4 +377,4 @@ def get_session_turn_contract_size_guard(session_id: str) -> SizeGuardTurnContra
     )
 
 
-app.version = "0.3.56-response-size-guard-v1"
+app.version = "0.3.57-response-size-guard-openapi-v2"
