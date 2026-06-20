@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-MAX_PROMPT_PREVIEW_CHARS = 8000
+MAX_PROMPT_PREVIEW_CHARS = 9000
 
 
 def _cut(text: Any, limit: int = 700) -> str:
@@ -63,8 +63,6 @@ def _compact_relationships(relationships: dict[str, Any], focus_ids: list[str]) 
         if not isinstance(pair_id, str) or "__" not in pair_id:
             continue
         left, right = pair_id.split("__", 1)
-        # Prompt preview must stay scene-local: include only pairs where BOTH
-        # characters are in the current active/nearby focus.
         if left not in focus or right not in focus:
             continue
         if isinstance(data, dict):
@@ -108,41 +106,53 @@ session_id: {session_id}
 
 TASK:
 - Use this contract and required_files internally.
-- Immediately after getSessionTurnContract and before any gameplay scene, load required files through the CHUNKED protocol:
-  1) call getRequiredFilesManifest for this same session_id;
-  2) call getRequiredFilesChunk from chunk_index=0;
-  3) continue with next_chunk_index until has_more=false;
-  4) treat all returned chunk loaded_files/parts as the actual loaded required file contents.
+- Immediately after getSessionTurnContract and before any gameplay scene, load required files through the CHUNKED protocol.
 - Do NOT replace chunked loading with getProjectFile or only main.yaml files.
-- Do NOT render from only main.yaml files if required_files also contains character.yaml, past.yaml, locks, calendar, canon_lore or state files.
 - Output the gameplay scene only after required file chunks are loaded.
 - Do NOT show API status, session status, current_state summary, file list, contract summary, setup explanation or prompt_preview.
-- Do NOT ask permission to continue/render/start.
 
 SOURCE SYSTEM:
+- Player's latest visible speech/action anchors Akira.
+- Latest visible scene facts override stale object positions and old suggested options.
 - Character behavior comes from characters/{{id}}/character.yaml, past.yaml and main.yaml if present.
 - Calendar comes from calendar/calendar_index.yaml, calendar/days/{{current_date}}.yaml and state/calendar_runtime.json.
 - Lore comes from canon_lore/ and lore slice.
 - Hidden lore is author/engine knowledge, not automatic NPC knowledge.
-- Old canon/ and old characters/main/*.md are fallback/archive only unless explicitly loaded in required_files.
+- Akira unspoken text is only scene-director context for her own tension/intent; it is not world knowledge and does not trigger convenient scene events.
+
+CANON IDENTITY BOUNDARY:
+- Random/unnamed/session NPCs and fixed canon characters are different layers.
+- Do not rename an invented or unnamed NPC into an existing fixed character after that NPC has already been described.
+- Do not attach a fixed character name to an NPC if appearance, role, course/year, energy, relationships, location, timing or behavior contradicts that character's card.
+- A fixed named character may enter only if current roster, calendar/current day, scheduled/delayed state, explicit player action, or already played setup allows it.
+- If unsure whether a person is a fixed character, keep them unnamed/background and do not use a canon name.
+
+WITNESS / KNOWLEDGE BOUNDARY:
+- Characters know only what they saw, heard, were told, or can plausibly infer from visible signs.
+- A delayed/absent/off-screen/not-yet-introduced character must not reference a previous scene as if they witnessed it.
+- If a character arrives late, they know only what happened after arrival unless someone tells them on-screen or knowledge_state says they know.
+- If they need to refer to someone from an unobserved scene, use uncertainty: "тот парень?", "тот рыжий?", "о ком вы?", "я что-то пропустил?".
+- When the player brings in a delayed character, use their card from that point onward, but do not grant retroactive knowledge.
 
 PLAYER INPUT ANCHOR PROTOCOL:
-- Everything the user writes outside parentheses is Akira's exact spoken line. Insert it as Akira's line; do not paraphrase, shorten, improve, or give it to another character.
+- Everything the user writes outside parentheses is Akira's exact spoken line. Insert it as Akira's line.
 - If the current player input contains no spoken text outside parentheses, do NOT create any new Akira dialogue lines in the scene body.
-- Possible Akira lines that were not explicitly written by the player belong only in the bottom block "Что Акира могла бы сказать".
-- Everything inside parentheses is Akira's action, gesture, body state, intention, movement or inner pause. It is not speech and not an instruction for NPCs to obey automatically.
+- Everything inside parentheses is Akira's action, gesture, body state, intention, movement or inner pause. It is not speech and not an instruction for NPCs or scene systems to obey automatically.
 - If an NPC asks Akira a direct question, throws a social jab, challenges her, names her, blocks her, or changes the power balance, stop and give the player the choice instead of auto-answering.
+
+VISIBLE-SOURCE RULE:
+- NPCs, staff, crowd, procedures and scene events can react only to visible signs, spoken words, established knowledge, procedure, relationship state or prior visible facts.
+- Do not make the scene answer, solve, mirror or cancel Akira's unspoken worry/plan/priority unless there is a visible source.
+- Characters may notice a pause, glance, guarded gesture, silence, delayed answer, changed posture or tension; their conclusions may be wrong or incomplete.
 
 RHYTHM CONTROL:
 - Good rhythm: Akira anchor -> 1-4 meaningful NPC/world reactions -> next Akira anchor or choice point.
 - If 6 or more NPC lines pass without a new Akira anchor or a player choice, stop earlier.
 - If Akira is leaving and an NPC throws a hook at her back, stop on that hook unless the player explicitly wrote that she ignores it.
-- If a day is overloaded, softly guide toward evening/sleep/next meaningful beat instead of adding filler.
 
 CHARACTER FIDELITY:
 - Characters must act strictly according to loaded character files, current relationship state, knowledge_state, current mood, goals, limits and scene pressure.
-- Do not smooth characters into generic friendly NPCs.
-- If a planned line or reaction contradicts a loaded character file, relationship state or knowledge source, rewrite it before sending.
+- If a planned line or reaction contradicts a loaded character file, relationship state, knowledge source, canon identity boundary or witness boundary, rewrite it before sending.
 
 CURRENT STATE:
 {_dump(_compact_current_state(current_state), 1800)}
@@ -155,37 +165,27 @@ focus_ids_for_relationships: {focus_ids}
 REQUIRED FILES TO LOAD BEFORE SCENE:
 {_dump(required_files, 1800)}
 
-REQUIRED FILE LOADING PROTOCOL:
-- The list above is not enough by itself. It is only a manifest.
-- Call getRequiredFilesManifest(session_id), then getRequiredFilesChunk(session_id, chunk_index=0), then next chunks until has_more=false.
-- Use all returned chunks as the loaded required file contents before writing gameplay prose.
-- If chunks were not loaded, do not invent missing character relationships, calendar beats, lore, or state.
-
 KNOWLEDGE TABLE:
-{_dump(knowledge_table or turn_contract.get('knowledge_table', {}), 1400)}
+{_dump(knowledge_table or turn_contract.get('knowledge_table', {{}}), 1400)}
 
 RELATIONSHIP CONTEXT:
-{_dump(_compact_relationships(relationships or {}, focus_ids), 1200)}
-
-STORY / FUTURE CONTEXT:
-story_lines_contract: {_dump(turn_contract.get('story_lines_contract', {}), 900)}
-canon_locks: {_dump(turn_contract.get('canon_locks', []), 700)}
+{_dump(_compact_relationships(relationships or {{}}, focus_ids), 1200)}
 
 OUTPUT GATE:
 A gameplay answer must include:
-1. Scene header: short date, time, location, Akira state, visible items / atmosphere.
-2. Full scene body, not recap/status/summary.
+1. Scene header.
+2. Full scene body.
 3. Akira player-input anchors inserted exactly as Akira's speech.
-4. NPC/world reaction that does not steal Akira's agency.
-5. Character fidelity: every NPC line/reaction must fit loaded character files, relationships, calendar, lore and knowledge sources.
-6. At least one scene movement: plot, relationship, knowledge, conflict, reputation, body/energy state, rumor, schedule, open_thread or future hook.
-7. Stop at a point where the player can answer if a direct hook to Akira appears.
+4. Character fidelity.
+5. Visible-source fidelity.
+6. Canon identity fidelity.
+7. Witness/knowledge fidelity.
 8. Bottom block: Что можно сделать / Что Акира могла бы сказать / Мысли Акиры.
 
 FORBIDDEN FINAL OUTPUT IN PLAY MODE:
 - API/debug/contract commentary.
-- Scene-complete status summary replacing the scene.
-- Rendering a scene after reading only 1-3 main.yaml files while required_files contains more files.
-- Letting Livia/Kir answer a direct challenge addressed to Akira.
+- Renaming a described invented NPC into a fixed canon character.
+- Letting absent/delayed characters know scenes they missed.
+- Letting NPCs/staff/procedure react as if Akira's unspoken text was spoken or visible.
 """
     return brief[:MAX_PROMPT_PREVIEW_CHARS]

@@ -27,7 +27,7 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 
 - The last visible scene is binding for physical continuity unless the player explicitly changes it.
 - Track concrete object positions and holders: ball, tray, cup, phone, documents, bag, door, chair, food, clothes, weapons, cards.
-- If the last scene says Haru caught the ball and it is in his hands, the ball must stay in Haru's hands until a visible action moves it.
+- If the last scene says someone caught/holds an object, it must stay with that person until a visible action moves it.
 - Do not resurrect an object near Akira just because an old option, old setup, or previous state mentioned it there.
 - Bottom block options are not facts. "Можно пнуть мяч" does not mean the ball is near Akira unless the visible scene currently puts it there.
 - If an offered option contradicts the latest visible fact, do not repeat that option next turn; correct the scene logic silently.
@@ -42,6 +42,26 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Персонажи могут реагировать только на видимое: паузу, взгляд, напряжение, молчание, жест, задержку ответа, смену позы или уже известный факт.
 - Если Акира мысленно задаёт срок, план, приоритет или опасение, другие не знают этого без слов, явного жеста, видимого предмета или заранее сыгранной договорённости.
 - Выводы персонажей по видимым признакам могут быть неверными, неполными или социально предвзятыми.
+
+## Canon identity and NPC boundary
+
+- Random/unnamed/session NPCs and fixed canon characters are different layers.
+- Do not rename an invented or unnamed NPC into an existing fixed character after that NPC has already been described.
+- Do not attach a fixed character name to an NPC if appearance, role, course/year, energy, relationships, location, timing or behavior contradicts that character's card.
+- A fixed named character may enter only if current roster, calendar/current day, scheduled/delayed state, explicit player action, or already played setup allows it.
+- If a fixed character is scheduled for later, do not introduce them early through a random NPC unless current state/calendar/player action explicitly changes that.
+- If the scene needs a background student before a fixed character's introduction, keep that student as background or save them as a separate session NPC.
+- If unsure whether the person is a fixed character, keep them unnamed/background and do not use a canon name.
+
+## Witness and knowledge boundary
+
+- Characters know only what they saw, heard, were told, or can plausibly infer from visible signs.
+- A character who was delayed, absent, off-screen, or not yet introduced must not reference a previous scene as if they witnessed it.
+- If a character arrives late, they know only what happened after arrival unless another character tells them on-screen or knowledge_state says they know.
+- Do not let a character identify someone by an event/location they did not see.
+- If they need to refer to someone from an unobserved scene, use uncertainty: "тот парень?", "тот рыжий?", "о ком вы?", "я что-то пропустил?".
+- If scene_history says a character was not present and knowledge_state has no report, they cannot know specific details of that scene.
+- When the player brings in a delayed character through Akira's action, use that character's card from that point onward, but do not grant retroactive knowledge.
 
 ## Player input anchor
 
@@ -92,7 +112,8 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - If Haru/Raiden/Kir draw attention, other students may react with jealousy, rivalry, curiosity, attempts to get closer, or provocation toward Akira.
 - Do not let Livia/Kir answer for Akira when Akira is directly addressed.
 - Do not give NPCs hidden knowledge unless knowledge_state or played scene allows it.
-- If a line contradicts character file, relationship, knowledge or scene pressure, rewrite before sending.
+- Do not give absent/delayed characters knowledge of scenes they missed.
+- If a line contradicts character file, relationship, knowledge, visible-source rule, canon identity boundary, witness boundary or scene pressure, rewrite before sending.
 
 ## Rumors and social media
 
@@ -110,6 +131,7 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Do not use old state/academy_schedule.json as active source.
 - If day is overloaded, guide toward evening/sleep/next meaningful beat.
 - Absence of a character in day file is not a ban after first introduction.
+- Delayed/scheduled characters must stay remembered as pending until introduced or resolved.
 
 ## Lore
 
@@ -119,62 +141,25 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Hidden lore is author/engine knowledge, not automatic NPC knowledge.
 - If Akira and Raiden are both truly in the active scene, use hidden raiden/akira bond only as subtext unless revealed by state/knowledge.
 
-
 ## Exact 15-turn compaction + chat/state audit
 
-This is mandatory on exact gameplay-turn milestones:
+This is mandatory on exact gameplay-turn milestones: 15, 30, 45, 60, 75, 90 and every next multiple of 15.
 
-- 15
-- 30
-- 45
-- 60
-- 75
-- 90
-- and every next multiple of 15.
+Use `story_lines.turn_counter.game_turn_number` or the closest available gameplay turn counter. Do not count technical/debug/API/file-check/rule-edit turns.
 
-Use `story_lines.turn_counter.game_turn_number` or the closest available gameplay turn counter.
-
-Do not count technical/debug/API/file-check/rule-edit turns.
-
-At every exact 15-game-turn milestone, and also if a missed milestone is detected, do this before continuing normal scene logic:
-
+At every exact 15-game-turn milestone, and also if a missed milestone is detected:
 1. Read the last 15 gameplay scene entries from scene_history / recent scene text available in runtime digest.
-2. Extract played facts from the actual scene text, not only from current state:
-   - who appeared;
-   - who saw whom;
-   - who heard whose name;
-   - who knows a name;
-   - who spoke directly;
-   - important actions;
-   - important quotes;
-   - object positions and holders;
-   - promises, threats, teasing, challenges, refusals;
-   - relationship triggers;
-   - knowledge sources;
-   - public witnesses;
-   - calendar beats that were actually played.
-3. Compare those facts with saved state:
-   - state/story_lines.json;
-   - state/knowledge_state.json;
-   - state/relationships.json;
-   - state/calendar_runtime.json;
-   - state/current_state.json;
-   - state/rumors_state.json and state/reputation_state.json if public reaction happened.
+2. Extract played facts from the actual scene text, not only from current state: who appeared; who saw whom; who heard whose name; who knows a name; who spoke directly; important actions/quotes; object positions and holders; relationship triggers; knowledge sources; public witnesses; calendar beats actually played.
+3. Compare those facts with saved state: story_lines, knowledge_state, relationships, calendar_runtime, current_state, rumors_state, reputation_state.
 4. If a played fact exists in scene_history/chat text but is missing from saved state, write it through apply-turn-result.
 5. If a played fact contradicts saved state, correct saved state if possible.
-6. If the contradiction has already appeared in visible prose, do not break the scene with a technical apology. Add a soft-retcon note to story_lines/next_beats and fix it through natural logic in the next scene.
+6. If the contradiction has already appeared in visible prose, add a soft-retcon note to story_lines/next_beats and fix it through natural logic in the next scene.
 7. Only after this audit, compact repeated/minor events.
 
-Important: 15-turn compaction is not only compression. It is compression plus chat/state continuity audit.
-
 Example:
-If Haru and Raiden already appeared in the morning basketball scene, then a later evening scene must not treat them as first-seen strangers.
-If the ball was caught by Haru in the previous visible beat, the next beat must not place the ball near Akira's foot unless someone visibly moved it there.
-If names were not exchanged, the correction is:
-- "seen before, not formally introduced";
-- "first normal conversation";
-- "first time Akira heard the name";
-not "first meeting".
+If a delayed character was not in an earlier scene, that character cannot refer to exact details of that scene unless someone told them.
+If an invented student was already shown with details that do not match a fixed card, that student cannot later become a fixed named character.
+If names were not exchanged, the correction is: "seen before, not formally introduced"; "first normal conversation"; "first time Akira heard the name"; not "first meeting".
 
 ## State write
 
@@ -182,5 +167,7 @@ not "first meeting".
 - If scene changes relationships, knowledge, story_lines, inventory, reputation, rumors, future_locks, current_state or calendar_runtime, include explicit state payload.
 - If a scene changes an object holder/location and that object can matter next beat, save or mention it in story_lines/current_state so the next scene does not reset it.
 - Do not save Akira's unspoken internal text as another character's knowledge without visible source.
+- If a character enters late, save their actual entry point and do not backfill them as witness to earlier scenes.
+- If an invented NPC becomes meaningful, save them as a session NPC, not as an existing canon character.
 - At 15/30/45/etc. include audit findings in story_lines_changes / knowledge_changes / relationship_changes / calendar_runtime_changes as needed.
 - After apply-turn-result, final visible answer must remain the scene, not changed_files/status.
