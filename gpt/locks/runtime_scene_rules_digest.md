@@ -88,25 +88,52 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 
 - Gameplay answer must be the scene only, not API/status/debug summary.
 - Start with compact visual header.
+- Header `✦` is a short visible/current condition only: mood, injury, hair, body state. It is not a numeric power panel.
+- Header outfit line must copy current_outfit / inventory_state / latest visible scene and include all saved clothing items.
 - Then visual-novel prose.
-- Spoken line format: **Name/descriptor** — speech. (*short remark*)
+- Spoken line format: **Name/visible descriptor** — speech. (*short remark*)
+- Do not wrap dialogue text in quotation marks.
+- Do not write `— "..."` in scene dialogue or speech choices.
 - Normal narration is plain text, not automatic italic.
 - Use italics only for short stage remarks, visible actions, body reactions, or brief physical atmosphere.
 - Do not turn every description into italic paragraph.
 - Do not use long lyric italic inserts between every action.
 - Write only what visibly happens now. No long literary water, no decorative philosophy, no bloated emotional explanation.
 - Prefer concrete action/reaction/visible detail over abstract narration.
-- Keep paragraphs short. One beat = one visible action, reaction, line, or consequence.
-- Bottom blocks:
+- Keep paragraphs short, but do not make the scene a dry checklist.
+- Bottom blocks are mandatory:
   - Что можно сделать
   - Что Акира могла бы сказать
   - Мысли Акиры
-  - Состояние
+  - Уровни
   - Отношения
-- In "Что можно сделать", write direct actions only. Do not start with "Акира может".
+- In "Что можно сделать", write direct actions only. Do not start with "Акира может", "Можно", or "Попробовать".
 - Put exact spoken lines only in "Что Акира могла бы сказать", not inside action options.
+- "Уровни" must show numeric physical/energy values, not mood text.
+- "Отношения" must show current total relationship score plus short label, not scene delta only.
 - No empty scenes: every scene needs reaction, hook, conflict, consequence, relationship movement, reputation movement, time movement or useful transition.
 - Meaningful beat must come from visible scene pressure, procedure, NPC goal, witness, relationship or consequence, not from a convenient answer to Akira's unspoken context.
+
+## NPC dialogue descriptors
+
+- If a background NPC speaks, the speaker label must be a stable visible descriptor, not a vague role.
+- Bad: **Новенький** — ...
+- Bad: один из студентов хмыкает: ...
+- Good: **Светловолосый студент у сетки** — ...
+- Good: **Парень в форме у кольца** — ...
+- Good: **Девушка с короткой стрижкой у турникета** — ...
+- Use the same descriptor again if that same NPC speaks later.
+- Do not switch from "one of the students" in narration to a different generic label in dialogue.
+- If the NPC becomes recurring, save them as session NPC with a stable descriptor; do not promote them to canon character unless canon rules allow it.
+
+## First-day Academy entrance beat
+
+- On 1198-08-15, the first entrance/court beat must include Akira and Livia entering from the back gate/court side in ordinary clothes.
+- Haru and Raiden are first-introduction characters for this day. They should be visible as scene pressure at the court beat, not erased into empty background.
+- Haru should have a concrete visible action around the basketball court/ball if the court beat is active.
+- Raiden should be visibly present near the court/line/edge and not reduced to an invisible future mention.
+- Do not force them into direct conversation too early if the player has not reached that pressure point; but they must be visible enough that the scene hook exists.
+- The entrance beat should not skip straight into registration if the court hook has not been played or resolved.
 
 ## Character fidelity
 
@@ -115,6 +142,7 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Do not flatten Academy students into convenient fearful background.
 - Academy students are often status-conscious, strong, ambitious, jealous, arrogant, curious, competitive, or socially risky.
 - Akira's sharp look can make some people pause, but it must not make everyone suddenly silent, afraid, respectful, or avoidant.
+- Akira is not soft by default: her visible tone is controlled, dry, sharp, guarded, and can be quietly poisonous. Do not make her eager to please or politely explain herself unless the player writes it.
 - Use varied reactions: someone backs off, someone mocks, someone challenges, someone pushes status, someone flirts, someone envies, someone watches, someone spreads a rumor, someone ignores her.
 - If Haru/Raiden/Kir draw attention, other students may react with jealousy, rivalry, curiosity, attempts to get closer, or provocation toward Akira.
 - Do not let Livia/Kir answer for Akira when Akira is directly addressed.
@@ -135,7 +163,7 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Calendar is hooks, not ready prose.
 - Active calendar source: state/calendar_runtime.json + calendar/current day file.
 - Use current beat and completed beats.
-- Do not use old state/academy_schedule.json as active source.
+- Do not use old state/academy_schedule.json as active source unless calendar_runtime/day file is unavailable.
 - If day is overloaded, guide toward evening/sleep/next meaningful beat.
 - Absence of a character in day file is not a ban after first introduction.
 - Delayed/scheduled characters must stay remembered as pending until introduced or resolved.
@@ -152,6 +180,8 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 
 - Backend does not infer state from prose.
 - If scene changes relationships, knowledge, story_lines, inventory, reputation, rumors, future_locks, current_state or calendar_runtime, include explicit state payload.
+- If scene changes progress/levels, include akira_progress_state_changes and updated totals.
+- If scene changes relationship details, include relationship_changes and updated total relationship panel.
 - If a scene changes an object holder/location and that object can matter next beat, save or mention it in story_lines/current_state so the next scene does not reset it.
 - Do not save Akira's unspoken internal text as another character's knowledge without visible source.
 - If a character enters late, save their actual entry point and do not backfill them as witness to earlier scenes.
