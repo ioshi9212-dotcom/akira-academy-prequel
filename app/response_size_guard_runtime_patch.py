@@ -1,8 +1,9 @@
 """
-Response size guard runtime patch v4.
+Response size guard runtime patch v5.
 
 Keeps getSessionContext and getSessionTurnContract small.
-Adds progress panel files to the compact contract so gameplay can show current totals.
+Adds progress panel files to the compact contract and computes relationship panel totals
+from relationships.json when the stored visible panel is missing or stale.
 """
 
 from __future__ import annotations
@@ -24,6 +25,17 @@ PROGRESS_FILES = [
     "state/akira_progress_state.json",
     "state/relationship_score_panel.json",
 ]
+
+DISPLAY_NAMES = {
+    "livia_cross": "Ливия",
+    "livia": "Ливия",
+    "kir": "Кир",
+    "kir_knox": "Кир",
+    "haru": "Хару",
+    "haru_foster": "Хару",
+    "raiden": "Райден",
+    "raiden_sterling": "Райден",
+}
 
 
 def _remove_routes(path: str, methods: set[str] | None = None, operation_id: str | None = None) -> None:
@@ -242,13 +254,148 @@ def _story_slice(story: Any) -> dict[str, Any]:
     }
 
 
-def _progress_slice(session_id: str) -> dict[str, Any]:
+def _clamp_score(value: float) -> int:
+    return max(-100, min(100, int(round(value))))
+
+
+def _relationship_score(data: Any) -> int:
+    if not isinstance(data, dict):
+        return 0
+    positive = {
+        "affection": 1.2,
+        "trust": 1.2,
+        "respect": 1.0,
+        "interest": 0.8,
+        "curiosity": 0.8,
+        "warmth": 1.2,
+        "attachment": 1.5,
+    }
+    negative = {
+        "tension": -0.8,
+        "irritation": -0.7,
+        "fear": -1.0,
+        "resentment": -1.2,
+        "suspicion": -1.0,
+        "jealousy": -0.4,
+    }
+    total = 0.0
+    for key, weight in positive.items():
+        total += float(data.get(key) or 0) * weight
+    for key, weight in negative.items():
+        total += float(data.get(key) or 0) * weight
+    return _clamp_score(total)
+
+
+def _label_for_pair(pair_id: str, score: int) -> str:
+    pair = pair_id.lower()
+    if score <= -60:
+        return "враждебность"
+    if score <= -35:
+        return "сильное напряжение"
+    if score <= -15:
+        return "настороженность"
+    if score <= 14:
+        return "неясно"
+
+    if "livia" in pair:
+        if score >= 75:
+            return "почти семья"
+        if score >= 55:
+            return "тёплая близость"
+        if score >= 35:
+            return "старые подруги"
+        return "тёплый контакт"
+    if "kir" in pair:
+        if score >= 55:
+            return "свой, но язвит"
+        if score >= 35:
+            return "доверяет неохотно"
+        return "осторожный интерес"
+    if "haru" in pair:
+        if score >= 55:
+            return "сильная симпатия"
+        if score >= 35:
+            return "тянется ближе"
+        return "явный интерес"
+    if "raiden" in pair:
+        if score >= 55:
+            return "держится рядом"
+        if score >= 35:
+            return "молча наблюдает"
+        return "холодная настороженность"
+
+    if score <= 34:
+        return "интерес"
+    if score <= 54:
+        return "доверие"
+    if score <= 74:
+        return "близость"
+    return "сильная привязанность"
+
+
+def _display_name_for_pair(pair_id: str) -> str:
+    parts = [p for p in pair_id.split("__") if p and p != "akira"]
+    other = parts[0] if parts else pair_id
+    return DISPLAY_NAMES.get(other, other)
+
+
+def _computed_relationship_panel(relationships: Any, stored_panel: Any) -> dict[str, Any]:
+    pairs = relationships.get("pairs") if isinstance(relationships, dict) else {}
+    if not isinstance(pairs, dict):
+        return stored_panel if isinstance(stored_panel, dict) else {}
+
+    stored_items = {}
+    if isinstance(stored_panel, dict):
+        stored_items = stored_panel.get("relationship_score_panel") or {}
+        if not isinstance(stored_items, dict):
+            stored_items = {}
+
+    wanted = [
+        "akira__livia_cross",
+        "akira__kir",
+        "akira__haru_foster",
+        "akira__raiden_sterling",
+    ]
+
+    result: dict[str, Any] = {}
+    for pair_id in wanted:
+        data = pairs.get(pair_id)
+        if data is None and pair_id == "akira__kir":
+            data = pairs.get("akira__kir_knox")
+        if data is None and pair_id == "akira__haru_foster":
+            data = pairs.get("akira__haru")
+        if data is None and pair_id == "akira__raiden_sterling":
+            data = pairs.get("akira__raiden")
+
+        if isinstance(data, dict):
+            score = _relationship_score(data)
+            result[pair_id] = {
+                "display_name": _display_name_for_pair(pair_id),
+                "score": score,
+                "label": _label_for_pair(pair_id, score),
+                "source": "computed_from_relationships_json",
+            }
+        elif pair_id in stored_items:
+            result[pair_id] = stored_items[pair_id]
+        else:
+            result[pair_id] = {
+                "display_name": _display_name_for_pair(pair_id),
+                "score": 0,
+                "label": "неясно",
+                "source": "default_no_relationship_pair",
+            }
+    return result
+
+
+def _progress_slice(session_id: str, relationships: Any | None = None) -> dict[str, Any]:
     progress = _safe_read_json("state/akira_progress_state.json", session_id, {})
     relationship_panel = _safe_read_json("state/relationship_score_panel.json", session_id, {})
+    computed_panel = _computed_relationship_panel(relationships or {}, relationship_panel)
     return {
         "akira_progress_state": _compact_text(progress, 1400),
         "relationship_score_panel": _compact_text(relationship_panel, 1400),
-        "visible_panel_rule": "Show current total scores, not only per-scene deltas.",
+        "computed_relationship_score_panel": _compact_text(computed_panel, 1400),
+        "visible_panel_rule": "Show current total scores, not only per-scene deltas. Prefer computed_relationship_score_panel when available.",
     }
 
 
@@ -307,6 +454,7 @@ def _small_output_contract() -> dict[str, Any]:
             "Do not make the scene answer Akira's unspoken text without visible source.",
             "Show current total progress/relationship scores in the panel, not only scene delta.",
             "Relationship details stay internal; visible panel shows score plus short label.",
+            "Prefer computed_relationship_score_panel over stale stored panel values.",
             "Training can improve stats but may also increase fatigue, risk, or injury.",
             "Stop at a player choice point when Akira is directly challenged or questioned.",
         ],
@@ -324,6 +472,7 @@ def _small_prompt_preview(chars: list[str], required_files: list[str]) -> str:
         "- Enforce: latest visible facts, canon identity boundary, witness/knowledge boundary, "
         "visible-source rule, player action boundary, scene-only final answer.\n"
         "- End panel: show current total physical/energy/relationship scores, not just last-scene delta.\n"
+        "- Relationship panel must use computed totals from relationships.json when possible.\n"
     )
 
 
@@ -371,10 +520,11 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
         "Do not grant absent/delayed characters knowledge of scenes they missed.",
         "Do not rename invented/session NPCs into fixed canon characters.",
         "End panel must show current total progress/relationship scores, not only per-scene deltas.",
+        "Use computed_relationship_score_panel from relationships.json when available.",
     ]
 
     story_context = _story_slice(story_lines)
-    story_context["progress_panel"] = _progress_slice(sid)
+    story_context["progress_panel"] = _progress_slice(sid, relationships)
 
     return TurnContractWithPromptPreview(
         session_id=sid,
@@ -395,4 +545,4 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
     )
 
 
-app.version = "0.3.59-progress-panel-v1"
+app.version = "0.3.60-relationship-panel-compute-v1"
