@@ -1,10 +1,12 @@
 {
-  "schema_version": "relationship_score_panel_v1",
+  "schema_version": "relationship_score_panel_v2",
   "relationship_score_formula": {
     "positive_weights": {
+      "affection": 1.2,
       "trust": 1.2,
       "respect": 1.0,
       "interest": 0.8,
+      "curiosity": 0.8,
       "warmth": 1.2,
       "attachment": 1.5
     },
@@ -13,26 +15,31 @@
       "irritation": -0.7,
       "fear": -1.0,
       "resentment": -1.2,
-      "suspicion": -1.0
+      "suspicion": -1.0,
+      "jealousy": -0.4
     },
     "clamp": [-100, 100],
     "round": true,
-    "note": "Visible panel shows total score, not per-scene delta. Interest alone is not warmth."
+    "note": "Visible panel shows total score, not per-scene delta. It may be recalculated from relationships.json. Interest/curiosity alone is not warmth."
   },
   "relationship_score_panel": {
-    "akira__livia": {
-      "score": 0,
-      "label": "неясно"
+    "akira__livia_cross": {
+      "display_name": "Ливия",
+      "score": 53,
+      "label": "старые подруги"
     },
     "akira__kir": {
+      "display_name": "Кир",
       "score": 0,
       "label": "неясно"
     },
-    "akira__haru": {
+    "akira__haru_foster": {
+      "display_name": "Хару",
       "score": 0,
       "label": "неясно"
     },
-    "akira__raiden": {
+    "akira__raiden_sterling": {
+      "display_name": "Райден",
       "score": 0,
       "label": "неясно"
     }
@@ -46,5 +53,27 @@
     "35..54": "доверие",
     "55..74": "близость",
     "75..100": "сильная привязанность"
+  },
+  "character_label_overrides": {
+    "akira__livia_cross": {
+      "35..54": "старые подруги",
+      "55..74": "тёплая близость",
+      "75..100": "почти семья"
+    },
+    "akira__kir": {
+      "15..34": "осторожный интерес",
+      "35..54": "доверяет неохотно",
+      "55..74": "свой, но язвит"
+    },
+    "akira__haru_foster": {
+      "15..34": "явный интерес",
+      "35..54": "тянется ближе",
+      "55..74": "сильная симпатия"
+    },
+    "akira__raiden_sterling": {
+      "15..34": "молча наблюдает",
+      "35..54": "держится рядом",
+      "55..74": "привязан, но молчит"
+    }
   }
 }
