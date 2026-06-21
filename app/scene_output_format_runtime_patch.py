@@ -1,9 +1,9 @@
 """
-Scene output format runtime patch v20.
+Scene output format runtime patch v22.
 
-Restores the selected old Academy visual-novel output format after speed mode.
-Adds concise prose, player action boundary, immediate object continuity, visible-source handling,
-canon identity boundary, witness/knowledge boundary and Academy social reaction reminders.
+Keeps the old Academy visual-novel header available without turning the scene style
+into a rule-heavy checklist. Detailed style lives in gpt/scene_format.md and
+runtime_scene_rules_digest.md.
 """
 
 from __future__ import annotations
@@ -59,76 +59,21 @@ def recommended_files_with_scene_format(current: dict[str, Any] | None = None, f
 
 def build_scene_context_digest_with_style(session_id: str) -> str:
     base_digest = _ORIG_BUILD_DIGEST(session_id) if callable(_ORIG_BUILD_DIGEST) else ""
-    strict = """
-## Strict visible output format reminder
+    reminder = """
+## Scene output reminder
 
-Use the old selected Academy scene style, not loose emoji-card style.
-
-Required header:
-
-🏛️ Академия Астрейн · 1198 г., 15 августа, пн
-🕒 Позднее утро · 📍 Главный двор Академии
-🌦️ Погода: ...
-⚙️ Активное состояние сцены: учитывать в тексте, действиях и предметах
-
-✦ ...
-🧥 ...
-◈ ...
-
-━━━━━━━━━━━━━━━━━━━━
-
-Dialogue:
-**Имя/видимый дескриптор** — Реплика. (*короткая ремарка*)
-
-Immediate continuity:
-- Read the latest visible scene facts before writing the next beat.
-- Track where objects are and who holds them: ball, tray, cup, phone, documents, bag, door, chair, food.
-- Bottom-block options are not facts until the player chooses them.
-- If an object was moved/held in the latest visible beat, do not reset it to an old position unless someone visibly moves it.
-- Do not resurrect old object positions from stale state, old setup, or old suggested options.
-
-Unspoken Akira context:
-- Akira's unspoken text is context for her tension, hesitation or intent, not a visible fact.
-- Other characters and scene systems may react only to visible signs: pause, glance, guarded gesture, changed posture, silence, delayed answer or tension.
-- Do not make the scene answer, solve, mirror or cancel an unspoken Akira worry unless there is a visible source in the scene.
-
-Canon identity boundary:
-- Random/unnamed/session NPCs and fixed canon characters are different layers.
-- Do not rename an invented or unnamed NPC into an existing fixed character after that NPC has already been described.
-- Do not attach a fixed character name to an NPC if appearance, role, course/year, energy, relationships, location, timing or behavior contradicts that character's card.
-- A fixed named character may enter only if current roster, calendar/current day, scheduled/delayed state, explicit player action, or already played setup allows it.
-- If unsure whether a person is a fixed character, keep them unnamed/background and do not use a canon name.
-
-Witness and knowledge boundary:
-- Characters know only what they saw, heard, were told, or can plausibly infer from visible signs.
-- A delayed/absent/off-screen/not-yet-introduced character must not reference a previous scene as if they witnessed it.
-- If a character arrives late, they know only what happened after arrival unless someone tells them on-screen or knowledge_state says they know.
-- If they need to refer to someone from an unobserved scene, use uncertainty: "тот парень?", "тот рыжий?", "о ком вы?", "я что-то пропустил?".
-- When the player brings in a delayed character, use their card from that point onward, but do not grant retroactive knowledge.
-
-Scene prose:
-- Write only what visibly happens now.
-- Keep paragraphs short and concrete.
-- No long literary water, decorative philosophy, or bloated emotional explanation.
-- Prefer action/reaction/dialogue over abstract atmosphere.
-
-Player action boundary:
-- The player's latest explicit action is the hard scene boundary.
-- Do not move Akira beyond the last written action.
-- Do not complete implied next steps, new locations, procedures, time skips, or plot beats.
-
-Academy social reactions:
-- Students are status-conscious, strong, ambitious, jealous, curious, arrogant, competitive or reckless.
-- Akira's sharp look must not make everyone silent, afraid, obedient or respectful.
-- Use varied reactions: challenge, mockery, jealousy, curiosity, gossip, provocation, avoidance, indifference.
-- Rumors/social media must be mixed and believable, not all kind or all hostile.
+Use the old Academy visual-novel header and bottom blocks from gpt/scene_format.md.
+Keep normal narration as plain text. Use italics only for short stage remarks or brief physical details.
+Dialogue format: **Name/visible descriptor** — text. (*short remark if needed*)
+Do not use quotation marks around dialogue.
+Action options must be direct actions, not `Акира может...`.
 """
-    return str(base_digest).rstrip() + "\n\n" + strict.strip() + "\n"
+    return str(base_digest).rstrip() + "\n\n" + reminder.strip() + "\n"
 
 
 def strict_output_format_contract() -> dict[str, Any]:
     return {
-        "priority": "highest_for_scene_output",
+        "priority": "scene_output_format",
         "selected_style": "academy_old_visual_novel_header_v2",
         "header_template": [
             "🏛️ Академия Астрейн · 1198 г., 15 августа, пн",
@@ -136,9 +81,9 @@ def strict_output_format_contract() -> dict[str, Any]:
             "🌦️ Погода: ...",
             "⚙️ Активное состояние сцены: учитывать в тексте, действиях и предметах",
             "",
-            "✦ видимое состояние Акиры",
-            "🧥 одежда/форма только из current_state",
-            "◈ предметы при себе / рядом только из current_state / последнего видимого кадра",
+            "✦ short visible Akira condition",
+            "🧥 current_outfit_from_state_only",
+            "◈ visible carried/nearby items",
             "",
             "━━━━━━━━━━━━━━━━━━━━",
         ],
@@ -146,31 +91,22 @@ def strict_output_format_contract() -> dict[str, Any]:
         "bottom_blocks": [
             "━━━━━━━━━━━━━━━━━━━━",
             "✦ Что можно сделать",
-            "Варианты ниже не считаются действием, пока игрок не выбрал.",
-            "◈ ...",
+            "◈ direct action",
             "✦ Что Акира могла бы сказать",
-            "— “...”",
+            "— line without quotation marks",
             "✦ Мысли Акиры",
-            "— ...",
+            "— thought",
+            "✦ Уровни",
+            "Физика/энергия numeric totals",
+            "✦ Отношения",
+            "current total scores",
         ],
         "rules": [
             "Final gameplay answer is the scene only.",
-            "Every spoken line starts with bold speaker name or visible descriptor.",
-            "Use latest visible scene facts for immediate continuity before stale state or old suggested options.",
-            "Bottom-block options are not facts until player chooses them.",
-            "Track object holders and positions; do not teleport props.",
-            "Akira unspoken text is context only, not a visible fact and not scene-system knowledge.",
-            "Characters and scene systems may react only to visible signs, not to an unspoken Akira plan or worry.",
-            "Do not make procedure, coincidence, NPC line or scene event conveniently answer Akira's unspoken context.",
-            "Do not rename invented/unnamed NPCs into fixed canon characters after description.",
-            "Do not attach a canon name to an NPC if card/calendar facts do not match.",
-            "Delayed/absent/off-screen characters cannot know scenes they missed unless told or saved in knowledge_state.",
-            "Write only what visibly happens now; no long literary water or decorative philosophy.",
-            "The latest explicit player action is the hard scene boundary; do not move Akira beyond it.",
-            "Do not complete implied next steps, new locations, procedures or time skips unless player wrote them.",
-            "Academy students are not convenient fearful background; reactions must be varied and status-aware.",
-            "Akira thoughts only in bottom block: Мысли Акиры.",
-            "If output format, immediate continuity, visible-source rule, canon identity, witness boundary or action boundary is wrong, rewrite before sending.",
+            "Use loaded scene_format.md and runtime_scene_rules_digest.md for detailed style.",
+            "Normal narration is plain text; italics only for short stage remarks.",
+            "Action options are direct actions and do not start with 'Акира может'.",
+            "Do not use quotation marks around dialogue or speech options.",
         ],
     }
 
@@ -183,4 +119,4 @@ base.output_format_contract = strict_output_format_contract
 
 ccp.recommended_files_for_context = recommended_files_with_scene_format
 
-app.version = "0.3.55-canon-identity-witness-v20"
+app.version = "0.3.62-clean-scene-format-v22"
