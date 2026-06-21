@@ -1,0 +1,50 @@
+{
+  "schema_version": "relationship_score_panel_v1",
+  "relationship_score_formula": {
+    "positive_weights": {
+      "trust": 1.2,
+      "respect": 1.0,
+      "interest": 0.8,
+      "warmth": 1.2,
+      "attachment": 1.5
+    },
+    "negative_weights": {
+      "tension": -0.8,
+      "irritation": -0.7,
+      "fear": -1.0,
+      "resentment": -1.2,
+      "suspicion": -1.0
+    },
+    "clamp": [-100, 100],
+    "round": true,
+    "note": "Visible panel shows total score, not per-scene delta. Interest alone is not warmth."
+  },
+  "relationship_score_panel": {
+    "akira__livia": {
+      "score": 0,
+      "label": "неясно"
+    },
+    "akira__kir": {
+      "score": 0,
+      "label": "неясно"
+    },
+    "akira__haru": {
+      "score": 0,
+      "label": "неясно"
+    },
+    "akira__raiden": {
+      "score": 0,
+      "label": "неясно"
+    }
+  },
+  "label_scale": {
+    "-80..-60": "враждебность",
+    "-59..-35": "сильное напряжение",
+    "-34..-15": "настороженность",
+    "-14..14": "неясно",
+    "15..34": "интерес",
+    "35..54": "доверие",
+    "55..74": "близость",
+    "75..100": "сильная привязанность"
+  }
+}
