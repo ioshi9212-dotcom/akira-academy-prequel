@@ -90,7 +90,10 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Start with compact visual header.
 - Then visual-novel prose.
 - Spoken line format: **Name/descriptor** — speech. (*short remark*)
-- Descriptions are separate italic paragraphs.
+- Normal narration is plain text, not automatic italic.
+- Use italics only for short stage remarks, visible actions, body reactions, or brief physical atmosphere.
+- Do not turn every description into italic paragraph.
+- Do not use long lyric italic inserts between every action.
 - Write only what visibly happens now. No long literary water, no decorative philosophy, no bloated emotional explanation.
 - Prefer concrete action/reaction/visible detail over abstract narration.
 - Keep paragraphs short. One beat = one visible action, reaction, line, or consequence.
@@ -98,6 +101,10 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
   - Что можно сделать
   - Что Акира могла бы сказать
   - Мысли Акиры
+  - Состояние
+  - Отношения
+- In "Что можно сделать", write direct actions only. Do not start with "Акира может".
+- Put exact spoken lines only in "Что Акира могла бы сказать", not inside action options.
 - No empty scenes: every scene needs reaction, hook, conflict, consequence, relationship movement, reputation movement, time movement or useful transition.
 - Meaningful beat must come from visible scene pressure, procedure, NPC goal, witness, relationship or consequence, not from a convenient answer to Akira's unspoken context.
 
@@ -141,26 +148,6 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Hidden lore is author/engine knowledge, not automatic NPC knowledge.
 - If Akira and Raiden are both truly in the active scene, use hidden raiden/akira bond only as subtext unless revealed by state/knowledge.
 
-## Exact 15-turn compaction + chat/state audit
-
-This is mandatory on exact gameplay-turn milestones: 15, 30, 45, 60, 75, 90 and every next multiple of 15.
-
-Use `story_lines.turn_counter.game_turn_number` or the closest available gameplay turn counter. Do not count technical/debug/API/file-check/rule-edit turns.
-
-At every exact 15-game-turn milestone, and also if a missed milestone is detected:
-1. Read the last 15 gameplay scene entries from scene_history / recent scene text available in runtime digest.
-2. Extract played facts from the actual scene text, not only from current state: who appeared; who saw whom; who heard whose name; who knows a name; who spoke directly; important actions/quotes; object positions and holders; relationship triggers; knowledge sources; public witnesses; calendar beats actually played.
-3. Compare those facts with saved state: story_lines, knowledge_state, relationships, calendar_runtime, current_state, rumors_state, reputation_state.
-4. If a played fact exists in scene_history/chat text but is missing from saved state, write it through apply-turn-result.
-5. If a played fact contradicts saved state, correct saved state if possible.
-6. If the contradiction has already appeared in visible prose, add a soft-retcon note to story_lines/next_beats and fix it through natural logic in the next scene.
-7. Only after this audit, compact repeated/minor events.
-
-Example:
-If a delayed character was not in an earlier scene, that character cannot refer to exact details of that scene unless someone told them.
-If an invented student was already shown with details that do not match a fixed card, that student cannot later become a fixed named character.
-If names were not exchanged, the correction is: "seen before, not formally introduced"; "first normal conversation"; "first time Akira heard the name"; not "first meeting".
-
 ## State write
 
 - Backend does not infer state from prose.
@@ -169,5 +156,4 @@ If names were not exchanged, the correction is: "seen before, not formally intro
 - Do not save Akira's unspoken internal text as another character's knowledge without visible source.
 - If a character enters late, save their actual entry point and do not backfill them as witness to earlier scenes.
 - If an invented NPC becomes meaningful, save them as a session NPC, not as an existing canon character.
-- At 15/30/45/etc. include audit findings in story_lines_changes / knowledge_changes / relationship_changes / calendar_runtime_changes as needed.
 - After apply-turn-result, final visible answer must remain the scene, not changed_files/status.
