@@ -1,6 +1,6 @@
-# Progress, relationship panel, scene density and choice block rules
+# Progress, relationship panel and choice block rules
 
-This file defines the visible end-of-scene panel, relationship totals, dense scene prose, italic remarks and bottom choice formatting.
+This file defines the visible end-of-scene panel, relationship totals, stage remarks and bottom choice formatting.
 
 ## Purpose
 
@@ -8,7 +8,7 @@ Akira must not be treated as automatically perfect. Training, conflict, fatigue,
 
 The panel shows current totals, not only the change from the last scene.
 
-Scene prose must stay dense and playable: dialogue, short stage remarks, visible action, consequence. Do not drown the scene in decorative paragraphs.
+Do not make prose dry or report-like. Keep the scene readable and alive.
 
 ## End-of-scene panel
 
@@ -103,29 +103,15 @@ Adapt labels to character personality when useful:
 - Хару: `явный интерес`, `тянется ближе`, `сильная симпатия`;
 - Райден: `холодная настороженность`, `молча наблюдает`, `держится рядом`.
 
-## Scene density
+## Scene prose style
 
-Use dense interactive scene prose.
+Normal narration is plain text, not automatic italic.
 
-Preferred rhythm:
-- dialogue line;
-- short italic stage remark if needed;
-- visible action or reaction;
-- next dialogue line.
-
-Every paragraph must do at least one job:
-- move the scene;
-- show a visible reaction;
-- change position or object state;
-- create conflict or pressure;
-- reveal usable information;
-- change relationship, knowledge, state, rumor or schedule.
-
-Delete paragraphs that only repeat mood, decorate the prose, or say the same emotion in prettier words.
-
-## Italic remarks
-
-Use italics for stage remarks, visible action, body reaction, physical detail or brief atmospheric pressure.
+Use italics only for:
+- short stage remarks;
+- visible action;
+- body reaction;
+- brief physical atmosphere.
 
 Good:
 
@@ -142,6 +128,8 @@ Short remark can stay inside the dialogue line:
 ```
 
 Do not use italics for long lyric inserts, repeated inner monologue, philosophy or decorative mood between every action.
+
+Do not make the scene a dry checklist. Keep it as visual-novel prose with clear action and readable rhythm.
 
 ## Action choices block
 
@@ -212,32 +200,6 @@ If the choice is mostly movement, put it only in action.
 
 If the scene changes progress or relationships, save internal deltas with reasons, but visible panel still shows totals.
 
-Example:
-
-```json
-{
-  "akira_progress_state_changes": {
-    "stamina": -3,
-    "fatigue": 5,
-    "combat_habit": 1,
-    "reason": "short hard physical exchange"
-  },
-  "relationship_changes": {
-    "akira__kir": {
-      "curiosity": 2,
-      "tension": 1,
-      "reason": "he noticed Akira hiding a reaction but got no explanation"
-    }
-  },
-  "relationship_score_panel_changes": {
-    "akira__kir": {
-      "score": 11,
-      "label": "осторожный интерес"
-    }
-  }
-}
-```
-
 Do not save every tiny glance. Save only meaningful changes.
 
 ## Final check before sending
@@ -247,6 +209,7 @@ Rewrite the scene or bottom blocks if:
 - an action contains a finished witty threat or exact quote;
 - a speech option describes an action instead of giving a line;
 - all action options are just different ways to say a line;
+- normal narration is mostly italic;
 - italic paragraphs are doing only decorative mood work;
-- the scene contains too many empty atmospheric paragraphs;
+- the scene became a dry checklist instead of visual-novel prose;
 - the visible relationship panel shows only scene delta instead of current total score.
