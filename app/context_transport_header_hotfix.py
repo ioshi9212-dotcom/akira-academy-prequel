@@ -1,8 +1,8 @@
-"""Runtime header/footer hotfix v24.
+"""Runtime header/footer hotfix v25 cleanup.
 
 Keeps runtime simple, serves a minimal GPT-compatible OpenAPI schema,
 enables living NPC memory, explicit non-Akira POV mode, scene format rules,
-and size-guard context/turn-contract endpoints.
+and a transport-only size guard for context/turn-contract endpoints.
 
 Important: OpenAPI must expose TurnContractWithPromptPreview schema because
 the smoke test checks that exact component name.
@@ -46,7 +46,7 @@ try:
 except Exception:
     response_size_guard_patch = None
 
-app.version = "0.3.57-response-size-guard-openapi-v2"
+app.version = "0.3.62-clean-scene-runtime"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy scene format
@@ -179,24 +179,9 @@ def _session_path_param() -> dict:
 
 def _chunk_query_params() -> list[dict]:
     return [
-        {
-            "name": "chunk_index",
-            "in": "query",
-            "required": False,
-            "schema": {"type": "integer", "default": 0},
-        },
-        {
-            "name": "max_chars",
-            "in": "query",
-            "required": False,
-            "schema": {"type": "integer", "default": 30000},
-        },
-        {
-            "name": "max_items",
-            "in": "query",
-            "required": False,
-            "schema": {"type": "integer", "default": 3},
-        },
+        {"name": "chunk_index", "in": "query", "required": False, "schema": {"type": "integer", "default": 0}},
+        {"name": "max_chars", "in": "query", "required": False, "schema": {"type": "integer", "default": 30000}},
+        {"name": "max_items", "in": "query", "required": False, "schema": {"type": "integer", "default": 3}},
     ]
 
 
