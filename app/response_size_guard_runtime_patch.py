@@ -1,13 +1,11 @@
 """
-Response size guard runtime patch v6.
+Response size guard runtime patch v7.
 
-Keeps getSessionContext and getSessionTurnContract small, but does not starve the scene
-assembly. Calendar/day/state files stay available through chunked required files.
-
-Also separates visible header state from numeric progress levels:
-- header state = short current visible condition;
-- bottom levels panel = physical/energy numeric totals;
-- relationship panel = computed total scores, not per-scene deltas.
+Purpose:
+- keep getSessionContext and getSessionTurnContract small;
+- avoid ResponseTooLargeError;
+- preserve the normal scene assembly instead of replacing it with a narrow hand-made list;
+- keep progress/relationship state available without adding extra style locks.
 """
 
 from __future__ import annotations
@@ -24,13 +22,12 @@ import app.compact_context_patch as ccp
 CONTEXT_PATH = "/api/v1/sessions/{session_id}/context"
 TURN_CONTRACT_PATH = "/api/v1/sessions/{session_id}/turn-contract"
 
-PROGRESS_FILES = [
-    "gpt/locks/progress_panel_rules.md",
+CORE_PROGRESS_STATE_FILES = [
     "state/akira_progress_state.json",
     "state/relationship_score_panel.json",
 ]
 
-LIGHT_STATE_FILES = [
+CORE_STATE_FILES = [
     "state/current_state.json",
     "state/inventory_state.json",
     "state/story_lines.json",
@@ -40,13 +37,18 @@ LIGHT_STATE_FILES = [
     "state/location_registry.md",
 ]
 
-BASE_RULE_FILES = [
+ESSENTIAL_RULE_FILES = [
     "runtime/scene_context_digest.md",
     "gpt/locks/runtime_scene_rules_digest.md",
     "gpt/scene_format.md",
     "gpt/locks/npc_living_scene_rules.md",
-    "gpt/locks/outfit_state_lock.md",
 ]
+
+DISABLED_EXTRA_LOCKS = {
+    "gpt/locks/scene_density_choice_rules.md",
+    "gpt/locks/progress_panel_rules.md",
+    "gpt/locks/outfit_state_lock.md",
+}
 
 DISPLAY_NAMES = {
     "livia_cross": "Ливия",
@@ -66,10 +68,7 @@ def _remove_routes(path: str, methods: set[str] | None = None, operation_id: str
         route_path = getattr(route, "path", None)
         route_methods = set(getattr(route, "methods", set()) or set())
         route_operation_id = getattr(route, "operation_id", None)
-        match_path = route_path == path
-        match_methods = methods is None or bool(route_methods & methods)
-        match_operation = operation_id is None or route_operation_id == operation_id
-        if match_path and match_methods and match_operation:
+        if route_path == path and (methods is None or bool(route_methods & methods)) and (operation_id is None or route_operation_id == operation_id):
             continue
         keep.append(route)
     app.router.routes = keep
@@ -79,7 +78,7 @@ def _unique(values: list[Any]) -> list[str]:
     result: list[str] = []
     for value in values:
         item = str(value or "").strip()
-        if item and item not in result:
+        if item and item not in result and item not in DISABLED_EXTRA_LOCKS:
             result.append(item)
     return result
 
@@ -136,27 +135,32 @@ def _compact_text(value: Any, limit: int = 900) -> Any:
     return str(value)[:limit]
 
 
-def _base_scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
-    try:
-        chars = base.active_scene_characters(current, future)
-        if chars:
-            return _unique([_canonical_id(c) for c in chars])
-    except Exception:
-        pass
-    try:
-        chars = ccp.active_scene_characters(current, future)  # type: ignore[attr-defined]
-        if chars:
-            return _unique([_canonical_id(c) for c in chars])
-    except Exception:
-        pass
+def _base_recommended_files(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
+    for func in (
+        getattr(rt, "lean_recommended_files_for_context", None),
+        getattr(base, "recommended_files_for_context", None),
+        getattr(ccp, "recommended_files_for_context", None),
+    ):
+        if not callable(func):
+            continue
+        try:
+            files = list(func(current, future) or [])
+            if files:
+                return _unique(files)
+        except Exception:
+            continue
     return []
 
 
 def _scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
     values: list[Any] = ["akira"]
-    values.extend(_base_scene_chars(current, future))
 
-    fields = [
+    try:
+        values.extend(base.active_scene_characters(current, future) or [])
+    except Exception:
+        pass
+
+    for field in (
         "active_characters",
         "nearby_characters",
         "speaking_character_ids",
@@ -166,8 +170,7 @@ def _scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
         "mentioned_character_ids",
         "scheduled_character_ids",
         "delayed_character_ids",
-    ]
-    for field in fields:
+    ):
         values.extend(current.get(field, []) or [])
 
     for thread in current.get("open_threads", []) or []:
@@ -178,7 +181,7 @@ def _scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
         if isinstance(lock, dict) and lock.get("status") in {"due", "active", "triggered"}:
             values.extend(lock.get("participants", []) or [])
 
-    # First-day Academy entry needs these files even if the compact state forgot to list them.
+    # Safety for the first Academy day: make files available, do not force dialogue.
     if str(current.get("current_date") or "") == "1198-08-15":
         values.extend(["livia_cross", "haru_foster", "raiden_sterling", "kir"])
 
@@ -187,17 +190,16 @@ def _scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
         cid = _canonical_id(value)
         if not cid or cid in {"students", "staff", "crowd", "academy_staff", "new_students_block_b"}:
             continue
-        if _known_character_folder(cid) or cid == "akira":
+        if cid == "akira" or _known_character_folder(cid):
             result.append(cid)
     return _unique(result)
 
 
-def _character_files_compact(cid: str) -> list[str]:
+def _character_files(cid: str) -> list[str]:
     folder = _known_character_folder(cid)
     if not folder:
         return []
     files: list[str] = []
-    # character.yaml gives voice/behavior; main.yaml gives appearance/energy; past only for active scene chars when needed via chunks, not compact contract.
     for rel in (
         f"characters/{folder}/character.yaml",
         f"characters/{folder}/main.yaml",
@@ -209,34 +211,34 @@ def _character_files_compact(cid: str) -> list[str]:
 
 def _calendar_files(current: dict[str, Any]) -> list[str]:
     files: list[str] = []
-    for rel in ("calendar/calendar_index.yaml",):
-        if _repo_exists(rel):
-            files.append(rel)
+    if _repo_exists("calendar/calendar_index.yaml"):
+        files.append("calendar/calendar_index.yaml")
     current_date = str(current.get("current_date") or "").strip()
     if current_date:
         day_file = f"calendar/days/{current_date}.yaml"
         if _repo_exists(day_file):
             files.append(day_file)
-    # Legacy fallback still contains some first-scene scheduling in older setups.
     if _repo_exists("state/academy_schedule.json"):
         files.append("state/academy_schedule.json")
     return files
 
 
 def _existing_files(paths: list[str]) -> list[str]:
-    return [rel for rel in paths if _repo_exists(rel)]
+    return [path for path in paths if _repo_exists(path) and path not in DISABLED_EXTRA_LOCKS]
 
 
 def _required_files(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
     files: list[str] = []
-    files.extend(_existing_files(BASE_RULE_FILES))
+    # Preserve old assembly first, then add only lightweight essentials.
+    files.extend(_base_recommended_files(current, future))
+    files.extend(_existing_files(ESSENTIAL_RULE_FILES))
     if _repo_exists("characters/character_id_index.md"):
         files.append("characters/character_id_index.md")
-    files.extend(_existing_files(LIGHT_STATE_FILES))
+    files.extend(_existing_files(CORE_STATE_FILES))
     files.extend(_calendar_files(current))
     for cid in _scene_chars(current, future):
-        files.extend(_character_files_compact(cid))
-    files.extend(_existing_files(PROGRESS_FILES))
+        files.extend(_character_files(cid))
+    files.extend(_existing_files(CORE_PROGRESS_STATE_FILES))
     return _unique(files)
 
 
@@ -299,10 +301,7 @@ def _story_slice(story: Any) -> dict[str, Any]:
     if not isinstance(story, dict):
         return {}
     shared = story.get("shared_events")
-    if isinstance(shared, list):
-        shared = shared[-14:]
-    else:
-        shared = []
+    shared = shared[-14:] if isinstance(shared, list) else []
     return {
         "turn_counter": _compact_text(story.get("turn_counter"), 1000),
         "daily_timeline": _compact_text(story.get("daily_timeline"), 1800),
@@ -389,7 +388,7 @@ def _label_for_pair(pair_id: str, score: int) -> str:
 
 
 def _display_name_for_pair(pair_id: str) -> str:
-    parts = [p for p in pair_id.split("__") if p and p != "akira"]
+    parts = [part for part in pair_id.split("__") if part and part != "akira"]
     other = parts[0] if parts else pair_id
     return DISPLAY_NAMES.get(other, other)
 
@@ -398,11 +397,13 @@ def _computed_relationship_panel(relationships: Any, stored_panel: Any) -> dict[
     pairs = relationships.get("pairs") if isinstance(relationships, dict) else {}
     if not isinstance(pairs, dict):
         return stored_panel if isinstance(stored_panel, dict) else {}
+
     stored_items = {}
     if isinstance(stored_panel, dict):
         stored_items = stored_panel.get("relationship_score_panel") or {}
         if not isinstance(stored_items, dict):
             stored_items = {}
+
     wanted = [
         "akira__livia_cross",
         "akira__kir",
@@ -414,6 +415,7 @@ def _computed_relationship_panel(relationships: Any, stored_panel: Any) -> dict[
         "akira__haru_foster": ["akira__haru_foster", "akira__haru"],
         "akira__raiden_sterling": ["akira__raiden_sterling", "akira__raiden"],
     }
+
     result: dict[str, Any] = {}
     for pair_id in wanted:
         data = pairs.get(pair_id)
@@ -448,7 +450,7 @@ def _progress_slice(session_id: str, relationships: Any | None = None) -> dict[s
         "akira_progress_state": _compact_text(progress, 1400),
         "relationship_score_panel": _compact_text(relationship_panel, 1400),
         "computed_relationship_score_panel": _compact_text(computed_panel, 1400),
-        "visible_panel_rule": "Header state is short condition text. Bottom 'Уровни' is numeric physical/energy totals. Relationship panel shows current total scores, not per-scene deltas.",
+        "visible_panel_rule": "Header state is short current condition. Bottom 'Уровни' is numeric physical/energy totals. Relationship panel shows current total scores, not per-scene deltas.",
     }
 
 
@@ -492,22 +494,12 @@ def _small_output_contract() -> dict[str, Any]:
             "✦ Отношения",
         ],
         "rules": [
+            "Use old Academy scene format and loaded scene rules.",
             "Final gameplay answer must be the scene only, not API/status/debug summary.",
-            "Normal narration is plain text; italics only for short stage remarks or brief physical detail.",
-            "Do not wrap scene dialogue or speech options in quotation marks.",
-            "Dialogue format: **Name/descriptor** — text without quotes. (*short remark if needed*)",
-            "Action choices must be direct actions; do not start with 'Акира может'.",
-            "Do not put ready spoken lines inside action choices; exact lines go only to 'Что Акира могла бы сказать'.",
-            "Use latest visible scene facts before stale state or old options.",
-            "Player controls only Akira; do not invent Akira speech unless written outside parentheses.",
-            "Characters know only what they saw, heard, were told, or can infer from visible signs.",
-            "Do not rename invented/unnamed NPCs into fixed canon characters after description.",
-            "Header outfit must include all saved current_outfit items; do not omit top if state says top.",
-            "Bottom 'Уровни' shows numeric physical/energy totals only, not text mood.",
-            "Bottom 'Отношения' shows current total score plus label, not per-scene delta.",
-            "Prefer computed_relationship_score_panel over stale stored panel values.",
-            "Training can improve stats but may also increase fatigue, risk, or injury.",
-            "Stop at a player choice point when Akira is directly challenged or questioned.",
+            "Header ✦ is short current visible condition.",
+            "Bottom ✦ Уровни shows numeric physical/energy totals only.",
+            "Bottom ✦ Отношения shows current total score plus label, not only scene delta.",
+            "Do not start action choices with 'Акира может'.",
         ],
     }
 
@@ -520,10 +512,8 @@ def _small_prompt_preview(chars: list[str], required_files: list[str]) -> str:
         "- Render scene only after chunks are loaded.\n"
         f"- Focus characters: {', '.join(chars)}.\n"
         f"- Required files count: {len(required_files)}.\n"
-        "- First-day/caledar files must be used for scheduled characters and scene setup.\n"
-        "- Header ✦ = short current visible condition. Bottom ✦ Уровни = numeric physical/energy levels.\n"
-        "- No quotation marks around dialogue or speech options.\n"
-        "- Action choices are direct actions, never 'Акира может...'.\n"
+        "- Use old Academy scene style from loaded files.\n"
+        "- Header state is short condition; bottom Уровни is numeric.\n"
     )
 
 
@@ -557,6 +547,7 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
     inventory = _safe_read_json("state/inventory_state.json", sid, {})
     relationships = _safe_read_json("state/relationships.json", sid, {})
     story_lines = _safe_read_json("state/story_lines.json", sid, {})
+
     chars = _scene_chars(current, future)
     files = _required_files(current, future)
 
@@ -564,10 +555,8 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
         "Call getRequiredFilesManifest next.",
         "Then call getRequiredFilesChunk starting with chunk_index=0 until has_more=false.",
         "Do not render gameplay from this compact contract alone.",
-        "Use calendar/day files for first scene scheduled characters, including Haru/Raiden when scheduled.",
-        "Use latest visible scene facts before stale current_state.",
+        "Use loaded calendar/day files for scheduled characters and scene setup.",
         "Header ✦ is short visible condition; bottom ✦ Уровни is numeric levels only.",
-        "Do not use quotation marks around dialogue or speech choices.",
         "Do not start action choices with 'Акира может'.",
         "Use computed_relationship_score_panel from relationships.json when available.",
     ]
@@ -596,4 +585,4 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
     )
 
 
-app.version = "0.3.61-scene-recovery-v1"
+app.version = "0.3.62-clean-sizeguard-v7"
