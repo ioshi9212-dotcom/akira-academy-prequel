@@ -20,7 +20,7 @@ After the usual blocks, add:
 
 ✦ Отношения
 
-Ливия: +24 · тёплый контакт
+Ливия: +53 · старые подруги
 Кир: +9 · осторожный интерес
 Хару: +18 · явный интерес
 Райден: -3 · холодная настороженность
@@ -74,7 +74,7 @@ Do not increase stats just because Akira exists in the scene. Use evidence.
 
 ## Relationship total score
 
-Detailed relationship fields remain internal: trust, interest, respect, warmth, attachment, tension, irritation, fear, resentment, suspicion.
+Detailed relationship fields remain internal: affection, trust, curiosity/interest, respect, warmth, attachment, tension, irritation, fear, resentment, suspicion.
 
 The visible relationship panel shows one summed score per character.
 
@@ -82,8 +82,10 @@ Suggested score logic:
 
 ```txt
 score =
-  trust * 1.2
+  affection * 1.2
++ trust * 1.2
 + respect * 1.0
++ curiosity * 0.8
 + interest * 0.8
 + warmth * 1.2
 + attachment * 1.5
@@ -92,11 +94,14 @@ score =
 - fear * 1.0
 - resentment * 1.2
 - suspicion * 1.0
+- jealousy * 0.4
 ```
 
 Round to integer and clamp to -100..100.
 
-Interest alone is not warmth. A character can be interested and still tense, wary or irritated.
+Interest/curiosity alone is not warmth. A character can be interested and still tense, wary or irritated.
+
+Existing relationship fields are the source of truth. If `relationship_score_panel` is missing, zero, or stale, recalculate the visible total from `relationships.json`.
 
 ## Relationship labels
 
@@ -113,9 +118,10 @@ General labels:
 - +75..+100: сильная привязанность
 
 Adapt labels to character personality when useful:
-- reserved character: `осторожный интерес`, `молча наблюдает`, `доверяет неохотно`;
-- warm character: `тёплый контакт`, `явно тянется`, `защищает без просьбы`;
-- cold character: `холодная настороженность`, `держит дистанцию`, `молча держится рядом`.
+- Ливия: `старые подруги`, `тёплая близость`, `почти семья`;
+- Кир: `осторожный интерес`, `доверяет неохотно`, `свой, но язвит`;
+- Хару: `явный интерес`, `тянется ближе`, `сильная симпатия`;
+- Райден: `холодная настороженность`, `молча наблюдает`, `держится рядом`.
 
 ## State write rules
 
@@ -133,7 +139,7 @@ Example:
   },
   "relationship_changes": {
     "akira__kir": {
-      "interest": 2,
+      "curiosity": 2,
       "tension": 1,
       "reason": "he noticed Akira hiding a reaction but got no explanation"
     }
