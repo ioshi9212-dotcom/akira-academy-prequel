@@ -1,12 +1,8 @@
 """
-Response size guard runtime patch v2.
+Response size guard runtime patch v4.
 
-Keeps getSessionContext and getSessionTurnContract small so GPT Actions do not stop
-with ResponseTooLargeError after a long session.
-
-Full state and required file contents must be loaded through:
-- getRequiredFilesManifest
-- getRequiredFilesChunk
+Keeps getSessionContext and getSessionTurnContract small.
+Adds progress panel files to the compact contract so gameplay can show current totals.
 """
 
 from __future__ import annotations
@@ -20,9 +16,14 @@ from app.context_transport_runtime_patch import app
 from app import compact as base
 import app.compact_context_patch as ccp
 
-
 CONTEXT_PATH = "/api/v1/sessions/{session_id}/context"
 TURN_CONTRACT_PATH = "/api/v1/sessions/{session_id}/turn-contract"
+
+PROGRESS_FILES = [
+    "gpt/locks/progress_panel_rules.md",
+    "state/akira_progress_state.json",
+    "state/relationship_score_panel.json",
+]
 
 
 def _remove_routes(path: str, methods: set[str] | None = None, operation_id: str | None = None) -> None:
@@ -107,11 +108,9 @@ def _scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
     values: list[Any] = ["akira"]
     for field in fields:
         values.extend(current.get(field, []) or [])
-
     for thread in current.get("open_threads", []) or []:
         if isinstance(thread, dict) and thread.get("status") in {"due", "active", "triggered"}:
             values.extend(thread.get("participants", []) or [])
-
     for lock in (future.get("locks") or {}).values():
         if isinstance(lock, dict) and lock.get("status") in {"due", "active", "triggered"}:
             values.extend(lock.get("participants", []) or [])
@@ -143,33 +142,32 @@ def _character_files_compact(cid: str) -> list[str]:
     return files
 
 
+def _existing_files(paths: list[str]) -> list[str]:
+    result: list[str] = []
+    for rel in paths:
+        try:
+            if rel == "runtime/scene_context_digest.md" or base.repo_file_exists(rel):
+                result.append(rel)
+        except Exception:
+            if rel == "runtime/scene_context_digest.md":
+                result.append(rel)
+    return result
+
+
 def _required_files(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
-    files: list[str] = []
-    for rel in (
+    files: list[str] = _existing_files([
         "runtime/scene_context_digest.md",
         "gpt/locks/runtime_scene_rules_digest.md",
         "gpt/scene_format.md",
         "characters/character_id_index.md",
-    ):
-        try:
-            if base.repo_file_exists(rel) or rel == "runtime/scene_context_digest.md":
-                files.append(rel)
-        except Exception:
-            files.append(rel)
-
+    ])
     for cid in _scene_chars(current, future):
         files.extend(_character_files_compact(cid))
-
-    # Keep useful light rule file if present; avoid old heavy locks and past.yaml in compact turn-contract.
-    for rel in (
+    files.extend(_existing_files([
         "gpt/locks/npc_living_scene_rules.md",
-    ):
-        try:
-            if base.repo_file_exists(rel):
-                files.append(rel)
-        except Exception:
-            pass
-
+        "gpt/locks/outfit_state_lock.md",
+    ]))
+    files.extend(_existing_files(PROGRESS_FILES))
     return _unique(files)
 
 
@@ -244,6 +242,16 @@ def _story_slice(story: Any) -> dict[str, Any]:
     }
 
 
+def _progress_slice(session_id: str) -> dict[str, Any]:
+    progress = _safe_read_json("state/akira_progress_state.json", session_id, {})
+    relationship_panel = _safe_read_json("state/relationship_score_panel.json", session_id, {})
+    return {
+        "akira_progress_state": _compact_text(progress, 1400),
+        "relationship_score_panel": _compact_text(relationship_panel, 1400),
+        "visible_panel_rule": "Show current total scores, not only per-scene deltas.",
+    }
+
+
 class SizeGuardContextResponse(BaseModel):
     session_id: str
     mode: str = "size_guard_compact_context"
@@ -285,6 +293,8 @@ def _small_output_contract() -> dict[str, Any]:
             "✦ Что можно сделать",
             "✦ Что Акира могла бы сказать",
             "✦ Мысли Акиры",
+            "✦ Состояние",
+            "✦ Отношения",
         ],
         "rules": [
             "Final gameplay answer must be the scene only, not API/status/debug summary.",
@@ -295,6 +305,9 @@ def _small_output_contract() -> dict[str, Any]:
             "Delayed/absent/off-screen characters cannot know scenes they missed unless told or saved in knowledge_state.",
             "Do not rename invented/unnamed NPCs into fixed canon characters after description.",
             "Do not make the scene answer Akira's unspoken text without visible source.",
+            "Show current total progress/relationship scores in the panel, not only scene delta.",
+            "Relationship details stay internal; visible panel shows score plus short label.",
+            "Training can improve stats but may also increase fatigue, risk, or injury.",
             "Stop at a player choice point when Akira is directly challenged or questioned.",
         ],
     }
@@ -310,6 +323,7 @@ def _small_prompt_preview(chars: list[str], required_files: list[str]) -> str:
         f"- Required files count: {len(required_files)}.\n"
         "- Enforce: latest visible facts, canon identity boundary, witness/knowledge boundary, "
         "visible-source rule, player action boundary, scene-only final answer.\n"
+        "- End panel: show current total physical/energy/relationship scores, not just last-scene delta.\n"
     )
 
 
@@ -356,7 +370,11 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
         "Use latest visible scene facts before stale current_state.",
         "Do not grant absent/delayed characters knowledge of scenes they missed.",
         "Do not rename invented/session NPCs into fixed canon characters.",
+        "End panel must show current total progress/relationship scores, not only per-scene deltas.",
     ]
+
+    story_context = _story_slice(story_lines)
+    story_context["progress_panel"] = _progress_slice(sid)
 
     return TurnContractWithPromptPreview(
         session_id=sid,
@@ -372,9 +390,9 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
             "akira_inventory_state": _compact_text((inventory.get("akira") or {}) if isinstance(inventory, dict) else {}, 900),
         },
         relationship_context=_relationship_slice(relationships, chars),
-        story_context=_story_slice(story_lines),
+        story_context=story_context,
         prompt_preview=_small_prompt_preview(chars, files),
     )
 
 
-app.version = "0.3.57-response-size-guard-openapi-v2"
+app.version = "0.3.59-progress-panel-v1"
