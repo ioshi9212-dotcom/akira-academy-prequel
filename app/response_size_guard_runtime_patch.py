@@ -1,11 +1,12 @@
 """
-Response size guard runtime patch v8 clean.
+Response size guard runtime patch v9 recovery.
 
 Purpose:
 - keep getSessionContext and getSessionTurnContract small;
 - avoid ResponseTooLargeError;
 - preserve the normal scene assembly instead of replacing it with a narrow hand-made list;
-- keep progress/relationship state available without adding extra style locks.
+- keep progress/relationship state available without adding extra style locks;
+- keep character files available without leaking engine-known names into visible scene.
 """
 
 from __future__ import annotations
@@ -181,8 +182,19 @@ def _scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
     for lock in (future.get("locks") or {}).values():
         if isinstance(lock, dict) and lock.get("status") in {"due", "active", "triggered"}:
             values.extend(lock.get("participants", []) or [])
+    # First Academy day: keep key character files available for behavior,
+    # but visible text must still use descriptors until POV has an in-scene name source.
     if str(current.get("current_date") or "") == "1198-08-15":
-        values.extend(["livia", "haru", "raiden", "kir"])
+        values.extend(["livia"])
+        scene_text = " ".join([
+            str(current.get("current_location_id") or ""),
+            str(current.get("current_location_text") or ""),
+            str(current.get("current_scene_goal") or ""),
+            str(current.get("current_beat_id") or ""),
+        ]).lower()
+        if any(token in scene_text for token in ("court", "basket", "корт", "баскет")):
+            values.extend(["haru", "raiden"])
+        # Kir is delayed by default; load him only when state/player/calendar makes him active-ish.
     result: list[str] = []
     for value in values:
         cid = _canonical_id(value)
@@ -423,6 +435,9 @@ def _small_output_contract() -> dict[str, Any]:
             "Bottom ✦ Отношения shows current total score plus label, not only scene delta.",
             "Do not start action choices with 'Акира может'.",
             "Do not use quotation marks around dialogue or speech options.",
+            "Loaded character ids are internal; use visible descriptors until POV has a source for the name.",
+            "Do not write Haru/Raiden/Kir by name before introduction, call-out, badge/list/message, or knowledge_state source.",
+            "Academy scene is not a step-by-step checklist; resolve routine movement to the nearest meaningful point.",
         ],
     }
 
@@ -433,10 +448,12 @@ def _small_prompt_preview(chars: list[str], required_files: list[str]) -> str:
         "- This turn-contract is compact; do not stop here.\n"
         "- Next load getRequiredFilesManifest, then all getRequiredFilesChunk chunks.\n"
         "- Render scene only after chunks are loaded.\n"
-        f"- Focus characters: {', '.join(chars)}.\n"
+        f"- Internal context character ids: {', '.join(chars)}.\n"
         f"- Required files count: {len(required_files)}.\n"
+        "- Loaded ids are not automatically visible names; use descriptors until POV has name source.\n"
         "- Use old Academy scene style from loaded files.\n"
         "- Header state is short condition; bottom Уровни is numeric.\n"
+        "- Scene should feel alive, not a dry checklist; resolve routine movement to nearest meaningful beat.\n"
     )
 
 
@@ -498,4 +515,4 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
     )
 
 
-app.version = "0.3.63-clean-sizeguard-v8"
+app.version = "0.3.64-recovery-sizeguard-v9"
