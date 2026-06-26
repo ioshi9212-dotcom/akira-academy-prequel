@@ -107,7 +107,9 @@ def build_scene_context_digest(session_id: str) -> str:
             "Normal narration is plain text; italics only for short stage remarks or physical details.",
             "Akira thoughts only in bottom block, not inside the scene body.",
             "Bottom blocks use ✦ headings: Что можно сделать / Что Акира могла бы сказать / Мысли Акиры / Уровни / Отношения.",
-            "No empty scene: add hook/reaction/conflict/consequence or time skip.",
+            "No empty scene: add hook/reaction/conflict/consequence or time movement.",
+            "Do not leak engine-known names into visible text before POV has a name source.",
+            "Do not make calendar beats dry; use them as hooks, not prose templates.",
             "Do not answer with technical commentary after a gameplay scene.",
         ],
         "calendar": [

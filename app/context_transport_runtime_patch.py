@@ -35,7 +35,7 @@ from app import compact as base
 import app.compact_context_patch as ccp
 
 app = base.app
-app.version = "0.3.42-context-transport-clean-v10"
+app.version = "0.3.64-recovery-context-v11"
 
 RUNTIME_DIGEST_FILE = "runtime/scene_context_digest.md"
 RUNTIME_SCENE_RULES_DIGEST = "gpt/locks/runtime_scene_rules_digest.md"
@@ -87,6 +87,16 @@ Bottom blocks:
 Текущий общий score + label.
 
 Akira suggestion tone: poisonous, dry, sharp, socially dangerous, not cute-friendly, not generic helper jokes.
+
+Scene direction:
+- Academy is a visual-novel scene, not a dry checklist.
+- Resolve routine movement/waiting/following to the nearest meaningful beat.
+- The world does not freeze when Akira is silent; NPCs act from goals, status, attraction, fear, orders and habits.
+- Light dry director irony is allowed when tied to visible action.
+
+Name visibility:
+- Loaded character id is internal, not visible name permission.
+- Use descriptors until POV has a source for a name.
 """
 
 MEDIUM_ENGINE_DIGEST = """
@@ -468,7 +478,9 @@ def build_scene_context_digest(session_id: str) -> str:
             "Normal narration is plain text; italics only for short stage remarks or physical details.",
             "Akira thoughts only in bottom block, not inside the scene body.",
             "Bottom blocks use ✦ headings: Что можно сделать / Что Акира могла бы сказать / Мысли Акиры / Уровни / Отношения.",
-            "No empty scene: add hook/reaction/conflict/consequence or time skip.",
+            "No empty scene: add hook/reaction/conflict/consequence or time movement.",
+            "Do not leak engine-known names into visible text before POV has a name source.",
+            "Do not make scenes dry checklists; resolve routine action to nearest meaningful beat.",
         ],
         "state_write": [
             "Backend does not infer state from prose.",
@@ -759,4 +771,4 @@ def health_with_version():
 
 
 rt_app = app
-app.version = "0.3.42-context-transport-clean-v10"
+app.version = "0.3.64-recovery-context-v11"

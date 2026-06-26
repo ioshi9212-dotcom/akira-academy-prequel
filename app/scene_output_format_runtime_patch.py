@@ -1,8 +1,8 @@
 """
-Scene output format runtime patch v23 clean.
+Scene output format runtime patch v24 recovery.
 
-Keeps the Academy visual-novel header available without turning style into
-several competing prompt locks. Detailed visible format lives in:
+Keeps the Academy visual-novel header available and restores living scene
+direction after an over-aggressive cleanup. Detailed visible format lives in:
 - gpt/scene_format.md
 - gpt/locks/runtime_scene_rules_digest.md
 """
@@ -69,6 +69,16 @@ Dialogue format: **Name/visible descriptor** — text. (*short remark if needed*
 No quotation marks around dialogue or speech options.
 Action options are direct actions, not `Акира может...`.
 Header `✦` is short visible condition. Bottom `✦ Уровни` is numeric physical/energy totals.
+
+Living direction:
+- Academy is a visual-novel scene, not a dry checklist.
+- Resolve routine movement/waiting/following to the nearest meaningful beat.
+- The world does not freeze when Akira is silent; NPCs act from goals, status, attraction, fear, orders and habits.
+- Light dry director irony is allowed when tied to visible action.
+
+Name visibility:
+- Loaded character id is internal, not visible name permission.
+- Use descriptors until POV has a source for a name: **Рыжий парень на корте**, **Очень высокий тёмноволосый курсант у края площадки**.
 """
     return str(base_digest).rstrip() + "\n\n" + reminder.strip() + "\n"
 
@@ -109,6 +119,8 @@ def strict_output_format_contract() -> dict[str, Any]:
             "Normal narration is plain text; italics only for short stage remarks.",
             "Action options are direct actions and do not start with 'Акира может'.",
             "Do not use quotation marks around dialogue or speech options.",
+            "Loaded character ids are internal; use stable visible descriptors until POV has a name source.",
+            "Do not make the scene a dry checklist; resolve routine movement to the nearest meaningful beat.",
         ],
     }
 
@@ -121,4 +133,4 @@ base.output_format_contract = strict_output_format_contract
 
 ccp.recommended_files_for_context = recommended_files_with_scene_format
 
-app.version = "0.3.63-clean-scene-format-v23"
+app.version = "0.3.64-recovery-scene-format-v24"

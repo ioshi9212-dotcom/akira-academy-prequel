@@ -100,6 +100,10 @@ POV scenes should keep the same quality as normal scenes:
 
 Do not turn POV into a short report or a few paragraphs of summary.
 
+POV scene is still a visual-novel scene: resolve routine movement/waiting/following to the nearest meaningful beat, and let other characters act from their own plans.
+
+Loaded character id is not visible-name permission. If the POV character has not learned a name in-scene, use descriptors until there is a source.
+
 ## Akira as NPC in non-Akira POV
 
 When POV is not Akira, Akira becomes a normal active character in the scene.
