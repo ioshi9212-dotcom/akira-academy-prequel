@@ -87,6 +87,15 @@ Do not write `Мысли Акиры` unless Akira is current POV. In non-Akira P
 - Haru: movement, heat, performance, playful pressure, humor over discomfort.
 - Kael North: observation, system logic, restraint, institutional pressure.
 
+## Dialogue label in POV
+
+Even in POV mode, every spoken line in the visible scene body must start with a bold speaker label:
+- `**Ливия** — ...`
+- `**Акира** — ...`
+- `**Рыжий парень на корте** — ...`
+
+Bare dialogue like `— ...` is forbidden in the body and allowed only in bottom options/thought blocks.
+
 ## Scene richness
 
 POV scenes should keep the same quality as normal scenes:
