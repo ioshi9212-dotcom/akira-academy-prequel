@@ -35,7 +35,7 @@ from app import compact as base
 import app.compact_context_patch as ccp
 
 app = base.app
-app.version = "0.3.64-recovery-context-v11"
+app.version = "0.3.42-context-transport-clean-v10"
 
 RUNTIME_DIGEST_FILE = "runtime/scene_context_digest.md"
 RUNTIME_SCENE_RULES_DIGEST = "gpt/locks/runtime_scene_rules_digest.md"
@@ -70,33 +70,17 @@ Bottom blocks:
 ✦ Что можно сделать
 Варианты ниже не считаются действием, пока игрок не выбрал.
 
-◈ Прямое действие без “Акира может”.
+◈ ...
 
 ✦ Что Акира могла бы сказать
 
-— Реплика без кавычек.
+— “...”
 
 ✦ Мысли Акиры
 
-— Короткая мысль.
-
-✦ Уровни
-Физика/энергия числом.
-
-✦ Отношения
-Текущий общий score + label.
+— ...
 
 Akira suggestion tone: poisonous, dry, sharp, socially dangerous, not cute-friendly, not generic helper jokes.
-
-Scene direction:
-- Academy is a visual-novel scene, not a dry checklist.
-- Resolve routine movement/waiting/following to the nearest meaningful beat.
-- The world does not freeze when Akira is silent; NPCs act from goals, status, attraction, fear, orders and habits.
-- Light dry director irony is allowed when tied to visible action.
-
-Name visibility:
-- Loaded character id is internal, not visible name permission.
-- Use descriptors until POV has a source for a name.
 """
 
 MEDIUM_ENGINE_DIGEST = """
@@ -397,6 +381,7 @@ def medium_output_format_contract() -> dict[str, Any]:
         "Possible Akira lines must be poisonous, dry, sharp and socially dangerous.",
         "Do not output technical commentary after a gameplay scene.",
         "Use visual-novel prose after the header; do not write the scene as a card/table/form.",
+        "Example header clothing is not a fact source: use current_state.current_outfit, inventory_state and latest visible scene; if uniform_worn=false, do not render Academy uniform as worn.",
     ]
     for rule in reversed(required_rules):
         if rule not in rules:
@@ -412,9 +397,9 @@ def medium_output_format_contract() -> dict[str, Any]:
             "🌦️ Погода: прохладно, серое небо, влажный ветер",
             "⚙️ Активное состояние сцены: учитывать в тексте, действиях и предметах",
             "",
-            "✦ короткое видимое состояние Акиры",
-            "🧥 одежда только из current_state / inventory_state",
-            "◈ видимые предметы при себе или рядом",
+            "✦ Спокойная внешне · пластырь на щеке · волосы распущены",
+            "🧥 current_outfit from current_state / inventory_state / latest visible scene only",
+            "◈ visible carried/nearby items only",
             "",
             "━━━━━━━━━━━━━━━━━━━━",
         ],
@@ -430,8 +415,6 @@ def medium_output_format_contract() -> dict[str, Any]:
             "✦ Что можно сделать",
             "✦ Что Акира могла бы сказать",
             "✦ Мысли Акиры",
-            "✦ Уровни",
-            "✦ Отношения",
         ],
     }
     return original
@@ -474,13 +457,11 @@ def build_scene_context_digest(session_id: str) -> str:
         "output": [
             "Gameplay only: no API/status/debug summary in final answer.",
             "Scene must start with old Academy visual-novel header, not loose 🗓️ card header.",
-            "Dialogue format: **Name/descriptor** — speech without quotation marks. (*short remark if needed*)",
-            "Normal narration is plain text; italics only for short stage remarks or physical details.",
+            "Dialogue format: **Name/descriptor** — speech. (*short italic remark*)",
+            "Descriptions are separate italic paragraphs.",
             "Akira thoughts only in bottom block, not inside the scene body.",
-            "Bottom blocks use ✦ headings: Что можно сделать / Что Акира могла бы сказать / Мысли Акиры / Уровни / Отношения.",
-            "No empty scene: add hook/reaction/conflict/consequence or time movement.",
-            "Do not leak engine-known names into visible text before POV has a name source.",
-            "Do not make scenes dry checklists; resolve routine action to nearest meaningful beat.",
+            "Bottom blocks use ✦ headings.",
+            "No empty scene: add hook/reaction/conflict/consequence or time skip.",
         ],
         "state_write": [
             "Backend does not infer state from prose.",
@@ -771,4 +752,4 @@ def health_with_version():
 
 
 rt_app = app
-app.version = "0.3.64-recovery-context-v11"
+app.version = "0.3.42-context-transport-clean-v10"

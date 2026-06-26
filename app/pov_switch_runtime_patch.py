@@ -1,4 +1,4 @@
-"""POV switch runtime patch v3.
+"""POV switch runtime patch v2.
 
 Activated only by explicit `POV:` / `пов:` in latest input.
 Default Akira gameplay is not POV mode. `пов: Акира` is ignored as default.
@@ -143,4 +143,4 @@ base.recommended_files_for_context = recommended_files_with_pov
 ccp.active_scene_characters = scene_character_ids_with_pov
 ccp.recommended_files_for_context = recommended_files_with_pov
 
-app.version = "0.3.49-pov-akira-active-npc"
+app.version = "0.3.48-pov-switch-non-akira-only"
