@@ -9,6 +9,7 @@ are loaded: output the scene, not the API/state/status.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 MAX_PROMPT_PREVIEW_CHARS = 9000
@@ -27,6 +28,37 @@ def _dump(value: Any, limit: int = 2200) -> str:
     except Exception:
         text = str(value)
     return _cut(text, limit)
+
+
+def _pov_target_from_text(text: Any) -> str | None:
+    value = str(text or "").strip()
+    low = value.lower().replace("ё", "е")
+    if not re.search(r"\b(pov|пов)\s*[:：]", low):
+        return None
+    match = re.search(r"(?:pov|пов)\s*[:：]\s*([А-Яа-яA-Za-z_\-]+)", value, re.IGNORECASE)
+    if not match:
+        return None
+    raw = match.group(1).strip()
+    key = raw.lower().replace("ё", "е")
+    if key in {"акира", "akira"}:
+        return None
+    return raw or None
+
+
+def _pov_override_text(current: dict[str, Any]) -> str:
+    target = _pov_target_from_text(current.get("last_player_input")) or _pov_target_from_text(current.get("current_scene_goal"))
+    if not target:
+        return ""
+    return f"""
+NON-AKIRA POV OVERRIDE:
+- Active POV target: {target}.
+- For this response, player's outside-parentheses text is the POV character's exact speech, not Akira's.
+- Player's parenthetical text is the POV character's action/body state/intention, not Akira's.
+- Akira may still speak and act as an active NPC if she is present.
+- If the POV character addresses Akira, Akira may answer/refuse/interrupt/move/leave according to her character and visible state.
+- If Akira addresses or challenges the POV character, stop for player choice unless the player already wrote the POV character's answer/action.
+- Do not write Akira's hidden thoughts in non-Akira POV; show only visible speech/action/reaction.
+""".strip()
 
 
 def _compact_current_state(current: dict[str, Any]) -> dict[str, Any]:
@@ -100,6 +132,8 @@ def build_prompt_preview(
         if item and item not in focus_ids:
             focus_ids.append(item)
 
+    pov_override = _pov_override_text(current_state)
+
     brief = f"""
 PLAY MODE RENDER BRIEF
 session_id: {session_id}
@@ -111,8 +145,10 @@ TASK:
 - Output the gameplay scene only after required file chunks are loaded.
 - Do NOT show API status, session status, current_state summary, file list, contract summary, setup explanation or prompt_preview.
 
+{pov_override}
+
 SOURCE SYSTEM:
-- Player's latest visible speech/action anchors Akira.
+- Default mode: player's latest visible speech/action anchors Akira. If NON-AKIRA POV OVERRIDE is present above, it overrides this line for the current response.
 - Latest visible scene facts override stale object positions and old suggested options.
 - Character behavior comes from characters/{{id}}/character.yaml, past.yaml and main.yaml if present.
 - Calendar comes from calendar/calendar_index.yaml, calendar/days/{{current_date}}.yaml and state/calendar_runtime.json.
@@ -135,10 +171,12 @@ WITNESS / KNOWLEDGE BOUNDARY:
 - When the player brings in a delayed character, use their card from that point onward, but do not grant retroactive knowledge.
 
 PLAYER INPUT ANCHOR PROTOCOL:
-- Everything the user writes outside parentheses is Akira's exact spoken line. Insert it as Akira's line.
-- If the current player input contains no spoken text outside parentheses, do NOT create any new Akira dialogue lines in the scene body.
-- Everything inside parentheses is Akira's action, gesture, body state, intention, movement or inner pause. It is not speech and not an instruction for NPCs or scene systems to obey automatically.
-- If an NPC asks Akira a direct question, throws a social jab, challenges her, names her, blocks her, or changes the power balance, stop and give the player the choice instead of auto-answering.
+- Default Akira POV: everything the user writes outside parentheses is Akira's exact spoken line. Insert it as Akira's line.
+- Default Akira POV: if the current player input contains no spoken text outside parentheses, do NOT create new Akira dialogue lines in the scene body.
+- Default Akira POV: everything inside parentheses is Akira's action, gesture, body state, intention, movement or inner pause.
+- Non-Akira POV: if NON-AKIRA POV OVERRIDE is present, the same speech/action rules apply to the POV character instead of Akira.
+- Non-Akira POV: Akira is an active NPC if present and may answer, refuse, interrupt, move, leave or follow her own plan according to her character/state.
+- Non-Akira POV: do not stop only because the POV character addressed Akira; Akira can answer as NPC. Stop when Akira addresses/challenges/questions the POV character and the player must choose the POV character's response.
 
 VISIBLE-SOURCE RULE:
 - NPCs, staff, crowd, procedures and scene events can react only to visible signs, spoken words, established knowledge, procedure, relationship state or prior visible facts.
@@ -146,9 +184,10 @@ VISIBLE-SOURCE RULE:
 - Characters may notice a pause, glance, guarded gesture, silence, delayed answer, changed posture or tension; their conclusions may be wrong or incomplete.
 
 RHYTHM CONTROL:
-- Good rhythm: Akira anchor -> 1-4 meaningful NPC/world reactions -> next Akira anchor or choice point.
-- If 6 or more NPC lines pass without a new Akira anchor or a player choice, stop earlier.
-- If Akira is leaving and an NPC throws a hook at her back, stop on that hook unless the player explicitly wrote that she ignores it.
+- Good rhythm in default POV: Akira anchor -> 1-4 meaningful NPC/world reactions -> next Akira anchor or choice point.
+- Good rhythm in non-Akira POV: POV-character anchor -> 1-4 meaningful NPC/Akira/world reactions -> next POV-character anchor or choice point.
+- If 6 or more NPC lines pass without a new player anchor or a player choice, stop earlier.
+- If the player-controlled character is leaving and someone throws a hook at their back, stop on that hook unless the player explicitly wrote that they ignore it.
 
 CHARACTER FIDELITY:
 - Characters must act strictly according to loaded character files, current relationship state, knowledge_state, current mood, goals, limits and scene pressure.
@@ -175,12 +214,12 @@ OUTPUT GATE:
 A gameplay answer must include:
 1. Scene header.
 2. Full scene body.
-3. Akira player-input anchors inserted exactly as Akira's speech.
+3. Player-input anchors inserted exactly as the current player-controlled POV character's speech/action.
 4. Character fidelity.
 5. Visible-source fidelity.
 6. Canon identity fidelity.
 7. Witness/knowledge fidelity.
-8. Bottom block: Что можно сделать / Что Акира могла бы сказать / Мысли Акиры.
+8. Bottom block uses current POV name: Что можно сделать / Что <POV character> мог(ла) бы сказать / Мысли <POV character>.
 
 FORBIDDEN FINAL OUTPUT IN PLAY MODE:
 - API/debug/contract commentary.

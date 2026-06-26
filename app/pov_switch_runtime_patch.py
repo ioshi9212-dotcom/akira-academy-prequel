@@ -1,4 +1,4 @@
-"""POV switch runtime patch v2.
+"""POV switch runtime patch v3.
 
 Activated only by explicit `POV:` / `пов:` in latest input.
 Default Akira gameplay is not POV mode. `пов: Акира` is ignored as default.
@@ -71,6 +71,7 @@ def pov_mode_info(current: dict[str, Any] | None = None) -> dict[str, Any]:
         "action_rule": "inside parentheses is POV character action/intention",
         "thought_rule": "bottom thoughts and suggested lines belong to POV character",
         "knowledge_rule": "Akira does not gain knowledge without in-scene source",
+        "akira_npc_rule": "when POV is not Akira, Akira is an active NPC and may speak/act/follow her own plan",
         "state_rule": "relationships/story/knowledge/reputation/rumors/calendar update normally",
     }
 
@@ -121,6 +122,11 @@ Explicit non-Akira POV switch requested.
 - Text inside parentheses is POV character action/body state/intention.
 - Header must include: 🎥 POV: {raw} · фокус сцены не Акира
 - Bottom thoughts and suggested lines belong to POV character.
+- Akira is not player-controlled in this POV, but she is an active NPC if present.
+- Akira may answer the POV character, refuse, interrupt, move, leave, take objects, escalate, or follow her own visible plan according to her character/state.
+- Do not freeze or mute Akira only because POV is {raw}.
+- Do not reveal Akira's hidden thoughts; show only visible speech/action/reaction.
+- If Akira addresses/challenges/questions the POV character, stop for player choice unless the player already answered.
 - Akira does not gain knowledge unless she actually sees/hears/is told.
 - Relationships/knowledge/story/reputation/rumors/calendar update normally from the POV scene.
 """
@@ -137,4 +143,4 @@ base.recommended_files_for_context = recommended_files_with_pov
 ccp.active_scene_characters = scene_character_ids_with_pov
 ccp.recommended_files_for_context = recommended_files_with_pov
 
-app.version = "0.3.48-pov-switch-non-akira-only"
+app.version = "0.3.49-pov-akira-active-npc"
