@@ -12,7 +12,7 @@ import json
 import re
 from typing import Any
 
-MAX_PROMPT_PREVIEW_CHARS = 9000
+MAX_PROMPT_PREVIEW_CHARS = 12000
 
 
 def _cut(text: Any, limit: int = 700) -> str:
@@ -144,6 +144,7 @@ TASK:
 - Do NOT replace chunked loading with getProjectFile or only main.yaml files.
 - Output the gameplay scene only after required file chunks are loaded.
 - Do NOT show API status, session status, current_state summary, file list, contract summary, setup explanation or prompt_preview.
+- Do NOT output a too-short scene when the user asked to start/continue gameplay. Render a living visual-novel scene with enough body, dialogue labels and a hook.
 
 {pov_override}
 
@@ -173,6 +174,18 @@ WITNESS / KNOWLEDGE BOUNDARY:
 - If a character arrives late, they know only what happened after arrival unless someone tells them on-screen or knowledge_state says they know.
 - If they need to refer to someone from an unobserved scene, use uncertainty: "тот парень?", "тот рыжий?", "о ком вы?", "я что-то пропустил?".
 - When the player brings in a delayed character, use their card from that point onward, but do not grant retroactive knowledge.
+
+DIALOGUE LABEL HARD RULE:
+- Every spoken line in the visible scene body must start with `**Speaker name or stable descriptor** —`.
+- Bare dialogue lines like `— ...` are forbidden in the scene body.
+- If Livia speaks, write `**Ливия** — ...`; never let her line appear as a naked dash or paragraph.
+- `— ...` without a speaker is allowed only in bottom suggestion/thought blocks.
+
+VISIBLE NAME HARD RULE:
+- Engine-known id is not visible-known name.
+- Required files may include Haru/Raiden/Kir, but do not reveal their names until POV/Akira has a visible source.
+- Use descriptors before names: `**Рыжий парень на корте**`, `**Очень высокий тёмноволосый курсант у края площадки**`.
+- Raiden is dark-haired in Academy; never call him white-haired/light-haired.
 
 PLAYER INPUT ANCHOR PROTOCOL:
 - Default Akira POV: everything the user writes outside parentheses is Akira's exact spoken line. Insert it as Akira's line.
@@ -238,5 +251,9 @@ FORBIDDEN FINAL OUTPUT IN PLAY MODE:
 - Renaming a described invented NPC into a fixed canon character.
 - Letting absent/delayed characters know scenes they missed.
 - Letting NPCs/staff/procedure react as if Akira's unspoken text was spoken or visible.
+- Bare dialogue in the scene body without `**Speaker** —`.
+- Too-short empty scene without living reaction, Livia behavior or a hook.
+- Revealing Haru/Raiden/Kir names before visible source.
+- Calling Academy Raiden white-haired/light-haired.
 """
     return brief[:MAX_PROMPT_PREVIEW_CHARS]

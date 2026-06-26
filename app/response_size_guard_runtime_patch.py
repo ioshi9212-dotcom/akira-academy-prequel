@@ -1,12 +1,13 @@
 """
-Response size guard runtime patch v9 recovery.
+Response size guard runtime patch v6.
 
-Purpose:
-- keep getSessionContext and getSessionTurnContract small;
-- avoid ResponseTooLargeError;
-- preserve the normal scene assembly instead of replacing it with a narrow hand-made list;
-- keep progress/relationship state available without adding extra style locks;
-- keep character files available without leaking engine-known names into visible scene.
+Keeps getSessionContext and getSessionTurnContract small, but does not starve the scene
+assembly. Calendar/day/state files stay available through chunked required files.
+
+Also separates visible header state from numeric progress levels:
+- header state = short current visible condition;
+- bottom levels panel = physical/energy numeric totals;
+- relationship panel = computed total scores, not per-scene deltas.
 """
 
 from __future__ import annotations
@@ -23,12 +24,13 @@ import app.compact_context_patch as ccp
 CONTEXT_PATH = "/api/v1/sessions/{session_id}/context"
 TURN_CONTRACT_PATH = "/api/v1/sessions/{session_id}/turn-contract"
 
-CORE_PROGRESS_STATE_FILES = [
+PROGRESS_FILES = [
+    "gpt/locks/progress_panel_rules.md",
     "state/akira_progress_state.json",
     "state/relationship_score_panel.json",
 ]
 
-CORE_STATE_FILES = [
+LIGHT_STATE_FILES = [
     "state/current_state.json",
     "state/inventory_state.json",
     "state/story_lines.json",
@@ -38,25 +40,13 @@ CORE_STATE_FILES = [
     "state/location_registry.md",
 ]
 
-ESSENTIAL_RULE_FILES = [
+BASE_RULE_FILES = [
     "runtime/scene_context_digest.md",
     "gpt/locks/runtime_scene_rules_digest.md",
     "gpt/scene_format.md",
     "gpt/locks/npc_living_scene_rules.md",
-    "gpt/locks/state_update_payload_contract.md",
-]
-
-DISABLED_EXTRA_LOCKS = {
-    "gpt/locks/scene_density_choice_rules.md",
-    "gpt/locks/progress_panel_rules.md",
     "gpt/locks/outfit_state_lock.md",
-    "gpt/locks/scene_header_footer_lock.md",
-    "gpt/locks/dialogue_format_strict_lock.md",
-    "gpt/locks/no_empty_scenes_lock.md",
-    "gpt/locks/player_input_anchor_lock.md",
-    "gpt/locks/gameplay_response_gate.md",
-    "gpt/locks/gameplay_visible_scene_before_state_and_no_status_summary.md",
-}
+]
 
 DISPLAY_NAMES = {
     "livia_cross": "Ливия",
@@ -76,7 +66,10 @@ def _remove_routes(path: str, methods: set[str] | None = None, operation_id: str
         route_path = getattr(route, "path", None)
         route_methods = set(getattr(route, "methods", set()) or set())
         route_operation_id = getattr(route, "operation_id", None)
-        if route_path == path and (methods is None or bool(route_methods & methods)) and (operation_id is None or route_operation_id == operation_id):
+        match_path = route_path == path
+        match_methods = methods is None or bool(route_methods & methods)
+        match_operation = operation_id is None or route_operation_id == operation_id
+        if match_path and match_methods and match_operation:
             continue
         keep.append(route)
     app.router.routes = keep
@@ -86,7 +79,7 @@ def _unique(values: list[Any]) -> list[str]:
     result: list[str] = []
     for value in values:
         item = str(value or "").strip()
-        if item and item not in result and item not in DISABLED_EXTRA_LOCKS:
+        if item and item not in result:
             result.append(item)
     return result
 
@@ -123,7 +116,9 @@ def _safe_read_json(path: str, session_id: str, default: Any) -> Any:
 
 
 def _compact_text(value: Any, limit: int = 900) -> Any:
-    if value is None or isinstance(value, (int, float, bool)):
+    if value is None:
+        return None
+    if isinstance(value, (int, float, bool)):
         return value
     if isinstance(value, str):
         text = value.strip()
@@ -141,30 +136,27 @@ def _compact_text(value: Any, limit: int = 900) -> Any:
     return str(value)[:limit]
 
 
-def _base_recommended_files(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
-    for func in (
-        getattr(rt, "lean_recommended_files_for_context", None),
-        getattr(base, "recommended_files_for_context", None),
-        getattr(ccp, "recommended_files_for_context", None),
-    ):
-        if not callable(func):
-            continue
-        try:
-            files = list(func(current, future) or [])
-            if files:
-                return _unique(files)
-        except Exception:
-            continue
+def _base_scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
+    try:
+        chars = base.active_scene_characters(current, future)
+        if chars:
+            return _unique([_canonical_id(c) for c in chars])
+    except Exception:
+        pass
+    try:
+        chars = ccp.active_scene_characters(current, future)  # type: ignore[attr-defined]
+        if chars:
+            return _unique([_canonical_id(c) for c in chars])
+    except Exception:
+        pass
     return []
 
 
 def _scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
     values: list[Any] = ["akira"]
-    try:
-        values.extend(base.active_scene_characters(current, future) or [])
-    except Exception:
-        pass
-    for field in (
+    values.extend(_base_scene_chars(current, future))
+
+    fields = [
         "active_characters",
         "nearby_characters",
         "speaking_character_ids",
@@ -174,43 +166,42 @@ def _scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
         "mentioned_character_ids",
         "scheduled_character_ids",
         "delayed_character_ids",
-    ):
+    ]
+    for field in fields:
         values.extend(current.get(field, []) or [])
+
     for thread in current.get("open_threads", []) or []:
         if isinstance(thread, dict) and thread.get("status") in {"due", "active", "triggered"}:
             values.extend(thread.get("participants", []) or [])
+
     for lock in (future.get("locks") or {}).values():
         if isinstance(lock, dict) and lock.get("status") in {"due", "active", "triggered"}:
             values.extend(lock.get("participants", []) or [])
-    # First Academy day: keep key character files available for behavior,
-    # but visible text must still use descriptors until POV has an in-scene name source.
+
+    # First-day Academy entry needs these files even if the compact state forgot to list them.
     if str(current.get("current_date") or "") == "1198-08-15":
-        values.extend(["livia"])
-        scene_text = " ".join([
-            str(current.get("current_location_id") or ""),
-            str(current.get("current_location_text") or ""),
-            str(current.get("current_scene_goal") or ""),
-            str(current.get("current_beat_id") or ""),
-        ]).lower()
-        if any(token in scene_text for token in ("court", "basket", "корт", "баскет")):
-            values.extend(["haru", "raiden"])
-        # Kir is delayed by default; load him only when state/player/calendar makes him active-ish.
+        values.extend(["livia_cross", "haru_foster", "raiden_sterling"])  # Kir stays delayed until actual entry
+
     result: list[str] = []
     for value in values:
         cid = _canonical_id(value)
         if not cid or cid in {"students", "staff", "crowd", "academy_staff", "new_students_block_b"}:
             continue
-        if cid == "akira" or _known_character_folder(cid):
+        if _known_character_folder(cid) or cid == "akira":
             result.append(cid)
     return _unique(result)
 
 
-def _character_files(cid: str) -> list[str]:
+def _character_files_compact(cid: str) -> list[str]:
     folder = _known_character_folder(cid)
     if not folder:
         return []
     files: list[str] = []
-    for rel in (f"characters/{folder}/character.yaml", f"characters/{folder}/main.yaml"):
+    # character.yaml gives voice/behavior; main.yaml gives appearance/energy; past only for active scene chars when needed via chunks, not compact contract.
+    for rel in (
+        f"characters/{folder}/character.yaml",
+        f"characters/{folder}/main.yaml",
+    ):
         if _repo_exists(rel):
             files.append(rel)
     return files
@@ -218,43 +209,61 @@ def _character_files(cid: str) -> list[str]:
 
 def _calendar_files(current: dict[str, Any]) -> list[str]:
     files: list[str] = []
-    if _repo_exists("calendar/calendar_index.yaml"):
-        files.append("calendar/calendar_index.yaml")
+    for rel in ("calendar/calendar_index.yaml",):
+        if _repo_exists(rel):
+            files.append(rel)
     current_date = str(current.get("current_date") or "").strip()
     if current_date:
         day_file = f"calendar/days/{current_date}.yaml"
         if _repo_exists(day_file):
             files.append(day_file)
+    # Legacy fallback still contains some first-scene scheduling in older setups.
     if _repo_exists("state/academy_schedule.json"):
         files.append("state/academy_schedule.json")
     return files
 
 
 def _existing_files(paths: list[str]) -> list[str]:
-    return [path for path in paths if _repo_exists(path) and path not in DISABLED_EXTRA_LOCKS]
+    return [rel for rel in paths if _repo_exists(rel)]
 
 
 def _required_files(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
     files: list[str] = []
-    files.extend(_base_recommended_files(current, future))
-    files.extend(_existing_files(ESSENTIAL_RULE_FILES))
+    files.extend(_existing_files(BASE_RULE_FILES))
     if _repo_exists("characters/character_id_index.md"):
         files.append("characters/character_id_index.md")
-    files.extend(_existing_files(CORE_STATE_FILES))
+    files.extend(_existing_files(LIGHT_STATE_FILES))
     files.extend(_calendar_files(current))
     for cid in _scene_chars(current, future):
-        files.extend(_character_files(cid))
-    files.extend(_existing_files(CORE_PROGRESS_STATE_FILES))
+        files.extend(_character_files_compact(cid))
+    files.extend(_existing_files(PROGRESS_FILES))
     return _unique(files)
 
 
 def _current_state_slice(current: dict[str, Any]) -> dict[str, Any]:
     keys = [
-        "current_date", "current_time", "current_location_id", "current_location_text",
-        "current_scene_goal", "akira_behavior_profile", "akira_state", "current_outfit",
-        "uniform_worn", "visible_inventory", "nearby_items", "active_characters", "nearby_characters",
-        "scheduled_character_ids", "delayed_character_ids", "mentioned_character_ids", "speaking_character_ids",
-        "observing_character_ids", "addressed_character_ids", "looked_at_character_ids", "last_player_input", "open_threads",
+        "current_date",
+        "current_time",
+        "current_location_id",
+        "current_location_text",
+        "current_scene_goal",
+        "akira_behavior_profile",
+        "akira_state",
+        "current_outfit",
+        "uniform_worn",
+        "visible_inventory",
+        "nearby_items",
+        "active_characters",
+        "nearby_characters",
+        "scheduled_character_ids",
+        "delayed_character_ids",
+        "mentioned_character_ids",
+        "speaking_character_ids",
+        "observing_character_ids",
+        "addressed_character_ids",
+        "looked_at_character_ids",
+        "last_player_input",
+        "open_threads",
     ]
     return {key: _compact_text(current.get(key), 1000) for key in keys if key in current}
 
@@ -290,7 +299,10 @@ def _story_slice(story: Any) -> dict[str, Any]:
     if not isinstance(story, dict):
         return {}
     shared = story.get("shared_events")
-    shared = shared[-14:] if isinstance(shared, list) else []
+    if isinstance(shared, list):
+        shared = shared[-14:]
+    else:
+        shared = []
     return {
         "turn_counter": _compact_text(story.get("turn_counter"), 1000),
         "daily_timeline": _compact_text(story.get("daily_timeline"), 1800),
@@ -306,8 +318,23 @@ def _clamp_score(value: float) -> int:
 def _relationship_score(data: Any) -> int:
     if not isinstance(data, dict):
         return 0
-    positive = {"affection": 1.2, "trust": 1.2, "respect": 1.0, "interest": 0.8, "curiosity": 0.8, "warmth": 1.2, "attachment": 1.5}
-    negative = {"tension": -0.8, "irritation": -0.7, "fear": -1.0, "resentment": -1.2, "suspicion": -1.0, "jealousy": -0.4}
+    positive = {
+        "affection": 1.2,
+        "trust": 1.2,
+        "respect": 1.0,
+        "interest": 0.8,
+        "curiosity": 0.8,
+        "warmth": 1.2,
+        "attachment": 1.5,
+    }
+    negative = {
+        "tension": -0.8,
+        "irritation": -0.7,
+        "fear": -1.0,
+        "resentment": -1.2,
+        "suspicion": -1.0,
+        "jealousy": -0.4,
+    }
     total = 0.0
     for key, weight in positive.items():
         total += float(data.get(key) or 0) * weight
@@ -318,35 +345,51 @@ def _relationship_score(data: Any) -> int:
 
 def _label_for_pair(pair_id: str, score: int) -> str:
     pair = pair_id.lower()
-    if score <= -60: return "враждебность"
-    if score <= -35: return "сильное напряжение"
-    if score <= -15: return "настороженность"
-    if score <= 14: return "неясно"
+    if score <= -60:
+        return "враждебность"
+    if score <= -35:
+        return "сильное напряжение"
+    if score <= -15:
+        return "настороженность"
+    if score <= 14:
+        return "неясно"
     if "livia" in pair:
-        if score >= 75: return "почти семья"
-        if score >= 55: return "тёплая близость"
-        if score >= 35: return "старые подруги"
+        if score >= 75:
+            return "почти семья"
+        if score >= 55:
+            return "тёплая близость"
+        if score >= 35:
+            return "старые подруги"
         return "тёплый контакт"
     if "kir" in pair:
-        if score >= 55: return "свой, но язвит"
-        if score >= 35: return "доверяет неохотно"
+        if score >= 55:
+            return "свой, но язвит"
+        if score >= 35:
+            return "доверяет неохотно"
         return "осторожный интерес"
     if "haru" in pair:
-        if score >= 55: return "сильная симпатия"
-        if score >= 35: return "тянется ближе"
+        if score >= 55:
+            return "сильная симпатия"
+        if score >= 35:
+            return "тянется ближе"
         return "явный интерес"
     if "raiden" in pair:
-        if score >= 55: return "держится рядом"
-        if score >= 35: return "молча наблюдает"
+        if score >= 55:
+            return "держится рядом"
+        if score >= 35:
+            return "молча наблюдает"
         return "холодная настороженность"
-    if score <= 34: return "интерес"
-    if score <= 54: return "доверие"
-    if score <= 74: return "близость"
+    if score <= 34:
+        return "интерес"
+    if score <= 54:
+        return "доверие"
+    if score <= 74:
+        return "близость"
     return "сильная привязанность"
 
 
 def _display_name_for_pair(pair_id: str) -> str:
-    parts = [part for part in pair_id.split("__") if part and part != "akira"]
+    parts = [p for p in pair_id.split("__") if p and p != "akira"]
     other = parts[0] if parts else pair_id
     return DISPLAY_NAMES.get(other, other)
 
@@ -360,7 +403,12 @@ def _computed_relationship_panel(relationships: Any, stored_panel: Any) -> dict[
         stored_items = stored_panel.get("relationship_score_panel") or {}
         if not isinstance(stored_items, dict):
             stored_items = {}
-    wanted = ["akira__livia_cross", "akira__kir", "akira__haru_foster", "akira__raiden_sterling"]
+    wanted = [
+        "akira__livia_cross",
+        "akira__kir",
+        "akira__haru_foster",
+        "akira__raiden_sterling",
+    ]
     aliases = {
         "akira__kir": ["akira__kir", "akira__kir_knox"],
         "akira__haru_foster": ["akira__haru_foster", "akira__haru"],
@@ -374,11 +422,21 @@ def _computed_relationship_panel(relationships: Any, stored_panel: Any) -> dict[
                 data = pairs.get(alt)
         if isinstance(data, dict):
             score = _relationship_score(data)
-            result[pair_id] = {"display_name": _display_name_for_pair(pair_id), "score": score, "label": _label_for_pair(pair_id, score), "source": "computed_from_relationships_json"}
+            result[pair_id] = {
+                "display_name": _display_name_for_pair(pair_id),
+                "score": score,
+                "label": _label_for_pair(pair_id, score),
+                "source": "computed_from_relationships_json",
+            }
         elif pair_id in stored_items:
             result[pair_id] = stored_items[pair_id]
         else:
-            result[pair_id] = {"display_name": _display_name_for_pair(pair_id), "score": 0, "label": "неясно", "source": "default_no_relationship_pair"}
+            result[pair_id] = {
+                "display_name": _display_name_for_pair(pair_id),
+                "score": 0,
+                "label": "неясно",
+                "source": "default_no_relationship_pair",
+            }
     return result
 
 
@@ -390,7 +448,7 @@ def _progress_slice(session_id: str, relationships: Any | None = None) -> dict[s
         "akira_progress_state": _compact_text(progress, 1400),
         "relationship_score_panel": _compact_text(relationship_panel, 1400),
         "computed_relationship_score_panel": _compact_text(computed_panel, 1400),
-        "visible_panel_rule": "Header state is short current condition. Bottom 'Уровни' is numeric physical/energy totals. Relationship panel shows current total scores, not per-scene deltas.",
+        "visible_panel_rule": "Header state is short condition text. Bottom 'Уровни' is numeric physical/energy totals. Relationship panel shows current total scores, not per-scene deltas.",
     }
 
 
@@ -426,18 +484,30 @@ def _small_output_contract() -> dict[str, Any]:
         "format": "academy_old_visual_novel_header_v2",
         "scene_header_required": True,
         "header_state_rule": "Header ✦ is short visible/current condition, not numeric power level.",
-        "bottom_blocks": ["✦ Что можно сделать", "✦ Что Акира могла бы сказать", "✦ Мысли Акиры", "✦ Уровни", "✦ Отношения"],
+        "bottom_blocks": [
+            "✦ Что можно сделать",
+            "✦ Что Акира могла бы сказать",
+            "✦ Мысли Акиры",
+            "✦ Уровни",
+            "✦ Отношения",
+        ],
         "rules": [
-            "Use old Academy scene format and loaded scene rules.",
             "Final gameplay answer must be the scene only, not API/status/debug summary.",
-            "Header ✦ is short current visible condition.",
-            "Bottom ✦ Уровни shows numeric physical/energy totals only.",
-            "Bottom ✦ Отношения shows current total score plus label, not only scene delta.",
-            "Do not start action choices with 'Акира может'.",
-            "Do not use quotation marks around dialogue or speech options.",
-            "Loaded character ids are internal; use visible descriptors until POV has a source for the name.",
-            "Do not write Haru/Raiden/Kir by name before introduction, call-out, badge/list/message, or knowledge_state source.",
-            "Academy scene is not a step-by-step checklist; resolve routine movement to the nearest meaningful point.",
+            "Normal narration is plain text; italics only for short stage remarks or brief physical detail.",
+            "Do not wrap scene dialogue or speech options in quotation marks.",
+            "Dialogue format: **Name/descriptor** — text without quotes. (*short remark if needed*)",
+            "Action choices must be direct actions; do not start with 'Акира может'.",
+            "Do not put ready spoken lines inside action choices; exact lines go only to 'Что Акира могла бы сказать'.",
+            "Use latest visible scene facts before stale state or old options.",
+            "Player controls only Akira; do not invent Akira speech unless written outside parentheses.",
+            "Characters know only what they saw, heard, were told, or can infer from visible signs.",
+            "Do not rename invented/unnamed NPCs into fixed canon characters after description.",
+            "Header outfit must include all saved current_outfit items; do not omit top if state says top.",
+            "Bottom 'Уровни' shows numeric physical/energy totals only, not text mood.",
+            "Bottom 'Отношения' shows current total score plus label, not per-scene delta.",
+            "Prefer computed_relationship_score_panel over stale stored panel values.",
+            "Training can improve stats but may also increase fatigue, risk, or injury.",
+            "Stop at a player choice point when Akira is directly challenged or questioned.",
         ],
     }
 
@@ -448,12 +518,12 @@ def _small_prompt_preview(chars: list[str], required_files: list[str]) -> str:
         "- This turn-contract is compact; do not stop here.\n"
         "- Next load getRequiredFilesManifest, then all getRequiredFilesChunk chunks.\n"
         "- Render scene only after chunks are loaded.\n"
-        f"- Internal context character ids: {', '.join(chars)}.\n"
+        f"- Focus characters: {', '.join(chars)}.\n"
         f"- Required files count: {len(required_files)}.\n"
-        "- Loaded ids are not automatically visible names; use descriptors until POV has name source.\n"
-        "- Use old Academy scene style from loaded files.\n"
-        "- Header state is short condition; bottom Уровни is numeric.\n"
-        "- Scene should feel alive, not a dry checklist; resolve routine movement to nearest meaningful beat.\n"
+        "- First-day/caledar files must be used for scheduled characters and scene setup.\n"
+        "- Header ✦ = short current visible condition. Bottom ✦ Уровни = numeric physical/energy levels.\n"
+        "- No quotation marks around dialogue or speech options.\n"
+        "- Action choices are direct actions, never 'Акира может...'.\n"
     )
 
 
@@ -468,7 +538,13 @@ def get_session_context_size_guard(session_id: str) -> SizeGuardContextResponse:
     current = _safe_read_json("state/current_state.json", sid, {})
     future = _safe_read_json("state/future_locks_progress.json", sid, {})
     files = _required_files(current, future)
-    return SizeGuardContextResponse(session_id=sid, current_state=_current_state_slice(current), active_character_ids=_unique(current.get("active_characters", []) or []), nearby_character_ids=_unique(current.get("nearby_characters", []) or []), required_files=files)
+    return SizeGuardContextResponse(
+        session_id=sid,
+        current_state=_current_state_slice(current),
+        active_character_ids=_unique(current.get("active_characters", []) or []),
+        nearby_character_ids=_unique(current.get("nearby_characters", []) or []),
+        required_files=files,
+    )
 
 
 @app.get(TURN_CONTRACT_PATH, response_model=TurnContractWithPromptPreview, operation_id="getSessionTurnContract")
@@ -483,17 +559,22 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
     story_lines = _safe_read_json("state/story_lines.json", sid, {})
     chars = _scene_chars(current, future)
     files = _required_files(current, future)
+
     required_checks = [
         "Call getRequiredFilesManifest next.",
         "Then call getRequiredFilesChunk starting with chunk_index=0 until has_more=false.",
         "Do not render gameplay from this compact contract alone.",
-        "Use loaded calendar/day files for scheduled characters and scene setup.",
+        "Use calendar/day files for first scene scheduled characters, including Haru/Raiden when scheduled.",
+        "Use latest visible scene facts before stale current_state.",
         "Header ✦ is short visible condition; bottom ✦ Уровни is numeric levels only.",
+        "Do not use quotation marks around dialogue or speech choices.",
         "Do not start action choices with 'Акира может'.",
         "Use computed_relationship_score_panel from relationships.json when available.",
     ]
+
     story_context = _story_slice(story_lines)
     story_context["progress_panel"] = _progress_slice(sid, relationships)
+
     return TurnContractWithPromptPreview(
         session_id=sid,
         active_character_ids=_unique(current.get("active_characters", []) or []),
@@ -515,4 +596,4 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
     )
 
 
-app.version = "0.3.64-recovery-sizeguard-v9"
+app.version = "0.3.65-rich-scene-response-size-v4"

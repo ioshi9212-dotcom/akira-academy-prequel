@@ -25,13 +25,12 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 
 ## Scene tempo and living direction
 
-- Academy gameplay is a visual-novel scene, not a step-by-step checklist.
-- If the player gives a chain of actions, movement direction, waiting, following someone, or a routine transition, resolve it to the nearest meaningful point: line, obstacle, social pressure, procedure result, visible consequence, new choice, or interruption.
-- Do not split harmless hallway/door/approach/wait beats into empty micro-turns.
-- Do not move the player-controlled character into a new goal, new location, time skip, procedure, or consent choice without the player.
-- The world does not freeze when Akira is silent. NPCs act from their own goals, status, fear, orders, habits, attraction, irritation and information.
-- A light dry director irony is allowed when the situation itself is funny or socially awkward. Keep it short and embedded in visible narration; do not write meta-commentary or explain rules.
-
+- Academy gameplay is a visual-novel scene, not a short status line and not a step-by-step checklist.
+- Do not answer with a tiny sketch when the player asked to start/continue a scene.
+- A normal gameplay scene should contain a living body of scene: movement, surroundings, social pressure, at least one signed dialogue exchange when characters are present, and a hook/consequence.
+- If the player gives a passage action, waiting, looking, entering, following or basic movement, carry it to the nearest meaningful beat without deciding a new major choice for Akira.
+- Do not freeze the world because Akira is silent. NPCs act by their goals, status, curiosity, jealousy, fear, arrogance, schedule and visible information.
+- Livia in the scene is not a UI guide: she speaks with `**Ливия** —`, moves, notices, fills pauses, jokes/flirts/gets nervous, and has her own social needs.
 
 ## Immediate continuity
 
@@ -63,6 +62,16 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - If the scene needs a background student before a fixed character's introduction, keep that student as background or save them as a separate session NPC.
 - If unsure whether the person is a fixed character, keep them unnamed/background and do not use a canon name.
 
+## Visible name boundary
+
+- Engine-known id is not automatically visible-known name.
+- Required files may contain Haru/Raiden/Kir, but the scene must not reveal their names until POV/Akira has a visible source.
+- Before a name source, use stable descriptors:
+  - Haru: `**Рыжий парень на корте**`, `**Рыжий курсант с мячом**`;
+  - Raiden: `**Очень высокий тёмноволосый курсант у края площадки**`, `**Тёмноволосый парень у линии**`;
+  - Kir: do not use him as witness before he actually arrives.
+- Do not write `**Хару**`, `**Райден**`, `**Кир**` just because the engine loaded their cards.
+
 ## Witness and knowledge boundary
 
 - Characters know only what they saw, heard, were told, or can plausibly infer from visible signs.
@@ -73,25 +82,21 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - If scene_history says a character was not present and knowledge_state has no report, they cannot know specific details of that scene.
 - When the player brings in a delayed character through Akira's action, use that character's card from that point onward, but do not grant retroactive knowledge.
 
-## Player input anchor and POV
+## Player input anchor
 
-- Default gameplay POV is Akira.
-- In default Akira POV, text outside parentheses is Akira's exact spoken line. Insert it verbatim as Akira's speech.
-- In default Akira POV, text inside parentheses is Akira's action, gesture, pause, movement, intention or body state. It is not speech.
-- In default Akira POV, if user gave no spoken text outside parentheses, do not invent Akira dialogue in the scene body.
+- Text outside parentheses is Akira's exact spoken line.
+- Insert it verbatim as Akira's speech.
+- Text inside parentheses is action, gesture, pause, movement, intention or body state. It is not speech.
+- If user gave no spoken text outside parentheses, do not invent Akira dialogue in the scene body.
 - Possible Akira phrases belong only in bottom block "Что Акира могла бы сказать".
 - If NPC directly challenges or questions Akira, stop at a choice point instead of answering for her.
-- If explicit non-Akira POV is active, the same speech/action rules apply to the POV character instead of Akira.
-- In non-Akira POV, Akira is an active NPC if present: she may answer, refuse, interrupt, move, leave, take objects, pressure the POV character, or follow her own visible plan.
-- In non-Akira POV, do not reveal Akira's hidden thoughts. Show only visible speech, movement, facial expression, pauses, body reaction and consequences.
-- In non-Akira POV, stop when Akira addresses/challenges/questions the POV character and the player must choose that POV character's response.
 
 ## Player action boundary
 
-- The latest explicit player action is the boundary of player agency, not a ban on the nearest visible consequence.
-- Do not choose a new goal, consent, answer, attack, trust shift, time skip or major route for the player-controlled character unless the player wrote it.
-- Routine movement verbs may be resolved to the nearest meaningful point, but not into an unrelated next scene.
-- Movement verbs usually mean start/progress; complete only when the scene has no meaningful interruption or when completion is the nearest logical result.
+- The latest explicit player action is the boundary of Akira's agency, not a command to make the scene empty.
+- Do not decide a new major choice for Akira beyond the last action the user wrote; проходные движения можно довести до ближайшей значимой точки.
+- Do not complete implied next steps, next locations, next procedures, next time block, or next plot beat unless the player explicitly wrote them.
+- Movement verbs usually mean start/progress, not automatic completion.
 - "идти к выходу" = Akira starts/goes toward the exit; do not make her already outside unless the user wrote that.
 - "выбрать стол чтобы сесть" = she chooses/approaches/starts sitting; do not make her already eating unless the user wrote eating.
 - "пройти регистрацию, отдать документы" = registration/documents may complete; do not escort her to a room or start the next academy procedure unless written.
@@ -106,6 +111,7 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Header outfit line must copy current_outfit / inventory_state / latest visible scene and include all saved clothing items.
 - Then visual-novel prose.
 - Spoken line format: **Name/visible descriptor** — speech. (*short remark*)
+- Every spoken line in the scene body must start with a bold speaker label. Bare dialogue lines like `— ...` are forbidden in the body.
 - Do not wrap dialogue text in quotation marks.
 - Do not write `— "..."` in scene dialogue or speech choices.
 - Normal narration is plain text, not automatic italic.
@@ -127,17 +133,6 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - "Отношения" must show current total relationship score plus short label, not scene delta only.
 - No empty scenes: every scene needs reaction, hook, conflict, consequence, relationship movement, reputation movement, time movement or useful transition.
 - Meaningful beat must come from visible scene pressure, procedure, NPC goal, witness, relationship or consequence, not from a convenient answer to Akira's unspoken context.
-
-## Loaded character id vs visible name
-
-- Internal loaded character files do not automatically grant the visible scene permission to use that character's name.
-- Engine-known id is not POV-known name.
-- If a character file is loaded only so the engine can write behavior, but the current POV/person in scene has not heard the name, use a stable visible descriptor instead of the canon name.
-- Haru before name source: **Рыжий парень на корте** / **Рыжий с мячом**.
-- Raiden before name source: **Очень высокий тёмноволосый курсант у края площадки** / **Тёмноволосый парень у линии**.
-- Kir before actual entrance/source: do not use him as visible speaker.
-- A canon name becomes visible only after an in-scene source: self-introduction, someone calls the name, visible badge/list/message, or knowledge_state/current_state says the POV already knows it.
-- Other characters may use a name only if they plausibly know it; otherwise they use descriptors, guesses or questions.
 
 ## NPC dialogue descriptors
 
@@ -164,7 +159,6 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 
 - Character behavior comes from loaded character files first.
 - Do not flatten characters into generic friendly NPCs.
-- Livia is not an interface, guide, or decorative best friend. If present, she should feel socially alive: fast comments, hair/hand/body reactions, warmth, jealousy, flirting, social scanning, noisy defense, or too-bright smile when hurt.
 - Do not flatten Academy students into convenient fearful background.
 - Academy students are often status-conscious, strong, ambitious, jealous, arrogant, curious, competitive, or socially risky.
 - Akira's sharp look can make some people pause, but it must not make everyone suddenly silent, afraid, respectful, or avoidant.
@@ -213,3 +207,13 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - If a character enters late, save their actual entry point and do not backfill them as witness to earlier scenes.
 - If an invented NPC becomes meaningful, save them as a session NPC, not as an existing canon character.
 - After apply-turn-result, final visible answer must remain the scene, not changed_files/status.
+
+
+## Final rewrite guard for current regression
+
+Rewrite before sending if:
+- Livia speaks without `**Ливия** —`;
+- any scene-body dialogue starts with a bare dash and no bold speaker;
+- the answer is only 2–3 short paragraphs without scene movement, social reaction, Livia behavior or hook;
+- Haru/Raiden/Kir are named before the POV has a visible source for their names;
+- Raiden is described as white-haired/light-haired. In Academy he is a very tall dark-haired cadet until named.
