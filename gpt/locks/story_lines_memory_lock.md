@@ -36,7 +36,7 @@ state/story_lines.json
 
 `state/story_lines.json` и `state/scene_history.json` — это память автора.
 
-`state/knowledge_state.json` — это память персонажа.
+`state/character_memory.json` — это память персонажа.
 
 Даже если факт есть в `story_lines`, персонаж НЕ знает этот факт автоматически.
 
@@ -48,9 +48,9 @@ state/story_lines.json
 - `told_to`
 - `public_to`
 - `known_by`
-- `state/knowledge_state.json.characters.<id>.knows`
+- `state/character_memory.json.characters.<id>.knows`
 - `state/rumors_state.json`, если слух реально дошёл до него или до его группы
-- должностной доступ, если он прямо указан в карточке/knowledge_state
+- должностной доступ, если он прямо указан в карточке/character_memory
 
 Если персонажа нет в этих полях, он НЕ знает событие.
 
@@ -71,7 +71,7 @@ state/story_lines.json
 
 1. Какой факт персонаж собирается сказать?
 2. Откуда персонаж это знает?
-3. Есть ли источник в `knowledge_state`, `shared_events`, `scene_history`, `rumors_state`, `current_state` или карточке должностного доступа?
+3. Есть ли источник в `character_memory`, `shared_events`, `scene_history`, `rumors_state`, `current_state` или карточке должностного доступа?
 4. Был ли персонаж участником, свидетелем, слушателем, получателем рассказа или частью публичного распространения?
 
 Если источник не найден — реплику нужно переписать.
@@ -271,8 +271,8 @@ state/story_lines.json
 - в `line_kiara.events` — что Киара вошла в поле Акиры как безымянная раздражающая курсантка;
 - в `line_livia.events` — только если Ливия видела провокацию или ей рассказали;
 - в `line_reputation` или `line_social_media_rumors` — только если сцена могла стать слухом;
-- в `relationships.json` — кратко создать/обновить пару, если уже есть значимая динамика;
-- в `knowledge_state.json` — кто знает имя, кто знает только голос/манеру, кто не знает.
+- в `relationship_pairs` — кратко создать/обновить пару, если уже есть значимая динамика;
+- в `character_memory.json` — кто знает имя, кто знает только голос/манеру, кто не знает.
 
 ## Пример: долг Хару за кофе
 
@@ -379,6 +379,6 @@ Compaction — это не удаление памяти. Это перенос 
 
 Факт в `story_lines` — это факт мира.
 
-Факт в `knowledge_state` или `known_by` — это факт персонажа.
+Факт в `character_memory` или `known_by` — это факт персонажа.
 
 Один event — один раз в `shared_events`, дальше только ссылки/эффекты.

@@ -5,7 +5,7 @@
   "status": "active",
   "purpose": "How to update Academy relationship dynamics after scenes.",
   "pair_update_principle": "Relationships change only from concrete interaction, observation, help, refusal, conflict, choice, rumor or witnessed consequence; never from author knowledge of future/hidden lore.",
-  "current_project_target": "state/relationships.json relationship_changes until relationship_pairs migration exists.",
+  "current_project_target": "state/relationship_pairs/<a>__<b>.json",
   "recommended_future_target": "state/relationship_pairs/<a>__<b>.json",
   "allowed_dimensions": [
     "trust",
@@ -31,7 +31,8 @@
     "make full trust after one soft line",
     "make enemies after one irritation",
     "put hidden past into surface_dynamic",
-    "update pair where neither character was tied to scene"
+    "update pair where neither character was tied to scene",
+    "write relationship changes into global state/relationships.json"
   ],
   "surface_vs_hidden": {
     "surface_dynamic": "visible behavior in scene",

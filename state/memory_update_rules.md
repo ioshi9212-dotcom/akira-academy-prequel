@@ -22,8 +22,8 @@ state/story_lines.json
 
 ```txt
 state/current_state.json
-state/relationships.json
-state/knowledge_state.json
+state/relationship_pairs
+state/character_memory.json
 state/reputation_state.json
 state/rumors_state.json
 state/inventory_state.json
@@ -129,7 +129,7 @@ state/corridor_npc_conflict_1198_08_17.json
 
 В нужные линии добавлять короткий эффект, а не полный пересказ.
 
-### 2. `state/relationships.json`
+### 2. `state/relationship_pairs`
 
 Обновлять, если изменилась личная динамика.
 
@@ -162,7 +162,7 @@ state/corridor_npc_conflict_1198_08_17.json
 
 Для Акиры не назначать чувства от имени игрока. Можно фиксировать факты: что она видела, что ей должны, что она сказала/сделала, кого запомнила.
 
-### 3. `state/knowledge_state.json`
+### 3. `state/character_memory.json`
 
 Обновлять, если персонаж узнал новый факт.
 
@@ -379,8 +379,8 @@ Compaction — это не удаление памяти. Это перенос 
 - `characters/npc/npc_registry.md`;
 - `state/story_lines.json`;
 - `state/scene_history.json`;
-- `state/knowledge_state.json`;
-- `state/relationships.json`;
+- `state/character_memory.json`;
+- `state/relationship_pairs`;
 - `state/rumors_state.json`.
 
 Если NPC уже появлялся, нельзя вводить его как нового.

@@ -9,7 +9,7 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 3. API/session current_state.
 4. turn-contract and required_files chunks.
 5. Character YAML files for active scene characters.
-6. relationships / knowledge_state / inventory / story_lines / calendar_runtime.
+6. relationships / character_memory / inventory / story_lines / calendar_runtime.
 7. calendar/ current day hooks.
 8. canon_lore/ background and hidden policy.
 9. Chat memory only as visible gameplay scene text or the user's latest action, not as loose source of truth.
@@ -67,21 +67,20 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 
 - Characters know only what they saw, heard, were told, or can plausibly infer from visible signs.
 - A character who was delayed, absent, off-screen, or not yet introduced must not reference a previous scene as if they witnessed it.
-- If a character arrives late, they know only what happened after arrival unless another character tells them on-screen or knowledge_state says they know.
+- If a character arrives late, they know only what happened after arrival unless another character tells them on-screen or character_memory says they know.
 - Do not let a character identify someone by an event/location they did not see.
 - If they need to refer to someone from an unobserved scene, use uncertainty: "тот парень?", "тот рыжий?", "о ком вы?", "я что-то пропустил?".
-- If scene_history says a character was not present and knowledge_state has no report, they cannot know specific details of that scene.
+- If scene_history says a character was not present and character_memory has no report, they cannot know specific details of that scene.
 - When the player brings in a delayed character through Akira's action, use that character's card from that point onward, but do not grant retroactive knowledge.
 
 ## Player input anchor and POV
 
 - Default gameplay POV is Akira.
-- In default Akira POV, text outside parentheses is Akira's exact spoken line. Insert it verbatim as Akira's speech.
-- In default Akira POV, text inside parentheses is Akira's action, gesture, pause, movement, intention or body state. It is not speech.
-- In default Akira POV, if user gave no spoken text outside parentheses, do not invent Akira dialogue in the scene body.
-- Possible Akira phrases belong only in bottom block "Что Акира могла бы сказать".
-- If NPC directly challenges or questions Akira, stop at a choice point instead of answering for her.
-- If explicit non-Akira POV is active, the same speech/action rules apply to the POV character instead of Akira.
+- If explicit non-Akira POV is active, all player speech/action rules apply to that POV character instead of Akira.
+- Text outside parentheses is the current POV character's exact spoken line. Insert it verbatim.
+- Text inside parentheses is the current POV character's action, gesture, pause, movement, intention or body state. It is not speech.
+- The writer may give the current POV a short low-stakes automatic line only when it does not choose consent/refusal, route, trust, conflict, access, reveal, body boundary or public stance.
+- If an NPC directly challenges/questions/provokes the current POV in a way that matters, stop at a choice point instead of answering for the POV.
 - In non-Akira POV, Akira is an active NPC if present: she may answer, refuse, interrupt, move, leave, take objects, pressure the POV character, or follow her own visible plan.
 - In non-Akira POV, do not reveal Akira's hidden thoughts. Show only visible speech, movement, facial expression, pauses, body reaction and consequences.
 - In non-Akira POV, stop when Akira addresses/challenges/questions the POV character and the player must choose that POV character's response.
@@ -92,41 +91,37 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Do not choose a new goal, consent, answer, attack, trust shift, time skip or major route for the player-controlled character unless the player wrote it.
 - Routine movement verbs may be resolved to the nearest meaningful point, but not into an unrelated next scene.
 - Movement verbs usually mean start/progress; complete only when the scene has no meaningful interruption or when completion is the nearest logical result.
-- "идти к выходу" = Akira starts/goes toward the exit; do not make her already outside unless the user wrote that.
-- "выбрать стол чтобы сесть" = she chooses/approaches/starts sitting; do not make her already eating unless the user wrote eating.
-- "пройти регистрацию, отдать документы" = registration/documents may complete; do not escort her to a room or start the next academy procedure unless written.
-- NPCs may react, interrupt, speak, block, follow, notice, or provoke at the boundary. Stop there and wait for the next player input.
+- "идти к выходу" = POV starts/goes toward the exit; if someone calls out, blocks the way, asks a meaningful question or changes the social pressure, stop before the exit is completed.
+- "подняться, душ, комната" = a chain may proceed only until the first meaningful interruption. If an NPC says something important on the way, do not assume the POV stayed silent and finished the whole chain.
+- Background chatter can pass; direct meaningful hooks stop the scene.
 - Time skip only if the player explicitly writes: "пропустить время", "до утра", "если ничего не случится", "перейти к...", or equivalent.
 
 ## Scene format
 
 - Gameplay answer must be the scene only, not API/status/debug summary.
 - Start with compact visual header.
-- Header `✦` is a short visible/current condition only: mood, injury, hair, body state. It is not a numeric power panel.
+- Header `✦` is a short visible/current condition for current POV, not a numeric power panel.
 - Header outfit line must copy current_outfit / inventory_state / latest visible scene and include all saved clothing items.
 - Then visual-novel prose.
 - Spoken line format: **Name/visible descriptor** — speech. (*short remark*)
 - Do not wrap dialogue text in quotation marks.
-- Do not write `— "..."` in scene dialogue or speech choices.
 - Normal narration is plain text, not automatic italic.
 - Use italics only for short stage remarks, visible actions, body reactions, or brief physical atmosphere.
-- Do not turn every description into italic paragraph.
-- Do not use long lyric italic inserts between every action.
-- Write only what visibly happens now. No long literary water, no decorative philosophy, no bloated emotional explanation.
-- Prefer concrete action/reaction/visible detail over abstract narration.
-- Keep paragraphs short, but do not make the scene a dry checklist.
-- Bottom blocks are mandatory:
+- Write dense readable paragraphs. Do not break every 3–5 words into a separate paragraph.
+- Do not turn the scene into a dry checklist or lyric micro-lines.
+- Light dry director irony/sarcasm is allowed when tied to visible action, not as meta-commentary.
+- Bottom blocks are mandatory and POV-aware:
   - Что можно сделать
-  - Что Акира могла бы сказать
-  - Мысли Акиры
+  - Что [POV] мог(ла) бы сказать
+  - Мысли [POV]
   - Уровни
   - Отношения
+- If POV is Akira, use the familiar labels: Что Акира могла бы сказать / Мысли Акиры.
 - In "Что можно сделать", write direct actions only. Do not start with "Акира может", "Можно", or "Попробовать".
-- Put exact spoken lines only in "Что Акира могла бы сказать", not inside action options.
+- Put exact spoken lines only in "Что [POV] мог(ла) бы сказать", not inside action options.
 - "Уровни" must show numeric physical/energy values, not mood text.
 - "Отношения" must show current total relationship score plus short label, not scene delta only.
 - No empty scenes: every scene needs reaction, hook, conflict, consequence, relationship movement, reputation movement, time movement or useful transition.
-- Meaningful beat must come from visible scene pressure, procedure, NPC goal, witness, relationship or consequence, not from a convenient answer to Akira's unspoken context.
 
 ## Loaded character id vs visible name
 
@@ -136,7 +131,7 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Haru before name source: **Рыжий парень на корте** / **Рыжий с мячом**.
 - Raiden before name source: **Очень высокий тёмноволосый курсант у края площадки** / **Тёмноволосый парень у линии**.
 - Kir before actual entrance/source: do not use him as visible speaker.
-- A canon name becomes visible only after an in-scene source: self-introduction, someone calls the name, visible badge/list/message, or knowledge_state/current_state says the POV already knows it.
+- A canon name becomes visible only after an in-scene source: self-introduction, someone calls the name, visible badge/list/message, or character_memory/current_state says the POV already knows it.
 - Other characters may use a name only if they plausibly know it; otherwise they use descriptors, guesses or questions.
 
 ## NPC dialogue descriptors
@@ -172,7 +167,7 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Use varied reactions: someone backs off, someone mocks, someone challenges, someone pushes status, someone flirts, someone envies, someone watches, someone spreads a rumor, someone ignores her.
 - If Haru/Raiden/Kir draw attention, other students may react with jealousy, rivalry, curiosity, attempts to get closer, or provocation toward Akira.
 - Do not let Livia/Kir answer for Akira when Akira is directly addressed.
-- Do not give NPCs hidden knowledge unless knowledge_state or played scene allows it.
+- Do not give NPCs hidden knowledge unless character_memory or played scene allows it.
 - Do not give absent/delayed characters knowledge of scenes they missed.
 - If a line contradicts character file, relationship, knowledge, visible-source rule, canon identity boundary, witness boundary or scene pressure, rewrite before sending.
 
@@ -200,7 +195,7 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Always keep short world background, academy background and hidden lore policy in mind.
 - Full lore files load only by tag/scene need.
 - Hidden lore is author/engine knowledge, not automatic NPC knowledge.
-- Do not auto-load long hidden relationship lore. Use character cards, current_state and knowledge_state for subtext and limits.
+- Do not auto-load long hidden relationship lore. Use character cards, current_state and character_memory for subtext and limits.
 - Academy tech is modern-realistic: no super-scanners, instant organ scans, total AI surveillance or devices that reveal hidden lore.
 
 ## State write

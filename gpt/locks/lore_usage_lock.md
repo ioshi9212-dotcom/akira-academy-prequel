@@ -18,7 +18,7 @@ Old `canon/` files may exist as archive, but they do not override `canon_lore/` 
 ## Hidden lore limit
 
 Do not auto-load long hidden relationship files only because two characters are in the same scene.
-Use character cards, current_state and knowledge_state for what characters can feel, know or suspect.
+Use character cards, current_state and character_memory for what characters can feel, know or suspect.
 
 ## Academy technology tone
 

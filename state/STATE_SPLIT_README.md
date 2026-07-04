@@ -7,4 +7,4 @@ Rules:
 - Do not use scheduled/delayed ids as active scene participants.
 - `scheduled_character_ids` and `delayed_character_ids` are calendar/reference hints only.
 - Promote a character to `active_characters` / `nearby_characters` only when the current beat physically reaches them.
-- `state/knowledge_state.json` is intentionally unchanged in this patch; it will be cleaned separately.
+- `state/character_memory.json` is intentionally unchanged in this patch; it will be cleaned separately.

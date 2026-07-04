@@ -126,3 +126,10 @@ Forbidden:
 If the POV character does something that naturally demands Akira's response, write Akira's response as NPC behavior.
 If Akira does something that demands the POV character's answer, stop at the choice point for the player.
 
+
+
+## Low-stakes POV speech
+
+Even in POV mode, the writer may give the current POV character a short automatic line only if it has no choice weight: a dry aside, a neutral answer, a greeting, a small refusal that does not alter access/conflict, or a reaction that keeps the scene alive.
+
+Stop for player choice when the POV line would decide consent/refusal, trust, conflict, route, reveal, relationship shift, public stance, body boundary, or answer to a direct meaningful challenge.

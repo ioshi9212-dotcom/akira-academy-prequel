@@ -68,9 +68,14 @@
   "allowed_targets": [
     "state/character_memory/<id>.json",
     "state/relationship_pairs/<a>__<b>.json",
-    "state/session_npcs.json",
     "state/current_state.json",
-    "state/scene_flags.json"
+    "state/story_lines.json",
+    "state/session_npcs.json",
+    "state/scene_flags.json",
+    "state/calendar_runtime.json",
+    "state/inventory_state.json",
+    "state/reputation_state.json",
+    "state/rumors_state.json"
   ],
   "forbidden_targets_for_turn_updates": [
     "state/knowledge_state.json",

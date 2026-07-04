@@ -30,8 +30,8 @@
 6. `looked_at_character_ids`;
 7. `state/story_lines.json -> next_beats`;
 8. `state/story_lines.json -> open_threads`;
-9. `state/knowledge_state.json`;
-10. `state/relationships.json`.
+9. `state/character_memory.json`;
+10. `state/relationship_pairs`.
 
 Если персонаж участвует в сцене, его карточка должна быть загружена через `required_files` или точечно по ID.
 
@@ -338,8 +338,8 @@ NPC можно вводить, если он нужен для:
 - `characters/npc/npc_registry.md`;
 - `characters/npc/<id>.md`, если стал важным;
 - `state/story_lines.json`;
-- `state/knowledge_state.json`;
-- `state/relationships.json`, если есть динамика.
+- `state/character_memory.json`;
+- `state/relationship_pairs`, если есть динамика.
 
 ## Соседки, общежитие и конфликты
 
@@ -372,7 +372,7 @@ NPC можно вводить, если он нужен для:
 - прочитал сообщение/пост;
 - это публичный слух для его группы;
 - знает по должности;
-- факт есть в его `knowledge_state.knows`.
+- факт есть в его `character_memory.knows`.
 
 Если источника нет — персонаж может спросить, предположить, ошибиться или заметить реакцию, но не утверждать.
 
@@ -439,8 +439,8 @@ NPC можно вводить, если он нужен для:
 
 - `state/current_state.json` — кто сейчас active/nearby/observing;
 - `state/story_lines.json` — события, next_beats, линии, quotes, obligations;
-- `state/knowledge_state.json` — кто что знает/не знает;
-- `state/relationships.json` — динамика и память отношений;
+- `state/character_memory.json` — кто что знает/не знает;
+- `state/relationship_pairs` — динамика и память отношений;
 - `state/reputation_state.json` — публичный эффект;
 - `state/rumors_state.json` — слухи/соцсети;
 - `state/scene_history.json` — короткий итог сцены.

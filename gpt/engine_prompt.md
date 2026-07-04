@@ -48,7 +48,7 @@
 6. Продолжать `getRequiredFilesChunk` по `next_chunk_index`, пока `has_more=false`.
 7. Использовать все загруженные chunks как актуальные файлы сцены.
 8. Проверить дату, время, место, состояние Акиры, реальные предметы, active/nearby/scheduled/delayed персонажей.
-9. Проверить `knowledge_state`, `relationships`, `scene_history`, `story_lines`, `open_threads`, `future_locks_progress`, `inventory_state`.
+9. Проверить `character_memory`, `relationships`, `scene_history`, `story_lines`, `open_threads`, `future_locks_progress`, `inventory_state`.
 10. Проверить календарный слой: `calendar/calendar_index.yaml`, файл текущего дня и `state/calendar_runtime.json`.
 11. Проверить лор-слой: `canon_lore/index.yaml`, базовый фон и нужные tagged files.
 12. Прочитать карточки всех active/nearby/speaking/observing/scheduled/delayed персонажей.
@@ -117,4 +117,4 @@ Tagged lore:
 
 Скрытый лор — знание автора/движка, а не автоматическое знание персонажей.
 
-В обычной сцене не подгружать длинные hidden-файлы автоматически. Для подтекста использовать карточки персонажей, current_state, knowledge_state и уже сыгранные события.
+В обычной сцене не подгружать длинные hidden-файлы автоматически. Для подтекста использовать карточки персонажей, current_state, character_memory и уже сыгранные события.
