@@ -54,7 +54,7 @@ Characters only know what they saw, heard, were told, or can plausibly infer fro
 - If a character arrived late, they know only what happened after arrival unless another character told them.
 - Do not let a character identify a person by an event/location they did not see.
 - If they need to refer to someone from an unobserved scene, use uncertainty: `тот рыжий?`, `тот парень?`, `я пропустил что-то?`.
-- If scene_history says they were not present and knowledge_state has no report, they cannot know specific scene details.
+- If scene_history says they were not present and their character_memory has no report, they cannot know specific scene details.
 - If the player introduces a delayed character through Akira's action, use their card from that moment onward, but do not grant retroactive knowledge.
 
 ## Academy NPC behavior

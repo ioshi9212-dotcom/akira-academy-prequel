@@ -81,7 +81,7 @@ Round to integer and clamp to -100..100.
 
 Interest/curiosity alone is not warmth. A character can be interested and still tense, wary or irritated.
 
-Existing relationship fields are the source of truth. If `relationship_score_panel` is missing, zero, or stale, recalculate the visible total from `relationships.json`.
+Selected `state/relationship_pairs/<a>__<b>.json` files are the source of truth. If `relationship_score_panel` is missing, zero, or stale, recalculate the visible total from loaded pair files only.
 
 ## Relationship labels
 
