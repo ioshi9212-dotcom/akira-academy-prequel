@@ -1,0 +1,40 @@
+{
+  "pair_id": "raiden__samuel_sterling",
+  "source_legacy_pair_id": "raiden_sterling__samuel_sterling",
+  "schema": "relationship_pair_state_v1_academy1198",
+  "status": "load_only_if_pair_is_scene_relevant",
+  "runtime_loading_rule": "Load only if both characters are present, one directly talks/thinks about the other with scene relevance, or scene_goal/current_frame requires this pair.",
+  "surface_dynamic": {
+    "affection": 0,
+    "trust": 5,
+    "tension": 50,
+    "jealousy": 0,
+    "respect": 15,
+    "curiosity": 0,
+    "resentment": 45,
+    "label": "братья, сильное давление и семейная боль",
+    "raiden_view": "",
+    "samuel_sterling_view": ""
+  },
+  "knowledge_boundaries": {
+    "raiden_does_not_know": [
+      "facts from the other character memory unless revealed in-scene"
+    ],
+    "samuel_sterling_does_not_know": [
+      "facts from the other character memory unless revealed in-scene"
+    ]
+  },
+  "notes": [
+    "31 августа его появление должно задеть Райдена."
+  ],
+  "memory": [],
+  "open_threads": [],
+  "behavior_next": [],
+  "triggers": [],
+  "last_interaction": null,
+  "forbidden_as_fact": [
+    "hidden author lore not surfaced in the scene",
+    "future relationship state before scene evidence",
+    "romantic/hostile escalation without concrete interaction"
+  ]
+}

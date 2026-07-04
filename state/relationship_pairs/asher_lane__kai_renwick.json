@@ -1,0 +1,45 @@
+{
+  "pair_id": "asher_lane__kai_renwick",
+  "source_legacy_pair_id": "asher_lane__kai_renwick",
+  "schema": "relationship_pair_state_v1_academy1198",
+  "status": "load_only_if_pair_is_scene_relevant",
+  "runtime_loading_rule": "Load only if both characters are present, one directly talks/thinks about the other with scene relevance, or scene_goal/current_frame requires this pair.",
+  "surface_dynamic": {
+    "affection": 5,
+    "trust": 8,
+    "tension": 10,
+    "jealousy": 0,
+    "respect": 8,
+    "curiosity": 0,
+    "resentment": 5,
+    "label": "pre-1198 baseline: были в одной старшей школьной компании; не лучшие друзья, но знают общий грязный контекст 'Слепой зоны'",
+    "asher_lane_view": "",
+    "kai_renwick_view": ""
+  },
+  "knowledge_boundaries": {
+    "asher_lane_does_not_know": [
+      "facts from the other character memory unless revealed in-scene"
+    ],
+    "kai_renwick_does_not_know": [
+      "facts from the other character memory unless revealed in-scene"
+    ]
+  },
+  "notes": [
+    "Ашер был социальнее и заметнее, Кай тише и закрытее.",
+    "Они связаны общей средой, но их вины разные: Ашер — перед Ливией, Кай — перед Акирой."
+  ],
+  "memory": [
+    "Оба связаны с прошлой школьной компанией и каналом 'Слепая зона'."
+  ],
+  "open_threads": [
+    "1 сентября возвращаются к обучению вместе с частью старших студентов."
+  ],
+  "behavior_next": [],
+  "triggers": [],
+  "last_interaction": "pre-1198 school company baseline; scheduled return 1198-09-01",
+  "forbidden_as_fact": [
+    "hidden author lore not surfaced in the scene",
+    "future relationship state before scene evidence",
+    "romantic/hostile escalation without concrete interaction"
+  ]
+}

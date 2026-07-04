@@ -1,0 +1,41 @@
+{
+  "id": "kir",
+  "source_legacy_id": "kir",
+  "file_type": "character_dynamic_memory",
+  "version": "academy_1198_character_memory_v1",
+  "status": "active",
+  "scope": "Dynamic/runtime knowledge and scene memory for this character. Static permanent knowledge will later live in characters/<id>/knowledge.yaml.",
+  "runtime_loading_rule": "Load only when this character is POV, physically present, speaking, directly addressed, observed, or required by the current scene_goal/current_frame.",
+  "seen": [],
+  "heard": [],
+  "knows_as_fact": [
+    "Акира и Ливия — его старые школьные знакомые до Академии.",
+    "Кир видел, как за день до Академии Акира в грозу доставала кота с дерева и получила ссадину на щеке.",
+    "Ливия наклеила Акире пластырь на щеку 15 августа 1198.",
+    "Акира последний год часто тренировалась до изнеможения после пожара в обычной школе и случая с Каем.",
+    "Кир и Ливия пытались заставлять Акиру отдыхать и кормить клубникой/едой после перегруза."
+  ],
+  "assumes": [],
+  "misbelieves": [],
+  "does_not_know": [
+    "Не знает скрытые авторские причины странного напряжения, совпадений, телесных откликов или будущих связей без сценического источника.",
+    "Не знает скрытую природу Акиры и не может выводить её из одного странного поведения."
+  ],
+  "hides": [],
+  "agreements": [],
+  "protected_moments": [],
+  "future_hooks": [],
+  "source_notes": {
+    "school_link": "личный школьный опыт",
+    "cat_rescue": "лично видел за день до Академии"
+  },
+  "last_scene_notes": [],
+  "notes": [
+    "Кир не должен знакомиться с Акирой и Ливией с нуля."
+  ],
+  "forbidden_as_fact": [
+    "hidden author lore not revealed in scene",
+    "future events not reached by calendar/current_frame",
+    "facts from another character memory unless told, seen, heard, or publicly known in-scene"
+  ]
+}

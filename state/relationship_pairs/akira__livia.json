@@ -1,0 +1,58 @@
+{
+  "pair_id": "akira__livia",
+  "source_legacy_pair_id": "akira__livia_cross",
+  "schema": "relationship_pair_state_v1_academy1198",
+  "status": "active",
+  "runtime_loading_rule": "Load only if both characters are present, one directly talks/thinks about the other with scene relevance, or scene_goal/current_frame requires this pair.",
+  "surface_dynamic": {
+    "affection": 18,
+    "trust": 14,
+    "tension": 0,
+    "jealousy": 0,
+    "respect": 8,
+    "curiosity": 8,
+    "resentment": 0,
+    "label": "старые школьные подруги; на старте Академии держатся рядом, но Ливия не обязана быть удобной спутницей Акиры",
+    "akira_view": "",
+    "livia_view": ""
+  },
+  "knowledge_boundaries": {
+    "akira_does_not_know": [
+      "facts from the other character memory unless revealed in-scene"
+    ],
+    "livia_does_not_know": [
+      "facts from the other character memory unless revealed in-scene"
+    ]
+  },
+  "notes": [
+    "Ливия — социальная и шумная школьная подруга Акиры.",
+    "Ливия знает бытовые привычки Акиры: кофе без сахара, нелюбовь к чаю и сладкому, почти отсутствие улыбок, баскетбол, странные маршруты и границы тела.",
+    "Ливия знает школьный случай с волосами, потому что это было публичное школьное последствие с вызовом Джуна и ограничением Акиры.",
+    "Ливия знает только общую версию истории Кая: Кай подставил Акиру через 'Слепую зону' и не защитил её публично.",
+    "Ливия НЕ знает, что Кай мог быть Акире чуть интересен как человек, и НЕ знает деталей сцен, где не присутствовала."
+  ],
+  "memory": [
+    "Школьная дружба; Ливия знает, как Акира выглядит спокойной, когда уже раздражена.",
+    "Акира коротко подтвердила Ливии только базовую версию истории с Каем: пришла, сняли/выложили, он промолчал. Подробности внутренних чувств Акиры Ливия не знает."
+  ],
+  "open_threads": [
+    "Если Кай Ренвик появится 1 сентября, Ливия может резко защищать Акиру, не зная всей глубины реакции Акиры.",
+    "Если Ашер Лейн появится 1 сентября, Акира может заметить, что Ливия реагирует слишком ярко или слишком холодно."
+  ],
+  "behavior_next": [
+    "Ливия может действовать самостоятельно, уходить, флиртовать и не всегда быть удобной спутницей Акиры.",
+    "Акира может остановить Ливию, если та полезет защищать её от Кая слишком громко."
+  ],
+  "triggers": [
+    "чужие руки у волос Акиры",
+    "Кай Ренвик рядом с Акирой",
+    "Ашер Лейн рядом с Ливией",
+    "намёки на 'Слепую зону'"
+  ],
+  "last_interaction": "pre-1198 school friendship baseline; active Academy line starts in August 1198",
+  "forbidden_as_fact": [
+    "hidden author lore not surfaced in the scene",
+    "future relationship state before scene evidence",
+    "romantic/hostile escalation without concrete interaction"
+  ]
+}

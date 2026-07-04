@@ -1,0 +1,46 @@
+{
+  "id": "raiden",
+  "source_legacy_id": "raiden_sterling",
+  "file_type": "character_dynamic_memory",
+  "version": "academy_1198_character_memory_v1",
+  "status": "active",
+  "scope": "Dynamic/runtime knowledge and scene memory for this character. Static permanent knowledge will later live in characters/<id>/knowledge.yaml.",
+  "runtime_loading_rule": "Load only when this character is POV, physically present, speaking, directly addressed, observed, or required by the current scene_goal/current_frame.",
+  "seen": [],
+  "heard": [],
+  "knows_as_fact": [
+    "Он принадлежит к влиятельной семье Стэрлингов.",
+    "Самуэль Стэрлинг является его братом.",
+    "Его мать погибла примерно год назад по состоянию старта Академии 1198; официальная версия неполная/болезненная.",
+    "Хару Фостер является его другом.",
+    "Академия Астрейн — элитное место отбора сильных носителей.",
+    "Ашер Лейн и Кай Ренвик — старшекурсники Академии, которых он может знать по лицу, слухам, тренировкам или общему кампусу.",
+    "У матери Райдена были белые волосы."
+  ],
+  "assumes": [],
+  "misbelieves": [],
+  "does_not_know": [
+    "Он является гибридом.",
+    "Старая история Кая и Акиры, если не услышит её сценой или слухом.",
+    "Личная история Ливии и Ашера, если не увидит/услышит сценой.",
+    "Что Ливия знает обе версии Акиры, если это не будет видно сценой или рассказано.",
+    "Не знает скрытые авторские причины странного напряжения, совпадений, телесных откликов или будущих связей без сценического источника.",
+    "Не знает скрытую природу Акиры и не может выводить её из одного странного поведения."
+  ],
+  "hides": [],
+  "agreements": [],
+  "protected_moments": [],
+  "future_hooks": [],
+  "source_notes": {
+    "asher_kai_are_seniors": "общий кампус/слухи/старшие группы"
+  },
+  "last_scene_notes": [],
+  "notes": [
+    "Белые волосы Акиры могут быть болезненным триггером, но Райден маскирует реакцию видом безразличия/грубостью/холодом."
+  ],
+  "forbidden_as_fact": [
+    "hidden author lore not revealed in scene",
+    "future events not reached by calendar/current_frame",
+    "facts from another character memory unless told, seen, heard, or publicly known in-scene"
+  ]
+}
