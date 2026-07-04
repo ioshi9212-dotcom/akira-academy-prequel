@@ -189,7 +189,7 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Calendar is hooks, not ready prose.
 - Active calendar source: state/calendar_runtime.json + calendar/current day file.
 - Use current beat and completed beats.
-- Do not use old state/academy_schedule.json as active source unless calendar_runtime/day file is unavailable.
+- Do not use old state/academy_schedule.json as an active source. Use calendar_runtime + calendar_index + current day file.
 - If day is overloaded, guide toward evening/sleep/next meaningful beat.
 - Absence of a character in day file is not a ban after first introduction.
 - Delayed/scheduled characters must stay remembered as pending until introduced or resolved.

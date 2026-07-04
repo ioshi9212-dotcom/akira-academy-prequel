@@ -5,7 +5,7 @@ Compatibility layer:
 - seeds new calendar/ and canon_lore/ roots;
 - allows apply-turn-result to save state/calendar_runtime.json;
 - replaces old compact /context academy_schedule snapshot with active calendar snapshot;
-- prevents old hidden bond path from being preferred over canon_lore hidden bond;
+- prevents old hidden relationship path from being preferred over canon_lore hidden relationship;
 - patches state_write_runtime_patch summary to recognize calendar runtime changes.
 """
 

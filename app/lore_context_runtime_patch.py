@@ -1,4 +1,4 @@
-"""Lore context runtime patch v19: compact academy lore, no automatic hidden-bond lore."""
+"""Lore context runtime patch v19: compact academy lore, no automatic hidden-relationship lore."""
 from __future__ import annotations
 import json
 from typing import Any
@@ -7,7 +7,7 @@ from app.context_transport_runtime_patch import app
 from app import compact as base
 import app.compact_context_patch as ccp
 
-app.version = "0.3.44-compact-academy-lore-no-hidden-bond-v19"
+app.version = "0.3.44-compact-academy-lore-no-hidden-relationship-v19"
 
 LORE_INDEX_FILE = "canon_lore/index.yaml"
 LORE_ALWAYS_FILES = [
@@ -90,7 +90,7 @@ def build_lore_slice(session_id, current, scene_character_ids, story_lines=None)
         payload.append({"path": path, "content": _cut(_read(path, session_id), limit)})
     return {
         "lore_mode": "canon_lore_v7_compact_academy_no_auto_hidden",
-        "hidden_policy": "Only hidden_lore_policy is always loaded. No relationship/bond hidden file is auto-loaded.",
+        "hidden_policy": "Only hidden_lore_policy is always loaded. No relationship hidden file is auto-loaded.",
         "loaded_lore_files": files,
         "files": payload,
     }

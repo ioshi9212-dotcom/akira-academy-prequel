@@ -359,7 +359,7 @@ def character_lock_files(scene_chars: list[str]) -> list[str]:
 
     if "raiden_sterling" in scene_chars or "raiden" in scene_chars:
         files.append("characters/locks/raiden_lazy_mask_social_lock.md")
-        # Hidden bond lore is not auto-loaded in Academy 1198 compact lore.
+        # Hidden relationship lore is not auto-loaded in Academy 1198 compact lore.
 
     if ("haru_foster" in scene_chars or "haru" in scene_chars) and (
         "raiden_sterling" in scene_chars or "raiden" in scene_chars
