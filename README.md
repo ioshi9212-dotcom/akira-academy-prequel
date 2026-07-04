@@ -69,11 +69,11 @@ Clean YAML-папки — основной источник персонажей
 ### State
 
 - `state/current_state.json` — текущая сцена.
-- `state/relationships.json` — отношения.
+- `state/relationship_pairs` — отношения.
 - `state/reputation_state.json` — репутация.
 - `state/power_state.json` — сила и публичные/скрытые уровни.
 - `state/rumors_state.json` — слухи.
-- `state/knowledge_state.json` — кто что знает.
+- `state/character_memory.json` — кто что знает.
 - `state/inventory_state.json` — реальные предметы, одежда и скрытый карман пространства.
 - `state/location_registry.md` — сыгранные/уточнённые локации, а не дубль всей карты.
 - `state/future_locks_progress.json` — продвижение к будущему канону.

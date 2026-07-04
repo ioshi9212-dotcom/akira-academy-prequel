@@ -1,0 +1,6 @@
+Delete from active project when applying lore cleanup only:
+
+- canon_lore/hidden/raiden_akira_bond.yaml
+
+Reason:
+The hidden bond lore should not be auto-loaded in ordinary Academy 1198 gameplay. Hidden boundaries are now handled by canon_lore/hidden/hidden_lore_policy.yaml + character cards + state/knowledge.
