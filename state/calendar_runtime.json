@@ -3,7 +3,7 @@
   "calendar_source": "calendar/calendar_index.yaml",
   "current_date": "1198-08-15",
   "current_day_file": "calendar/days/1198-08-15.yaml",
-  "current_beat_id": "arrival_back_court",
+  "current_beat_id": "fixed_car_arrival_with_ray",
   "completed_beat_ids": [],
   "skipped_beat_ids": [],
   "introduced_character_ids": []

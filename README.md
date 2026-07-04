@@ -13,7 +13,7 @@
 ## Старт
 
 - Дата старта: 15 августа 1198.
-- Место старта: Академия Астрейн, задний выход со стороны корта / баскетбольные площадки.
+- Место старта: подъезд к территории Академии; Рэй привозит Акиру и Ливию, затем они идут к заднему маршруту со стороны корта.
 - Акира приходит с Ливией через менее людный вход по совету Рэя.
 - Акире 17 лет.
 - Райдену 17 до 31 августа, затем 18.
@@ -38,26 +38,16 @@
 
 ## Ключевые файлы
 
-### Canon
+### Active lore
 
-- `canon/prequel_base.md` — база предыстории.
-- `canon/public_lore.md` — что известно миру.
-- `canon/hidden_lore.md` — скрытый лор.
-- `canon/hidden_raiden_akira_bond.md` — абсолютный hidden lore связи Акиры и Райдена.
-- `canon/hidden_observer_lore.md` — скрытый лор Наблюдателя.
-- `canon/sectors.md` — Восточный сектор, Самуэль, подразделения.
-- `canon/timeline_1198_1206.md` — календарь предыстории.
-- `canon/social_dynamics.md` — социальный котёл академии.
-- `canon/academy_locations.md` — базовая карта академии.
-- `canon/academy_rules_index.md` — точка входа для правил академии.
-- `canon/academy_student_code.md` — внутренний кодекс, свобода студентов, отношения и атмосфера.
-- `canon/academy_energy_application_rules.md` — применение энергии, эффектная физика и классы подготовки.
-- `canon/academy_combat_and_weapon_rules.md` — драки, спарринги, команда “Стоп”, оружие и стрельбище.
-- `canon/academy_zone_safety_rules.md` — общежитие, медблок, бассейн, барьеры, Эхо и закрытые зоны.
-- `canon/academy_discipline_ratings_admissions.md` — рейтинг, допуски, нарушения и последствия.
-- `canon/academy_unspoken_rules.md` — негласные студенческие правила и бытовая культура.
-- `canon/august_15_calendar.yaml` — активный порядок первого дня.
-- `canon/academy_core_1198.yaml` — короткий digest устройства Академии 1198.
+- `canon_lore/index.yaml` — active lore index.
+- `canon_lore/core/world_background.yaml` — short world base.
+- `canon_lore/academy/academy_background.yaml` — always-loaded Academy base: look, tone, uniform, tech level.
+- `canon_lore/academy/academy_full.yaml` — Academy rules/systems when needed.
+- `canon_lore/academy/academy_locations.yaml` — campus locations when needed.
+- `canon_lore/hidden/hidden_lore_policy.yaml` — rule that prevents hidden-lore leaks.
+
+Old `canon/` and long hidden lore are archive-only unless explicitly loaded.
 
 ### Characters
 
@@ -88,7 +78,7 @@ Clean YAML-папки — основной источник персонажей
 - `state/location_registry.md` — сыгранные/уточнённые локации, а не дубль всей карты.
 - `state/future_locks_progress.json` — продвижение к будущему канону.
 - `state/scene_history.json` — краткая история сцен.
-- `state/academy_schedule.json` — расписание и ритм академии.
+- `calendar/calendar_index.yaml`, `calendar/story_spine_1198.yaml`, `calendar/days/{current_date}.yaml`, `engine/calendar_day_runtime_rules.md` — календарь, ритм Академии и крючки дня.
 - `state/memory_update_rules.md` — правила обновления памяти.
 - `state/inventory_rules.md` — правила предметов и кармана пространства.
 - `state/story_lines.json` — сюжетные линии, события и открытые обязательства.

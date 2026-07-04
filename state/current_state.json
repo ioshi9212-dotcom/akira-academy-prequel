@@ -4,8 +4,8 @@
   "story": "academy_prequel_1198",
   "current_date": "1198-08-15",
   "current_time": "late_morning",
-  "current_location_id": "academy_back_court_exit",
-  "current_location_text": "Академия Астрейн, задний выход со стороны корта / баскетбольные площадки",
+  "current_location_id": "academy_arrival_dropoff",
+  "current_location_text": "Академия Астрейн, подъезд к территории / место высадки перед входным маршрутом",
   "akira_behavior_profile": "akira_v2_poisonous",
   "weather": {
     "summary": "set in first scene",
@@ -24,10 +24,11 @@
   "uniform_worn": false,
   "received_uniform": [],
   "visible_inventory": [
-    "багаж с личными вещами"
+    "тяжёлая спортивная сумка Акиры с личными вещами"
   ],
   "nearby_items": [
-    "багаж Акиры с личными вещами"
+    "машина Рэя у зоны высадки",
+    "тяжёлая спортивная сумка Акиры"
   ],
   "active_characters": [
     "akira",
@@ -35,7 +36,8 @@
   ],
   "nearby_characters": [],
   "scheduled_character_ids": [
-    "haru"
+    "haru",
+    "raiden"
   ],
   "mentioned_character_ids": [],
   "delayed_character_ids": [
@@ -50,17 +52,20 @@
     "kiara",
     "kael_north"
   ],
-  "current_scene_goal": "Academy arrival through the back court exit and first social contact near the basketball courts",
+  "current_scene_goal": "Fixed start: Ray drops Akira and Livia at Academy; short bag dialogue before first player choice and route toward back court entrance.",
   "last_player_input": null,
   "scene_count": 0,
   "rules": [
     "Use only akira-academy-prequel data.",
-    "Start 1198-08-15 from the back exit by the court / basketball courts, not the main courtyard.",
+    "Start 1198-08-15 at the Academy arrival dropoff by Ray's car, not directly at court.",
+    "The fixed opening may include Ray asking about the bag and Akira answering: «Минимальный спортивный инвентарь.»",
+    "After the fixed micro-dialogue, player controls Akira completely.",
     "Akira starts in ordinary pants outfit: sneakers, black cargo pants, top, burgundy hoodie.",
     "Do not treat Academy uniform as worn until player action or explicit state says uniform_worn=true.",
     "Do not stretch time without reason.",
     "Use only visible real items in scene header.",
     "Do not reveal hidden lore automatically.",
+    "Academy tech is modern-realistic; no super scanners or hidden-lore machines.",
     "Use Akira v2 poisonous profile as default."
   ],
   "outfit": {
@@ -70,9 +75,11 @@
     "jacket": "бордовый худи"
   },
   "start_day_notes": [
-    "15 августа 1198 на щеке Акиры пластырь: Ливия наклеила его после ссадины.",
-    "Ссадина появилась за день до Академии, когда Акира в грозу доставала кота с дерева; Кир видел это.",
-    "Акира и Ливия входят через менее людный задний выход со стороны корта/баскетбольных площадок по совету Рэя.",
-    "Первый социальный узел дня связан с Хару и баскетбольной зоной; Райден может быть фоном рядом с Хару, но прямой контакт требует сценовой причины."
+    "15 августа 1198: Рэй привозит Акиру и Ливию к Академии на машине.",
+    "Стартовый кадр: машина/зона высадки, тяжёлая спортивная сумка, короткий вопрос Рэя про сумку, ответ Акиры про минимальный спортивный инвентарь.",
+    "В сумке есть обычные вещи и две гири по 10 кг; NPC не знают содержимое, пока не увидят.",
+    "На щеке Акиры пластырь: Ливия наклеила его после ссадины. Ссадина уже заживает/зажила к медосмотру, но врач не знает дату без слов.",
+    "После стартового кадра Акира и Ливия идут через входной/задний маршрут; Хару с мячом и Райден фоном появляются только позже у зоны корта.",
+    "Кир появляется позже после регистрации/заселения как опоздавший старый знакомый."
   ]
 }

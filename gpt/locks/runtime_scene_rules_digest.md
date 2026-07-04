@@ -200,7 +200,8 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - Always keep short world background, academy background and hidden lore policy in mind.
 - Full lore files load only by tag/scene need.
 - Hidden lore is author/engine knowledge, not automatic NPC knowledge.
-- If Akira and Raiden are both truly in the active scene, use hidden raiden/akira bond only as subtext unless revealed by state/knowledge.
+- Do not auto-load long hidden relationship lore. Use character cards, current_state and knowledge_state for subtext and limits.
+- Academy tech is modern-realistic: no super-scanners, instant organ scans, total AI surveillance or devices that reveal hidden lore.
 
 ## State write
 
