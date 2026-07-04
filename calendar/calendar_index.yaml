@@ -1,83 +1,156 @@
 calendar_id: academy_calendar_1198
+calendar_mode: calendar_module_v2_academy_story_rules
 source_of_truth: true
-version: v1
-
-usage:
-  - "Сначала читать state/current_state.json и брать current_date."
-  - "Потом найти current_date в этом файле."
-  - "После этого открыть day_file текущего дня."
-  - "Календарь задаёт важные крючки дня, а не готовый текст сцены."
-  - "То, что написано в календаре, является важным крючком, но не полным списком всего, что может случиться."
-  - "Если персонаж указан в first_introduction_ids или required_character_ids дня, его появление обязательно при достижении соответствующего крючка."
-  - "Если персонаж не указан в конкретном дне, это не запрещает его появление."
-  - "После первого появления персонаж может появляться в следующих днях логично и интересно без повторного указания в календаре."
-  - "До первого появления персонаж не появляется активно без прямого разрешения игрока, state или календаря."
-  - "Все персонажи ведут себя строго по своим карточкам."
-  - "Главная цель ИИ: интересный сюжет, диалоги, выбор игрока, отношения, конфликт, репутация и последствия."
-  - "Не превращать календарь в сухой гид по Академии."
-  - "Не раздувать день пустыми переходами."
-  - "Если день перегружен событиями, мягко вести его к завершению через усталость, внутреннюю мысль Акиры, вечер, сон или следующий значимый момент."
-  - "Если в дне мало крючков, ИИ может развить день логично и интересно, но не обязан заполнять его пустотой."
-
-first_introduction_registry:
-  haru: "1198-08-15"
-  raiden: "1198-08-15"
-  kir: "1198-08-15"
-  kael_north: "1198-08-16"
-  samuel: "1198-08-31"
-
-days:
-  "1198-08-15":
-    day_file: "calendar/days/1198-08-15.yaml"
-    label: "прибытие / задний вход у корта / регистрация / заселение"
-  "1198-08-16":
-    day_file: "calendar/days/1198-08-16.yaml"
-    label: "первые проверки / ввод Кэйла Норта"
-  "1198-08-17":
-    day_file: "calendar/days/1198-08-17.yaml"
-    label: "кураторские наблюдения / ранний социальный фон"
-  "1198-08-18":
-    day_file: "calendar/days/1198-08-18.yaml"
-    label: "проверки / бытовая адаптация / социальные пересечения"
-  "1198-08-19":
-    day_file: "calendar/days/1198-08-19.yaml"
-    label: "ранний социальный резонанс"
-  "1198-08-20":
-    day_file: "calendar/days/1198-08-20.yaml"
-    label: "неделя проверок / первые рейтинги"
-  "1198-08-21":
-    day_file: "calendar/days/1198-08-21.yaml"
-    label: "неделя проверок / слухи и наблюдения"
-  "1198-08-22":
-    day_file: "calendar/days/1198-08-22.yaml"
-    label: "завершение недели проверок"
-  "1198-08-23":
-    day_file: "calendar/days/1198-08-23.yaml"
-    label: "начало недели отдыха и адаптации"
-  "1198-08-24":
-    day_file: "calendar/days/1198-08-24.yaml"
-    label: "адаптация / компании / свободное время"
-  "1198-08-25":
-    day_file: "calendar/days/1198-08-25.yaml"
-    label: "социальный котёл Академии"
-  "1198-08-26":
-    day_file: "calendar/days/1198-08-26.yaml"
-    label: "свободное время / слухи / тренировки"
-  "1198-08-27":
-    day_file: "calendar/days/1198-08-27.yaml"
-    label: "адаптация / первые личные напряжения"
-  "1198-08-28":
-    day_file: "calendar/days/1198-08-28.yaml"
-    label: "социальные пересечения / подготовка к обучению"
-  "1198-08-29":
-    day_file: "calendar/days/1198-08-29.yaml"
-    label: "свободный день / закрепление связей"
-  "1198-08-30":
-    day_file: "calendar/days/1198-08-30.yaml"
-    label: "последний день адаптации перед сильным сюжетным битом"
-  "1198-08-31":
-    day_file: "calendar/days/1198-08-31.yaml"
-    label: "день рождения Райдена / появление Самуэля"
-  "1198-09-01":
-    day_file: "calendar/days/1198-09-01.yaml"
-    label: "начало обучения"
+version: v2_clean_story_rules_academy
+start_date: '1198-08-15'
+current_arc: arrival_checks_adaptation_samuel_pressure
+story_spine_file: calendar/story_spine_1198.yaml
+runtime_rules_file: engine/calendar_day_runtime_rules.md
+source_policy:
+  runtime_source: project_files_only
+  rules:
+  - Календарь опирается только на файлы проекта, current_state, calendar_runtime и ввод игрока.
+  - Материалы вне загруженных файлов и current_state не являются знанием движка.
+  - Календарь не задаёт действие, реплики, маршрут или внутренние выводы Акиры; Акирой управляет игрок.
+  - Календарь задаёт состояние мира, окна событий, давление, цели NPC, последствия, социальный фон и ссылки на файлы.
+  - Скрытый лор используется только как авторская логика подтекста; персонажи не знают его без сценического источника.
+loading_policy:
+  normal_play:
+  - Всегда брать current_date из state/current_state.json или state/calendar_runtime.json.
+  - Для активной сцены грузить calendar/calendar_index.yaml, story_spine_1198 как общий обзор и только файл текущего дня.
+  - Будущие day-файлы не грузить в обычную сцену.
+  timeskip_or_calendar_audit:
+  - Можно смотреть следующие даты только при явном таймскипе, переходе даты или проверке календаря.
+  - Свободные промежутки между датами можно играть подробно, сжать итогом или пропустить по рутине игрока.
+pace_policy:
+  academy_day_rhythm:
+  - Академия не тюрьма.
+  - До 15:00 обычно идут проверки, вводные занятия, тренировки, кураторские блоки или обязательные окна.
+  - 'После 15:00 свободное время: столовая, двор, спортзона, библиотека, общежитие, прогулки, разговоры, добровольные тренировки.'
+  - 'После 23:00 общежитие контролируется: поздний вход или отсутствие фиксируются и могут иметь последствия.'
+  - Не дробить день на каждый шаг, воду, переодевание и переход, если это не создаёт сцену.
+  scene_goal:
+  - Каждая сцена должна двигать отношения, конфликт, репутацию, обучение, слухи, способности, систему Академии или будущий
+    канон.
+  - Если сцена ничего не двигает, её нужно сжать и перейти к meaningful beat.
+first_introduction_ids:
+  akira: '1198-08-15'
+  livia: '1198-08-15'
+  haru: 1198-08-15_court_direct
+  raiden: 1198-08-15_background_near_haru; direct_contact_requires_scene_reason
+  kir: 1198-08-15_late_arrival_as_old_friend
+  kiara: 1198-08-23_to_1198-08-30_social_window; optional_1198-08-15_background_if_natural
+  kael_north: 1198-08-16_or_1198-08-17_checks_context
+  samuel: '1198-08-31'
+character_appearance_rules:
+  haru:
+    first_window: 1198-08-15 back court / basketball area
+    mode: can be direct because scene starts near his social zone
+  raiden:
+    first_window: 1198-08-15 background near Haru / court area
+    direct_contact_rule: 'direct contact with Akira needs visible reason: collision, ball, Livia/Haru hook, shared route,
+      or player action'
+    do_not: do not force romance or instant recognition; use irritation, attention or silence as подтекст
+  kir:
+    first_window: 1198-08-15 later than Akira and Livia
+    mode: old friend, not new acquaintance and not constant attachment
+  kiara:
+    first_window: stronger after 1198-08-23; may appear earlier as background if social scene gives reason
+    mode: social rival/status figure, not villain and not copy of Livia
+  kael_north:
+    first_window: 1198-08-16/17 checks, instructors, orientation or observation
+    mode: academic/curator pressure, not random dramatic entrance
+  samuel:
+    first_window: 1198-08-31 only
+    mode: strong pressure node; do not introduce earlier without explicit override
+calendar_days:
+  '1198-08-15':
+    day_file: calendar/days/1198-08-15.yaml
+    label: прибытие / задний вход у корта / регистрация / заселение
+    required: true
+    short: Вход в Академию через менее людный маршрут, первый социальный контакт у баскетбольной зоны, регистрация и заселение.
+  '1198-08-16':
+    day_file: calendar/days/1198-08-16.yaml
+    label: первые проверки / ориентация / возможный ввод Кэйла
+    required: false
+    short: Первичные проверки, маршрут Академии, первые наблюдения кураторов.
+  '1198-08-17':
+    day_file: calendar/days/1198-08-17.yaml
+    label: кураторские наблюдения / ранний социальный фон
+    required: false
+    short: Продолжение проверок и социального фона; Кэйл может закрепиться, если введён.
+  '1198-08-18':
+    day_file: calendar/days/1198-08-18.yaml
+    label: проверки / бытовая адаптация / социальные пересечения
+    required: false
+    short: Быт, тренировки, общежитие, столовая, спортзона и первые пересечения.
+  '1198-08-19':
+    day_file: calendar/days/1198-08-19.yaml
+    label: ранний социальный резонанс
+    required: false
+    short: 'Академия начинает реагировать на новичков: слухи, внимание, оценки.'
+  '1198-08-20':
+    day_file: calendar/days/1198-08-20.yaml
+    label: неделя проверок / первые рейтинги
+    required: false
+    short: Физические, энергетические и социальные первые итоги.
+  '1198-08-21':
+    day_file: calendar/days/1198-08-21.yaml
+    label: неделя проверок / слухи и наблюдения
+    required: false
+    short: Усиление слухов и наблюдений, но без автоперехода в крупную драму.
+  '1198-08-22':
+    day_file: calendar/days/1198-08-22.yaml
+    label: завершение недели проверок
+    required: false
+    short: Итоги проверок и переход к более свободной адаптационной неделе.
+  '1198-08-23':
+    day_file: calendar/days/1198-08-23.yaml
+    label: начало недели отдыха и адаптации
+    required: false
+    short: Формируются компании, устойчивые симпатии, раздражения и первые выборы круга.
+  '1198-08-24':
+    day_file: calendar/days/1198-08-24.yaml
+    label: адаптация / компании / свободное время
+    required: false
+    short: Свободное пространство для быта, тренировок, столовой, двора и личных разговоров.
+  '1198-08-25':
+    day_file: calendar/days/1198-08-25.yaml
+    label: социальный котёл Академии
+    required: false
+    short: Слухи, ревность, соперничество, статусные столкновения без форсирования отношений.
+  '1198-08-26':
+    day_file: calendar/days/1198-08-26.yaml
+    label: свободное время / слухи / тренировки
+    required: false
+    short: 'Малые сцены: тренировки, прогулки, слухи, общежитие, социальные крючки.'
+  '1198-08-27':
+    day_file: calendar/days/1198-08-27.yaml
+    label: адаптация / первые личные напряжения
+    required: false
+    short: Первые личные напряжения и последствия сыгранных сцен.
+  '1198-08-28':
+    day_file: calendar/days/1198-08-28.yaml
+    label: социальные пересечения / подготовка к обучению
+    required: false
+    short: Подготовка к занятиям, свободные тренировки, разговоры о будущем расписании.
+  '1198-08-29':
+    day_file: calendar/days/1198-08-29.yaml
+    label: свободный день / закрепление связей
+    required: false
+    short: Закрепление выбранных ниток или короткий спокойный переход.
+  '1198-08-30':
+    day_file: calendar/days/1198-08-30.yaml
+    label: последний день адаптации перед сильным сюжетным битом
+    required: false
+    short: Закрыть мелкие нитки, не раскрывая 31 августа как знание персонажей.
+  '1198-08-31':
+    day_file: calendar/days/1198-08-31.yaml
+    label: день рождения Райдена / появление Самуэля
+    required: true
+    short: 'Сильный узел давления: Самуэль входит в Академию и замечает Акиру.'
+  '1198-09-01':
+    day_file: calendar/days/1198-09-01.yaml
+    label: начало обучения
+    required: false
+    short: 'Регулярное расписание: теория, тренировки, энергетическая практика, стрельбище и социальные последствия.'

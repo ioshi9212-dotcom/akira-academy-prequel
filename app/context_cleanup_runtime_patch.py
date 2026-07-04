@@ -113,12 +113,14 @@ def context_payload_clean(session_id: str | None = None):
     current_day_file = calendar_runtime.get("current_day_file") or (f"calendar/days/{current_date}.yaml" if current_date else "")
 
     active_calendar_snapshot = {
-        "mode": "calendar_module_v1",
+        "mode": "calendar_module_v2_academy_story_rules",
         "calendar_runtime": calendar_runtime,
         "calendar_index_file": "calendar/calendar_index.yaml",
+        "calendar_story_spine_file": "calendar/story_spine_1198.yaml",
+        "calendar_runtime_rules_file": "engine/calendar_day_runtime_rules.md",
         "current_day_file": current_day_file,
         "current_day_yaml": _compact_text(_read_text_optional(current_day_file, session_id=session_id), 3500),
-        "note": "This field replaces old state/academy_schedule.json in compact /context. Use calendar runtime + day file as active schedule source.",
+        "note": "Use calendar runtime + story spine + current day file as active schedule source. Old state/academy_schedule.json is deprecated.",
     }
 
     if payload is not None and hasattr(payload, "model_copy"):
