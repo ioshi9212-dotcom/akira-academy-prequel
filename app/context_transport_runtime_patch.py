@@ -268,7 +268,36 @@ def character_files_for_context(cid: str, *, include_past: bool = True) -> list[
     if include_past:
         candidates.append(f"characters/{folder}/past.yaml")
     candidates.append(f"characters/{folder}/main.yaml")
+    candidates.append(f"state/character_memory/{canonical_id(cid)}.json")
     return [path for path in candidates if base.repo_file_exists(path)]
+
+
+def relationship_pair_files_for_context(chars: list[str]) -> list[str]:
+    focus = [canonical_id(c) for c in (chars or []) if c]
+    files: list[str] = []
+    for i, a in enumerate(focus):
+        for b in focus[i + 1:]:
+            for rel in (f"state/relationship_pairs/{a}__{b}.json", f"state/relationship_pairs/{b}__{a}.json"):
+                if base.repo_file_exists(rel) and rel not in files:
+                    files.append(rel)
+    return files
+
+
+def read_character_memory_scene_only(session_id: str, chars: list[str]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for cid in [canonical_id(c) for c in (chars or [])]:
+        rel = f"state/character_memory/{cid}.json"
+        if base.repo_file_exists(rel):
+            out[cid] = base.read_json(rel, session_id, default={}) or {}
+    return {"characters": out, "_context_filter": {"mode": "per_character_memory_only", "focus_character_ids": sorted(set(out))}}
+
+
+def read_relationship_pairs_scene_only(session_id: str, chars: list[str]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for rel in relationship_pair_files_for_context(chars):
+        pair_id = rel.rsplit("/", 1)[-1].removesuffix(".json")
+        out[pair_id] = base.read_json(rel, session_id, default={}) or {}
+    return {"pairs": out, "_context_filter": {"mode": "per_pair_relationships_only", "visible_pairs": len(out)}}
 
 
 def lean_recommended_files_for_context(current: dict[str, Any] | None = None, future: dict[str, Any] | None = None) -> list[str]:
@@ -286,6 +315,7 @@ def lean_recommended_files_for_context(current: dict[str, Any] | None = None, fu
 
     for cid in chars:
         files.extend(character_files_for_context(cid, include_past=True))
+    files.extend(relationship_pair_files_for_context(chars))
 
     return _unique(files)
 
@@ -457,18 +487,12 @@ def build_scene_context_digest(session_id: str) -> str:
     future = base.read_json("state/future_locks_progress.json", session_id, default={}) or {}
     chars = scene_character_ids(current, future)
 
-    relationships = compact_relationships_scene_pairs_only(
-        base.read_json("state/relationships.json", session_id, default={}) or {},
-        chars,
-    )
+    relationships = read_relationship_pairs_scene_only(session_id, chars)
     story_lines = compact_story_lines_scene_only(
         base.read_json("state/story_lines.json", session_id, default={}) or {},
         chars,
     )
-    knowledge = compact_knowledge_scene_only(
-        base.read_json("state/knowledge_state.json", session_id, default={}) or {},
-        chars,
-    )
+    knowledge = read_character_memory_scene_only(session_id, chars)
     inventory = base.compact_if_large(base.read_json("state/inventory_state.json", session_id, default={}) or {}, 2200)
     academy_schedule = build_calendar_slice(current, {})
 

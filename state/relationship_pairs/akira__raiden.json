@@ -1,0 +1,49 @@
+{
+  "pair_id": "akira__raiden",
+  "source_legacy_pair_id": "akira__raiden_sterling",
+  "schema": "relationship_pair_state_v1_academy1198",
+  "status": "load_only_if_pair_is_scene_relevant",
+  "runtime_loading_rule": "Load only if both characters are present, one directly talks/thinks about the other with scene relevance, or scene_goal/current_frame requires this pair.",
+  "surface_dynamic": {
+    "affection": 0,
+    "trust": 0,
+    "tension": 0,
+    "jealousy": 0,
+    "respect": 0,
+    "curiosity": 0,
+    "resentment": 0,
+    "label": "ещё не знакомы осознанно; необъяснимое напряжение, раздражение и интерес без знания причин",
+    "akira_view": "не знает Райдена; может заметить взгляд, холодность или телесный отклик без объяснения причины",
+    "raiden_view": "не знает Акиру; может замечать несостыковки поведения и раздражаться/цепляться без понимания причины"
+  },
+  "knowledge_boundaries": {
+    "akira_does_not_know": [
+      "почему Райден цепляет внимание",
+      "скрытые причины напряжения"
+    ],
+    "raiden_does_not_know": [
+      "почему Акира кажется несостыкованной",
+      "скрытые причины напряжения"
+    ]
+  },
+  "notes": [
+    "Не использовать скрытый лор как знание персонажей.",
+    "В сцене это работает только как видимое поведение: пауза, взгляд, раздражение, интерес, желание проверить границы.",
+    "Причины тяги не объяснять и не называть без сыгранного раскрытия."
+  ],
+  "memory": [],
+  "open_threads": [],
+  "behavior_next": [],
+  "triggers": [],
+  "last_interaction": null,
+  "forbidden_as_fact": [
+    "hidden author lore not surfaced in the scene",
+    "future relationship state before scene evidence",
+    "romantic/hostile escalation without concrete interaction",
+    "прошлая связь",
+    "реинкарнация",
+    "они были вместе",
+    "любовь",
+    "память тела как объяснённый факт"
+  ]
+}

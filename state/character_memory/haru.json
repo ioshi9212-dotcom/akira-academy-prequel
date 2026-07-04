@@ -1,0 +1,42 @@
+{
+  "id": "haru",
+  "source_legacy_id": "haru_foster",
+  "file_type": "character_dynamic_memory",
+  "version": "academy_1198_character_memory_v1",
+  "status": "active",
+  "scope": "Dynamic/runtime knowledge and scene memory for this character. Static permanent knowledge will later live in characters/<id>/knowledge.yaml.",
+  "runtime_loading_rule": "Load only when this character is POV, physically present, speaking, directly addressed, observed, or required by the current scene_goal/current_frame.",
+  "seen": [],
+  "heard": [],
+  "knows_as_fact": [
+    "Райден Стэрлинг является его другом.",
+    "Райден грубый, сложный и не любит лишнее общение.",
+    "Академия Астрейн — место конкуренции и отбора.",
+    "Ашер Лейн и Кай Ренвик — старшекурсники Академии, которых он может знать по лицу, слухам, тренировкам или общему кампусу.",
+    "Вокруг Хару и Райдена есть фоновое внимание девушек/поклонниц как часть академического социального шума."
+  ],
+  "assumes": [],
+  "misbelieves": [],
+  "does_not_know": [
+    "Скрытые цели Самуэля.",
+    "Старая история Кая и Акиры, если не услышит её сценой или слухом.",
+    "Личная история Ливии и Ашера, если не увидит/услышит сценой.",
+    "Что Ливия знает обе версии Акиры, если это не будет видно сценой или рассказано.",
+    "Не знает скрытые авторские причины странного напряжения, совпадений, телесных откликов или будущих связей без сценического источника.",
+    "Не знает скрытую природу Акиры и не может выводить её из одного странного поведения."
+  ],
+  "hides": [],
+  "agreements": [],
+  "protected_moments": [],
+  "future_hooks": [],
+  "source_notes": {
+    "asher_kai_are_seniors": "общий кампус/слухи/старшие группы"
+  },
+  "last_scene_notes": [],
+  "notes": [],
+  "forbidden_as_fact": [
+    "hidden author lore not revealed in scene",
+    "future events not reached by calendar/current_frame",
+    "facts from another character memory unless told, seen, heard, or publicly known in-scene"
+  ]
+}

@@ -38,8 +38,8 @@ LIGHT_STATE_FILES = [
     "state/current_state.json",
     "state/inventory_state.json",
     "state/story_lines.json",
-    "state/relationships.json",
-    "state/knowledge_state.json",
+    "state/character_memory/README.md",
+    "state/relationship_pairs/README.md",
     "state/calendar_runtime.json",
     "state/location_registry.md",
 ]
@@ -217,14 +217,55 @@ def _character_files_compact(cid: str) -> list[str]:
     if not folder:
         return []
     files: list[str] = []
-    # character.yaml gives voice/behavior; main.yaml gives appearance/energy; past only for active scene chars when needed via chunks, not compact contract.
+    # character.yaml gives voice/behavior; main.yaml gives appearance/energy.
+    # state/character_memory/<id>.json gives per-character runtime knowledge/memory.
     for rel in (
         f"characters/{folder}/character.yaml",
         f"characters/{folder}/main.yaml",
+        f"state/character_memory/{cid}.json",
     ):
         if _repo_exists(rel):
             files.append(rel)
     return files
+
+
+def _relationship_pair_files(chars: list[str]) -> list[str]:
+    files: list[str] = []
+    focus = [_canonical_id(c) for c in chars if c]
+    for i, a in enumerate(focus):
+        for b in focus[i + 1:]:
+            for rel in (
+                f"state/relationship_pairs/{a}__{b}.json",
+                f"state/relationship_pairs/{b}__{a}.json",
+            ):
+                if _repo_exists(rel):
+                    files.append(rel)
+    return _unique(files)
+
+
+def _read_character_memory_table(session_id: str, chars: list[str]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for cid in chars[:14]:
+        rel = f"state/character_memory/{cid}.json"
+        if _repo_exists(rel):
+            out[cid] = _compact_text(_safe_read_json(rel, session_id, {}), 1400)
+    return {
+        "source": "state/character_memory/<id>.json",
+        "mode": "per_character_runtime_memory_only",
+        "characters": out,
+    }
+
+
+def _read_relationship_pair_table(session_id: str, chars: list[str]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for rel in _relationship_pair_files(chars):
+        pair_id = rel.rsplit("/", 1)[-1].removesuffix(".json")
+        out[pair_id] = _compact_text(_safe_read_json(rel, session_id, {}), 1100)
+    return {
+        "source": "state/relationship_pairs/<a>__<b>.json",
+        "mode": "scene_relevant_pairs_only",
+        "pairs": out,
+    }
 
 
 def _calendar_files(current: dict[str, Any]) -> list[str]:
@@ -251,8 +292,10 @@ def _required_files(current: dict[str, Any], future: dict[str, Any]) -> list[str
         files.append("characters/character_id_index.md")
     files.extend(_existing_files(LIGHT_STATE_FILES))
     files.extend(_calendar_files(current))
-    for cid in _scene_chars(current, future):
+    scene_chars = _scene_chars(current, future)
+    for cid in scene_chars:
         files.extend(_character_files_compact(cid))
+    files.extend(_relationship_pair_files(scene_chars))
     files.extend(_existing_files(PROGRESS_FILES))
     return _unique(files)
 
@@ -573,11 +616,12 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
     base.ensure_session(sid)
     current = _safe_read_json("state/current_state.json", sid, {})
     future = _safe_read_json("state/future_locks_progress.json", sid, {})
-    knowledge = _safe_read_json("state/knowledge_state.json", sid, {})
     inventory = _safe_read_json("state/inventory_state.json", sid, {})
-    relationships = _safe_read_json("state/relationships.json", sid, {})
     story_lines = _safe_read_json("state/story_lines.json", sid, {})
     chars = _scene_chars(current, future)
+    character_memory_table = _read_character_memory_table(sid, chars)
+    relationship_pair_table = _read_relationship_pair_table(sid, chars)
+    relationships = {"pairs": relationship_pair_table.get("pairs", {})}
     files = _required_files(current, future)
 
     required_checks = [
@@ -589,7 +633,7 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
         "Header ✦ is short visible condition; bottom ✦ Уровни is numeric levels only.",
         "Do not use quotation marks around dialogue or speech choices.",
         "Do not start action choices with 'Акира может'.",
-        "Use computed_relationship_score_panel from relationships.json when available.",
+        "Use computed_relationship_score_panel from selected state/relationship_pairs files when available.",
     ]
 
     story_context = _story_slice(story_lines)
@@ -602,7 +646,7 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
         required_files=files,
         output_format_contract=_small_output_contract(),
         required_checks_before_answer=required_checks,
-        knowledge_table=_knowledge_slice(knowledge, chars),
+        knowledge_table=character_memory_table,
         inventory_contract={
             "visible_inventory": _compact_text(current.get("visible_inventory", []), 1000),
             "nearby_items": _compact_text(current.get("nearby_items", []), 1000),
@@ -610,7 +654,7 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
             "uniform_worn": current.get("uniform_worn"),
             "akira_inventory_state": _compact_text((inventory.get("akira") or {}) if isinstance(inventory, dict) else {}, 1000),
         },
-        relationship_context=_relationship_slice(relationships, chars),
+        relationship_context=relationship_pair_table,
         story_context=story_context,
         prompt_preview=_small_prompt_preview(chars, files),
     )

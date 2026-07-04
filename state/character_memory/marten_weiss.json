@@ -1,0 +1,23 @@
+{
+  "id": "marten_weiss",
+  "file_type": "character_dynamic_memory",
+  "version": "academy_1198_character_memory_v1",
+  "status": "deferred_until_trigger",
+  "scope": "Dynamic scene memory placeholder. Static permanent knowledge will be added later.",
+  "runtime_loading_rule": "Load only when this character becomes active/present/speaking/addressed/scene_goal_required.",
+  "seen": [],
+  "heard": [],
+  "knows_as_fact": [],
+  "assumes": [],
+  "misbelieves": [],
+  "does_not_know": [],
+  "hides": [],
+  "agreements": [],
+  "protected_moments": [],
+  "future_hooks": [],
+  "last_scene_notes": [],
+  "forbidden_as_fact": [
+    "hidden author lore not revealed in scene",
+    "future events not reached by calendar/current_frame"
+  ]
+}

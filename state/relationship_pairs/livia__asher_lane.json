@@ -1,0 +1,56 @@
+{
+  "pair_id": "livia__asher_lane",
+  "source_legacy_pair_id": "livia_cross__asher_lane",
+  "schema": "relationship_pair_state_v1_academy1198",
+  "status": "load_only_if_pair_is_scene_relevant",
+  "runtime_loading_rule": "Load only if both characters are present, one directly talks/thinks about the other with scene relevance, or scene_goal/current_frame requires this pair.",
+  "surface_dynamic": {
+    "affection": 10,
+    "trust": 0,
+    "tension": 42,
+    "jealousy": 0,
+    "respect": 2,
+    "curiosity": 10,
+    "resentment": 52,
+    "label": "pre-1198 baseline: бывшие; Ливия ушла сама после серии обесцениваний и размытых отношений",
+    "livia_view": "",
+    "asher_lane_view": ""
+  },
+  "knowledge_boundaries": {
+    "livia_does_not_know": [
+      "facts from the other character memory unless revealed in-scene"
+    ],
+    "asher_lane_does_not_know": [
+      "facts from the other character memory unless revealed in-scene"
+    ]
+  },
+  "notes": [
+    "Наедине Ашер был тёплым, но при компании делал Ливию 'просто Лив' и избегал ярлыков.",
+    "Ливия не простила не одну сцену, а чувство, что её выбирали только когда никто не смотрит.",
+    "Ливия сама оборвала отношения, но боль осталась. Это не делает её слабой или удобной для Ашера."
+  ],
+  "memory": [
+    "Ашер был первым серьёзным старшим парнем Ливии; после него она стала громче, демонстративнее и быстрее флиртовать первой.",
+    "Его мягкие фразы вроде 'ты неправильно поняла' и 'не устраивай сцену' — старый триггер Ливии."
+  ],
+  "open_threads": [
+    "1 сентября встреча с Ашером может задеть Ливию сильнее, чем она покажет.",
+    "Ашер может хотеть не вернуть Ливию, а вернуть право выглядеть не плохим в её глазах."
+  ],
+  "behavior_next": [
+    "Ливия может включить слишком яркую улыбку, уйти первой, резко пошутить или сделать вид, что ей всё равно.",
+    "Ливия не обязана автоматически смягчаться, если Ашер говорит мягко."
+  ],
+  "triggers": [
+    "Ашер называет её 'Лив' при людях",
+    "Ашер делает вид, что прошлое было легче, чем было",
+    "Ашер намекает, что Ливия слишком остро реагировала",
+    "Ашер ведёт себя так, будто всё уже почти прощено"
+  ],
+  "last_interaction": "pre-1198 breakup; scheduled return 1198-09-01",
+  "forbidden_as_fact": [
+    "hidden author lore not surfaced in the scene",
+    "future relationship state before scene evidence",
+    "romantic/hostile escalation without concrete interaction"
+  ]
+}

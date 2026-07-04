@@ -1,0 +1,37 @@
+{
+  "id": "jun_carter",
+  "source_legacy_id": "jun_carter",
+  "file_type": "character_dynamic_memory",
+  "version": "academy_1198_character_memory_v1",
+  "status": "active",
+  "scope": "Dynamic/runtime knowledge and scene memory for this character. Static permanent knowledge will later live in characters/<id>/knowledge.yaml.",
+  "runtime_loading_rule": "Load only when this character is POV, physically present, speaking, directly addressed, observed, or required by the current scene_goal/current_frame.",
+  "seen": [],
+  "heard": [],
+  "knows_as_fact": [
+    "Акира не обычный человек.",
+    "Акиру нужно скрывать и защищать.",
+    "Акира является его приёмной дочерью.",
+    "Рэй знает часть правды об Акире.",
+    "Восточный сектор сталкивается с реальными угрозами Эхо и границы."
+  ],
+  "assumes": [],
+  "misbelieves": [],
+  "does_not_know": [
+    "Все скрытые планы Самуэля.",
+    "Все мелкие способности и скрытые запасы Акиры.",
+    "Не знает скрытые авторские причины странного напряжения, совпадений, телесных откликов или будущих связей без сценического источника."
+  ],
+  "hides": [],
+  "agreements": [],
+  "protected_moments": [],
+  "future_hooks": [],
+  "source_notes": {},
+  "last_scene_notes": [],
+  "notes": [],
+  "forbidden_as_fact": [
+    "hidden author lore not revealed in scene",
+    "future events not reached by calendar/current_frame",
+    "facts from another character memory unless told, seen, heard, or publicly known in-scene"
+  ]
+}

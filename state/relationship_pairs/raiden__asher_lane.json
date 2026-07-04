@@ -1,0 +1,40 @@
+{
+  "pair_id": "raiden__asher_lane",
+  "source_legacy_pair_id": "raiden_sterling__asher_lane",
+  "schema": "relationship_pair_state_v1_academy1198",
+  "status": "load_only_if_pair_is_scene_relevant",
+  "runtime_loading_rule": "Load only if both characters are present, one directly talks/thinks about the other with scene relevance, or scene_goal/current_frame requires this pair.",
+  "surface_dynamic": {
+    "affection": 0,
+    "trust": 0,
+    "tension": 0,
+    "jealousy": 0,
+    "respect": 3,
+    "curiosity": 1,
+    "resentment": 0,
+    "label": "знакомы по лицу/кампусу как старшекурсники; не друзья и не враги",
+    "raiden_view": "",
+    "asher_lane_view": ""
+  },
+  "knowledge_boundaries": {
+    "raiden_does_not_know": [
+      "facts from the other character memory unless revealed in-scene"
+    ],
+    "asher_lane_does_not_know": [
+      "facts from the other character memory unless revealed in-scene"
+    ]
+  },
+  "notes": [
+    "Не писать близкую дружбу без сыгранного основания."
+  ],
+  "memory": [],
+  "open_threads": [],
+  "behavior_next": [],
+  "triggers": [],
+  "last_interaction": null,
+  "forbidden_as_fact": [
+    "hidden author lore not surfaced in the scene",
+    "future relationship state before scene evidence",
+    "romantic/hostile escalation without concrete interaction"
+  ]
+}

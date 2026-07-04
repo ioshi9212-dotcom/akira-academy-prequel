@@ -64,5 +64,18 @@
     "state/character_memory/<id>.json",
     "state/relationship_pairs/<a>__<b>.json"
   ],
-  "note": "Academy currently still uses relationships.json and knowledge_state.json. This rule introduces the v3 safety contract without forcing state migration now. knowledge_state.json is intentionally left for later cleanup."
+  "note": "Academy state knowledge is now split into state/character_memory/<id>.json and state/relationship_pairs/<a>__<b>.json. Global knowledge_state/relationships files are disabled migration stubs.",
+  "allowed_targets": [
+    "state/character_memory/<id>.json",
+    "state/relationship_pairs/<a>__<b>.json",
+    "state/session_npcs.json",
+    "state/current_state.json",
+    "state/scene_flags.json"
+  ],
+  "forbidden_targets_for_turn_updates": [
+    "state/knowledge_state.json",
+    "state/knowledge_threads/",
+    "state/legacy/",
+    "state/relationships.json"
+  ]
 }

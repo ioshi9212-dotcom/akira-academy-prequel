@@ -1,0 +1,36 @@
+{
+  "id": "asher_lane",
+  "source_legacy_id": "asher_lane",
+  "file_type": "character_dynamic_memory",
+  "version": "academy_1198_character_memory_v1",
+  "status": "deferred_until_trigger",
+  "scope": "Dynamic/runtime knowledge and scene memory for this character. Static permanent knowledge will later live in characters/<id>/knowledge.yaml.",
+  "runtime_loading_rule": "Load only when this character is POV, physically present, speaking, directly addressed, observed, or required by the current scene_goal/current_frame.",
+  "seen": [],
+  "heard": [],
+  "knows_as_fact": [],
+  "assumes": [],
+  "misbelieves": [
+    "Ашер склонен считать, что Ливия слишком остро воспринимала его нежелание афишировать отношения."
+  ],
+  "does_not_know": [
+    "Акира скрывает масштаб способностей.",
+    "Скрытые цели Самуэля.",
+    "Текущие события августа 1198, потому что он отсутствовал в активном кампусе/общежитии.",
+    "Точный механизм силы Акиры и пространственного перехода."
+  ],
+  "hides": [],
+  "agreements": [],
+  "protected_moments": [],
+  "future_hooks": [],
+  "source_notes": {},
+  "last_scene_notes": [],
+  "notes": [
+    "Есть отдельная школьная ветка; обычные августовские сцены её не грузят."
+  ],
+  "forbidden_as_fact": [
+    "hidden author lore not revealed in scene",
+    "future events not reached by calendar/current_frame",
+    "facts from another character memory unless told, seen, heard, or publicly known in-scene"
+  ]
+}

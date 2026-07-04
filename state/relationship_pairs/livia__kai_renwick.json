@@ -1,0 +1,54 @@
+{
+  "pair_id": "livia__kai_renwick",
+  "source_legacy_pair_id": "livia_cross__kai_renwick",
+  "schema": "relationship_pair_state_v1_academy1198",
+  "status": "load_only_if_pair_is_scene_relevant",
+  "runtime_loading_rule": "Load only if both characters are present, one directly talks/thinks about the other with scene relevance, or scene_goal/current_frame requires this pair.",
+  "surface_dynamic": {
+    "affection": 0,
+    "trust": 0,
+    "tension": 30,
+    "jealousy": 0,
+    "respect": 0,
+    "curiosity": 5,
+    "resentment": 42,
+    "label": "pre-1198 baseline: Ливия знает Кая как человека, который подставил Акиру через 'Слепую зону', но знает только внешнюю версию истории",
+    "livia_view": "",
+    "kai_renwick_view": ""
+  },
+  "knowledge_boundaries": {
+    "livia_does_not_know": [
+      "facts from the other character memory unless revealed in-scene"
+    ],
+    "kai_renwick_does_not_know": [
+      "facts from the other character memory unless revealed in-scene"
+    ]
+  },
+  "notes": [
+    "Ливия не знает, что Кай мог быть Акире чуть интересен как человек.",
+    "Ливия готова защищать Акиру от Кая, но может не понимать глубину реакции Акиры.",
+    "Источник знания Ливии: школьный шум/канал 'Слепая зона' + короткое подтверждение Акиры, а не присутствие в самой сцене встречи Кая и Акиры."
+  ],
+  "memory": [
+    "Кай связан с историей 'Ставка закрыта'.",
+    "Ливия знает итог и публичную грязь, но не знает внутренние чувства Акиры и не знает деталей, которых Акира ей не говорила."
+  ],
+  "open_threads": [
+    "1 сентября Кай возвращается вместе со старшими студентами, что может включить защитную реакцию Ливии."
+  ],
+  "behavior_next": [
+    "Ливия может первой сорваться, если Кай попробует говорить с Акирой.",
+    "Если Акира остановит Ливию, это может показать Ливии, что история была глубже, чем она знала."
+  ],
+  "triggers": [
+    "Кай обращается к Акире слишком мягко или пытается оправдаться",
+    "Кай говорит 'я не думал, что они выложат'",
+    "кто-то вспоминает 'Слепую зону'"
+  ],
+  "last_interaction": "pre-1198 school rumor/confirmation baseline; scheduled return 1198-09-01",
+  "forbidden_as_fact": [
+    "hidden author lore not surfaced in the scene",
+    "future relationship state before scene evidence",
+    "romantic/hostile escalation without concrete interaction"
+  ]
+}
