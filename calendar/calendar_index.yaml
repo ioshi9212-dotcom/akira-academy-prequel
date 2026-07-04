@@ -36,29 +36,30 @@ pace_policy:
 first_introduction_ids:
   akira: '1198-08-15'
   livia: '1198-08-15'
-  haru: 1198-08-15_court_direct
-  raiden: 1198-08-15_background_near_haru; direct_contact_requires_scene_reason
-  kir: 1198-08-15_late_arrival_as_old_friend
-  kiara: 1198-08-23_to_1198-08-30_social_window; optional_1198-08-15_background_if_natural
-  kael_north: 1198-08-16_or_1198-08-17_checks_context
+  haru: 1198-08-15_court_ball_after_arrival_transition
+  raiden: 1198-08-15_background_near_haru; stronger_observer_on_1198-08-16
+  kir: 1198-08-15_late_arrival_after_registration_or_settlement
+  kiara: 1198-08-16_physical_block_near_raiden_and_haru
+  kael_north: 1198-08-17_or_later_checks_context
   samuel: '1198-08-31'
 character_appearance_rules:
   haru:
-    first_window: 1198-08-15 back court / basketball area
-    mode: can be direct because scene starts near his social zone
+    first_window: 1198-08-15 после прибытия, когда Акира и Ливия проходят мимо корта
+    mode: direct hook through intentionally bounced ball; not first frame of the day
   raiden:
-    first_window: 1198-08-15 background near Haru / court area
-    direct_contact_rule: 'direct contact with Akira needs visible reason: collision, ball, Livia/Haru hook, shared route,
-      or player action'
-    do_not: do not force romance or instant recognition; use irritation, attention or silence as подтекст
+    first_window: 1198-08-15 background near Haru / court area; 1198-08-16 active senior observer during physical block
+    direct_contact_rule: 'direct contact with Akira needs visible reason: ball, Haru hook, shared block, observer role, player
+      action or scene escalation'
+    do_not: do not force romance, instant recognition or hidden-lore knowledge; use attention, irritation, silence and observation
+      as подтекст
   kir:
-    first_window: 1198-08-15 later than Akira and Livia
-    mode: old friend, not new acquaintance and not constant attachment
+    first_window: 1198-08-15 later than Akira and Livia, after registration/settlement timing
+    mode: old friend, not new acquaintance and not present at car arrival
   kiara:
-    first_window: stronger after 1198-08-23; may appear earlier as background if social scene gives reason
-    mode: social rival/status figure, not villain and not copy of Livia
+    first_window: 1198-08-16 physical block near Raiden and Haru
+    mode: status figure/social rival; confident, not villain and not copy of Livia
   kael_north:
-    first_window: 1198-08-16/17 checks, instructors, orientation or observation
+    first_window: 1198-08-17 or later checks/instructors/orientation context unless explicit override
     mode: academic/curator pressure, not random dramatic entrance
   samuel:
     first_window: 1198-08-31 only
@@ -66,14 +67,16 @@ character_appearance_rules:
 calendar_days:
   '1198-08-15':
     day_file: calendar/days/1198-08-15.yaml
-    label: прибытие / задний вход у корта / регистрация / заселение
+    label: приезд на машине Рэя / вход в Академию / Хару с мячом / регистрация / заселение / медосмотр
     required: true
-    short: Вход в Академию через менее людный маршрут, первый социальный контакт у баскетбольной зоны, регистрация и заселение.
+    short: 'Стартовый неизменный приезд: Рэй привозит Акиру и Ливию; после мягкого входа идут к территории, затем крючок Хару
+      с мячом, регистрация, заселение, медосмотр.'
   '1198-08-16':
     day_file: calendar/days/1198-08-16.yaml
-    label: первые проверки / ориентация / возможный ввод Кэйла
+    label: первый физический блок / Киара рядом с Райденом и Хару / наблюдение Райдена / игра Ленты
     required: false
-    short: Первичные проверки, маршрут Академии, первые наблюдения кураторов.
+    short: 'Первый рабочий профиль тела без рейтинга: старшекурсники наблюдают, Киара входит рядом с Райденом и Хару, Райден
+      может заметить искусственность Акиры, после 15:00 возможна игра Ленты.'
   '1198-08-17':
     day_file: calendar/days/1198-08-17.yaml
     label: кураторские наблюдения / ранний социальный фон
