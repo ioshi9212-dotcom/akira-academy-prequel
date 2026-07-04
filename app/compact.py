@@ -15,7 +15,7 @@ BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://akira-academy-prequel-productio
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("DATA_DIR", "/data"))
 
-SYNC_FROM_REPO = ["canon", "characters", "gpt", "templates"]
+SYNC_FROM_REPO = ["canon", "canon_lore", "calendar", "characters", "engine", "gpt", "templates"]
 STATE_SEED = ["state"]
 SESSION_RE = re.compile(r"^[a-zA-Z0-9_-]{1,80}$")
 
@@ -771,7 +771,7 @@ def root():
 
 
 @app.post("/api/v1/sessions", response_model=SessionInfo)
-def create_session(payload: SessionCreateRequest):
+def create_session(payload: SessionCreateRequest = SessionCreateRequest()):
     seed()
     sid = safe_session_id(payload.session_id or f"session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}")
     d = session_dir(sid)

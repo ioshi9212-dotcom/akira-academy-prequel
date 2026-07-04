@@ -27,6 +27,9 @@ import app.compact_context_patch as ccp
 
 CONTEXT_PATH = "/api/v1/sessions/{session_id}/context"
 TURN_CONTRACT_PATH = "/api/v1/sessions/{session_id}/turn-contract"
+MANIFEST_PATH = "/api/v1/sessions/{session_id}/required-files-manifest"
+CHUNK_PATH = "/api/v1/sessions/{session_id}/required-files-chunk"
+BUNDLE_PATH = "/api/v1/sessions/{session_id}/required-files-bundle"
 
 PROGRESS_FILES = [
     "gpt/locks/progress_panel_rules.md",
@@ -177,7 +180,9 @@ def _base_scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[s
 
 
 def _scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
-    values: list[Any] = ["akira"]
+    pov = getattr(rt, "pov_mode_info", lambda _current=None: {"active": False})(current)
+    target = pov.get("target_character_id") if isinstance(pov, dict) else None
+    values: list[Any] = [target] if target else ["akira"]
     values.extend(_base_scene_chars(current, future))
 
     fields = [
@@ -378,6 +383,8 @@ def _clamp_score(value: float) -> int:
 def _relationship_score(data: Any) -> int:
     if not isinstance(data, dict):
         return 0
+    if "surface_dynamic" in data and isinstance(data.get("surface_dynamic"), dict):
+        data = data.get("surface_dynamic") or {}
     positive = {
         "affection": 1.2,
         "trust": 1.2,
@@ -464,17 +471,18 @@ def _computed_relationship_panel(relationships: Any, stored_panel: Any) -> dict[
         if not isinstance(stored_items, dict):
             stored_items = {}
     current_focus = set(getattr(_computed_relationship_panel, "_current_focus", []) or [])
-    wanted = ["akira__livia_cross"]
+    wanted = ["akira__livia"]
     if "kir" in current_focus or "kir_knox" in current_focus:
         wanted.append("akira__kir")
     if "haru" in current_focus or "haru_foster" in current_focus:
-        wanted.append("akira__haru_foster")
+        wanted.append("akira__haru")
     if "raiden" in current_focus or "raiden_sterling" in current_focus:
-        wanted.append("akira__raiden_sterling")
+        wanted.append("akira__raiden")
     aliases = {
+        "akira__livia": ["akira__livia", "akira__livia_cross"],
         "akira__kir": ["akira__kir", "akira__kir_knox"],
-        "akira__haru_foster": ["akira__haru_foster", "akira__haru"],
-        "akira__raiden_sterling": ["akira__raiden_sterling", "akira__raiden"],
+        "akira__haru": ["akira__haru", "akira__haru_foster"],
+        "akira__raiden": ["akira__raiden", "akira__raiden_sterling"],
     }
     result: dict[str, Any] = {}
     for pair_id in wanted:
@@ -515,6 +523,91 @@ def _progress_slice(session_id: str, relationships: Any | None = None, chars: li
     }
 
 
+
+
+def _read_required_file_for_bundle_size_guard(path: str, session_id: str) -> tuple[str | None, str | None]:
+    try:
+        return rt.read_required_file_for_bundle(path, session_id)
+    except Exception:
+        pass
+    try:
+        return ccp._read_required_file_for_bundle(path, session_id)
+    except Exception:
+        return None, None
+
+
+def _split_text_size_guard(content: str, part_chars: int = 11000) -> list[str]:
+    part_chars = max(7000, min(int(part_chars or 11000), 11000))
+    if not content:
+        return [""]
+    return [content[i:i + part_chars] for i in range(0, len(content), part_chars)]
+
+
+def _required_file_parts_size_guard(session_id: str, *, file_part_chars: int = 11000):
+    sid = base.safe_session_id(session_id)
+    base.ensure_session(sid)
+    current = _safe_read_json("state/current_state.json", sid, {})
+    future = _safe_read_json("state/future_locks_progress.json", sid, {})
+    required_files = _required_files(current, future)
+    loaded_parts: list[Any] = []
+    manifest: list[Any] = []
+    missing_files: list[str] = []
+    for file_path in required_files:
+        content, source = _read_required_file_for_bundle_size_guard(file_path, sid)
+        if content is None:
+            missing_files.append(file_path)
+            manifest.append(ccp.RequiredFileManifestItem(path=file_path, exists=False, source="missing"))
+            continue
+        pieces = _split_text_size_guard(str(content), file_part_chars)
+        manifest.append(ccp.RequiredFileManifestItem(path=file_path, exists=True, source=source or "project", size_chars=len(str(content)), parts_total=len(pieces)))
+        for index, piece in enumerate(pieces):
+            loaded_parts.append(ccp.RequiredFileBundleItem(path=file_path, content=piece, part_index=index, parts_total=len(pieces), content_chars=len(piece)))
+    return required_files, loaded_parts, manifest, missing_files
+
+
+def _chunk_loaded_parts_size_guard(loaded_parts: list[Any], *, max_chars: int = 30000, max_items: int = 3) -> list[list[Any]]:
+    max_chars = max(16000, min(int(max_chars or 30000), 32000))
+    max_items = max(1, min(int(max_items or 3), 3))
+    chunks: list[list[Any]] = []
+    current: list[Any] = []
+    current_chars = 0
+    for part in loaded_parts:
+        part_chars = len(getattr(part, "content", "") or "")
+        if current and (len(current) >= max_items or current_chars + part_chars > max_chars):
+            chunks.append(current)
+            current = []
+            current_chars = 0
+        current.append(part)
+        current_chars += part_chars
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _required_files_chunk_response_size_guard(session_id: str, *, chunk_index: int = 0, max_chars: int = 30000, max_items: int = 3):
+    sid = base.safe_session_id(session_id)
+    base.ensure_session(sid)
+    required_files, loaded_parts, _manifest, missing_files = _required_file_parts_size_guard(sid)
+    chunks = _chunk_loaded_parts_size_guard(loaded_parts, max_chars=max_chars, max_items=max_items)
+    chunks_total = len(chunks)
+    safe_chunk_index = max(0, min(int(chunk_index or 0), max(chunks_total - 1, 0))) if chunks_total else 0
+    selected = chunks[safe_chunk_index] if chunks_total else []
+    has_more = bool(chunks_total and safe_chunk_index < chunks_total - 1)
+    next_chunk_index = safe_chunk_index + 1 if has_more else None
+    return ccp.RequiredFilesChunkResponse(
+        session_id=sid,
+        required_files=required_files,
+        chunk_index=safe_chunk_index,
+        chunks_total=chunks_total,
+        has_more=has_more,
+        next_chunk_index=next_chunk_index,
+        loaded_files=selected,
+        missing_files=missing_files,
+        loaded_count=len({part.path for part in loaded_parts}),
+        missing_count=len(missing_files),
+        total_loaded_parts=len(loaded_parts),
+    )
+
 class SizeGuardContextResponse(BaseModel):
     session_id: str
     mode: str = "size_guard_compact_context"
@@ -549,8 +642,8 @@ def _small_output_contract() -> dict[str, Any]:
         "header_state_rule": "Header ✦ is short visible/current condition, not numeric power level.",
         "bottom_blocks": [
             "✦ Что можно сделать",
-            "✦ Что Акира могла бы сказать",
-            "✦ Мысли Акиры",
+            "✦ Что [POV] мог(ла) бы сказать",
+            "✦ Мысли [POV]",
             "✦ Уровни",
             "✦ Отношения",
         ],
@@ -562,7 +655,7 @@ def _small_output_contract() -> dict[str, Any]:
             "Action choices must be direct actions; do not start with 'Акира может'.",
             "Do not put ready spoken lines inside action choices; exact lines go only to 'Что Акира могла бы сказать'.",
             "Use latest visible scene facts before stale state or old options.",
-            "Player controls only Akira; do not invent Akira speech unless written outside parentheses.",
+            "Player controls current POV. Low-stakes automatic POV lines are allowed; meaningful choices/questions require player input.",
             "Characters know only what they saw, heard, were told, or can infer from visible signs.",
             "Do not rename invented/unnamed NPCs into fixed canon characters after description.",
             "Header outfit must include all saved current_outfit items; do not omit top if state says top.",
@@ -570,7 +663,7 @@ def _small_output_contract() -> dict[str, Any]:
             "Bottom 'Отношения' shows current total score plus label, not per-scene delta.",
             "Prefer computed_relationship_score_panel over stale stored panel values.",
             "Training can improve stats but may also increase fatigue, risk, or injury.",
-            "Stop at a player choice point when Akira is directly challenged or questioned.",
+            "Stop at a player choice point when current POV is directly challenged/questioned or when a movement chain hits a meaningful interruption.",
         ],
     }
 
@@ -587,12 +680,45 @@ def _small_prompt_preview(chars: list[str], required_files: list[str]) -> str:
         "- Header ✦ = short current visible condition. Bottom ✦ Уровни = numeric physical/energy levels.\n"
         "- No quotation marks around dialogue or speech options.\n"
         "- Action choices are direct actions, never 'Акира может...'.\n"
+        "- Bottom speech/thought blocks follow current POV.\n"
+        "- Dense readable paragraphs; do not split narration into 3-5 word fragments.\n"
     )
 
 
-_remove_routes(CONTEXT_PATH, {"GET"}, "getSessionContext")
-_remove_routes(TURN_CONTRACT_PATH, {"GET"}, "getSessionTurnContract")
+_remove_routes(CONTEXT_PATH, {"GET"})
+_remove_routes(TURN_CONTRACT_PATH, {"GET"})
+_remove_routes(MANIFEST_PATH, {"GET"})
+_remove_routes(CHUNK_PATH, {"GET"})
+_remove_routes(BUNDLE_PATH, {"GET"})
 
+
+
+@app.get(MANIFEST_PATH, response_model=ccp.RequiredFilesManifestResponse, operation_id="getRequiredFilesManifest")
+def get_required_files_manifest_size_guard(session_id: str) -> ccp.RequiredFilesManifestResponse:
+    sid = base.safe_session_id(session_id)
+    base.ensure_session(sid)
+    required_files, loaded_parts, manifest, missing_files = _required_file_parts_size_guard(sid)
+    chunks = _chunk_loaded_parts_size_guard(loaded_parts)
+    return ccp.RequiredFilesManifestResponse(
+        session_id=sid,
+        required_files=required_files,
+        files=manifest,
+        missing_files=missing_files,
+        loaded_count=len([item for item in manifest if item.exists]),
+        missing_count=len(missing_files),
+        total_parts=len(loaded_parts),
+        chunks_total=len(chunks),
+    )
+
+
+@app.get(CHUNK_PATH, response_model=ccp.RequiredFilesChunkResponse, operation_id="getRequiredFilesChunk")
+def get_required_files_chunk_size_guard(session_id: str, chunk_index: int = 0, max_chars: int = 30000, max_items: int = 3) -> ccp.RequiredFilesChunkResponse:
+    return _required_files_chunk_response_size_guard(session_id, chunk_index=chunk_index, max_chars=max_chars, max_items=max_items)
+
+
+@app.get(BUNDLE_PATH, response_model=ccp.RequiredFilesChunkResponse, operation_id="getRequiredFilesBundle")
+def get_required_files_bundle_size_guard(session_id: str, chunk_index: int = 0, max_chars: int = 30000, max_items: int = 3) -> ccp.RequiredFilesChunkResponse:
+    return _required_files_chunk_response_size_guard(session_id, chunk_index=chunk_index, max_chars=max_chars, max_items=max_items)
 
 @app.get(CONTEXT_PATH, response_model=SizeGuardContextResponse, operation_id="getSessionContext")
 def get_session_context_size_guard(session_id: str) -> SizeGuardContextResponse:

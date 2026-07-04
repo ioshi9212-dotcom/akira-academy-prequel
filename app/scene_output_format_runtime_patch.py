@@ -63,11 +63,11 @@ def build_scene_context_digest_with_style(session_id: str) -> str:
     reminder = """
 ## Scene output reminder
 
-Use the Academy visual-novel format from gpt/scene_format.md.
+Use the Academy visual-novel format from gpt/scene_format.md; header values come from current state, not hard-coded examples.
 Normal narration is plain text. Italics only for short stage remarks or physical details.
 Dialogue format: **Name/visible descriptor** — text. (*short remark if needed*)
 No quotation marks around dialogue or speech options.
-Action options are direct actions, not `Акира может...`.
+Action options are direct actions, not `Акира может...`. Bottom speech/thought blocks belong to current POV.
 Header `✦` is short visible condition. Bottom `✦ Уровни` is numeric physical/energy totals.
 
 Living direction:
@@ -88,15 +88,12 @@ def strict_output_format_contract() -> dict[str, Any]:
         "priority": "scene_output_format",
         "selected_style": "academy_old_visual_novel_header_v2",
         "header_template": [
-            "🏛️ Академия Астрейн · 1198 г., 15 августа, пн",
-            "🕒 Позднее утро · 📍 Главный двор Академии",
-            "🌦️ Погода: ...",
-            "⚙️ Активное состояние сцены: учитывать в тексте, действиях и предметах",
-            "",
-            "✦ short visible Akira condition",
+            "🏛️ Академия Астрейн · 1198 г., {current_date}",
+            "🕒 {current_time_or_phase} · 📍 {current_location_text}",
+            "🌦️ {weather_if_relevant} · ⚙️ {current_scene_goal_or_tension}",
+            "✦ POV: {pov_display_name} · {visible_state}",
             "🧥 current_outfit_from_state_only",
             "◈ visible carried/nearby items",
-            "",
             "━━━━━━━━━━━━━━━━━━━━",
         ],
         "dialogue_format": "**Имя или видимый дескриптор** — Реплика. (*короткая ремарка*)",
@@ -104,9 +101,9 @@ def strict_output_format_contract() -> dict[str, Any]:
             "━━━━━━━━━━━━━━━━━━━━",
             "✦ Что можно сделать",
             "◈ direct action",
-            "✦ Что Акира могла бы сказать",
+            "✦ Что [POV] мог(ла) бы сказать",
             "— line without quotation marks",
-            "✦ Мысли Акиры",
+            "✦ Мысли [POV]",
             "— thought",
             "✦ Уровни",
             "numeric physical/energy totals",
@@ -118,6 +115,7 @@ def strict_output_format_contract() -> dict[str, Any]:
             "Use gpt/scene_format.md and runtime_scene_rules_digest.md for detailed style.",
             "Normal narration is plain text; italics only for short stage remarks.",
             "Action options are direct actions and do not start with 'Акира может'.",
+            "Bottom speech/thought blocks must follow current POV; no Akira thoughts in non-Akira POV.",
             "Do not use quotation marks around dialogue or speech options.",
             "Loaded character ids are internal; use stable visible descriptors until POV has a name source.",
             "Do not make the scene a dry checklist; resolve routine movement to the nearest meaningful beat.",

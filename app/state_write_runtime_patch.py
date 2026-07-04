@@ -205,9 +205,9 @@ def active_scene_characters_with_aliases(current: dict[str, Any], future: dict[s
 
 def state_payload_section_summary(payload: dict[str, Any]) -> dict[str, bool]:
     return {
-        "relationship_changes": bool(base.find_section(payload, ["relationship_changes", "relationships_changes", "relationship_deltas", "relationships"])),
+        "relationship_changes": bool(base.find_section(payload, ["relationship_patches", "relationship_changes", "relationships_changes", "relationship_deltas", "relationships"])),
         "story_lines_changes": bool(base.find_section(payload, ["story_lines_changes", "story_line_changes", "story_lines", "story_lines_state"])),
-        "knowledge_changes": bool(base.find_section(payload, ["knowledge_changes", "knowledge_state_changes", "knowledge_state"])),
+        "character_memory_changes": bool(base.find_section(payload, ["character_memory_patches", "character_memory_changes", "memory_changes", "knowledge_changes", "knowledge_state_changes"])),
         "current_state_changes": bool(base.find_section(payload, ["current_state_changes", "current_state", "state_changes"])),
         "reputation_changes": bool(base.find_section(payload, ["reputation_changes", "reputation_state_changes", "reputation_state"])),
         "rumors_changes": bool(base.find_section(payload, ["rumor_changes", "rumors_changes", "rumors_state_changes", "rumors_state"])),
@@ -223,6 +223,104 @@ base.active_scene_characters = active_scene_characters_with_aliases
 base.recommended_files_for_context = recommended_files_for_context_with_state_contract
 ccp.active_scene_characters = active_scene_characters_with_aliases
 ccp.recommended_files_for_context = recommended_files_for_context_with_state_contract
+
+
+
+def _pair_file_path(pair_id: str) -> str:
+    parts = [canonical_id(p) for p in pair_parts(pair_id)]
+    if len(parts) != 2:
+        return ""
+    a, b = sorted(parts)
+    # Prefer already existing canonical direction.
+    for rel in (f"state/relationship_pairs/{parts[0]}__{parts[1]}.json", f"state/relationship_pairs/{parts[1]}__{parts[0]}.json", f"state/relationship_pairs/{a}__{b}.json"):
+        if base.repo_file_exists(rel):
+            return rel
+    return f"state/relationship_pairs/{a}__{b}.json"
+
+
+def _surface_dynamic(rel: dict[str, Any]) -> dict[str, Any]:
+    sd = rel.setdefault("surface_dynamic", {})
+    if not isinstance(sd, dict):
+        sd = {}; rel["surface_dynamic"] = sd
+    return sd
+
+
+def apply_relationship_pair_changes(session_id: str, payload: dict, dry_run: bool) -> list[str]:
+    section = base.find_section(payload, ["relationship_patches", "relationship_changes", "relationships_changes", "relationship_deltas", "relationships"])
+    items = normalize_change_items(section)
+    changed_files: list[str] = []
+    for item in items:
+        pair = item.get("pair") or item.get("pair_id") or item.get("id")
+        if isinstance(pair, list) and len(pair) == 2:
+            pair = f"{pair[0]}__{pair[1]}"
+        if not pair or "__" not in str(pair):
+            continue
+        path = _pair_file_path(str(pair))
+        if not path:
+            continue
+        rel = base.read_json(path, session_id, default={}) or {
+            "pair_id": path.rsplit("/", 1)[-1].removesuffix(".json"),
+            "schema": "relationship_pair_state_v1_academy1198",
+            "status": "active",
+            "surface_dynamic": {},
+            "knowledge_boundaries": {},
+            "memory": [],
+            "open_threads": [],
+            "behavior_next": [],
+            "triggers": [],
+        }
+        old_dump = json.dumps(rel, ensure_ascii=False, sort_keys=True)
+        sd = _surface_dynamic(rel)
+        deltas = item.get("deltas") if isinstance(item.get("deltas"), dict) else {}
+        values = item.get("values") if isinstance(item.get("values"), dict) else {}
+        for metric in base.REL_METRICS:
+            d = item.get(f"{metric}_delta", deltas.get(metric, deltas.get(f"{metric}_delta")))
+            if d is not None:
+                sd[metric] = max(-100, min(100, int(sd.get(metric, 0)) + int(d or 0)))
+            elif isinstance(item.get(metric, values.get(metric)), int):
+                sd[metric] = max(-100, min(100, int(item.get(metric, values.get(metric)))))
+        if isinstance(item.get("label"), str):
+            sd["label"] = item["label"]
+        if isinstance(item.get("status"), str):
+            rel["status"] = item["status"]
+        for field in ["notes", "memory", "open_threads", "behavior_next", "triggers"]:
+            value = item.get(field) or item.get(f"add_{field}") or (item.get("note") if field == "notes" else None)
+            merge_unique_list(rel, field, value)
+        if item.get("last_interaction") is not None:
+            rel["last_interaction"] = item.get("last_interaction")
+        if json.dumps(rel, ensure_ascii=False, sort_keys=True) != old_dump:
+            if not dry_run:
+                base.write_json(path, rel, session_id)
+            changed_files.append(path)
+    return changed_files
+
+
+def apply_character_memory_changes(session_id: str, payload: dict, dry_run: bool) -> list[str]:
+    section = base.find_section(payload, ["character_memory_patches", "character_memory_changes", "memory_changes", "knowledge_changes", "knowledge_state_changes"])
+    items = normalize_change_items(section)
+    changed_files: list[str] = []
+    allowed_lists = ["seen", "heard", "knows_as_fact", "assumes", "misbelieves", "does_not_know", "hides", "agreements", "protected_moments", "future_hooks", "last_scene_notes", "recent_observations", "open_questions", "intentions", "boundaries", "scene_hooks"]
+    for item in items:
+        cid = canonical_id(item.get("character_id") or item.get("id") or item.get("character") or item.get("target") or "")
+        if not cid:
+            continue
+        path = f"state/character_memory/{cid}.json"
+        mem = base.read_json(path, session_id, default={}) or {"id": cid, "file_type": "character_dynamic_memory", "status": "active"}
+        old_dump = json.dumps(mem, ensure_ascii=False, sort_keys=True)
+        for field in allowed_lists:
+            value = item.get(field) or item.get(f"add_{field}")
+            merge_unique_list(mem, field, value)
+        facts = item.get("facts") or item.get("known_facts")
+        if facts:
+            merge_unique_list(mem, "knows_as_fact", facts)
+        note = item.get("note") or item.get("scene_note")
+        if note:
+            merge_unique_list(mem, "last_scene_notes", note)
+        if json.dumps(mem, ensure_ascii=False, sort_keys=True) != old_dump:
+            if not dry_run:
+                base.write_json(path, mem, session_id)
+            changed_files.append(path)
+    return changed_files
 
 # Remove compact_context_patch apply route and replace it with a route that stores last_apply_result.
 for route in list(app.router.routes):
@@ -241,10 +339,11 @@ def apply_turn_result_with_state_guard(
     source, payload = base.read_turn_payload(sid, request)
     changed_files: list[str] = []
 
-    if base.apply_relationship_changes(sid, payload, request.dry_run):
-        changed_files.append("state/relationships.json")
+    changed_files.extend(apply_relationship_pair_changes(sid, payload, request.dry_run))
+    changed_files.extend(apply_character_memory_changes(sid, payload, request.dry_run))
 
-    for path, names in base.STATE_SECTION_MAP:
+    safe_state_sections = [(path, names) for path, names in base.STATE_SECTION_MAP if path not in {"state/knowledge_state.json", "state/relationships.json"}]
+    for path, names in safe_state_sections:
         if base.apply_json_section(sid, payload, path, names, request.dry_run):
             changed_files.append(path)
 

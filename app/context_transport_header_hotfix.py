@@ -46,7 +46,7 @@ try:
 except Exception:
     response_size_guard_patch = None
 
-app.version = "0.3.63-clean-zip-v1"
+app.version = "0.3.70-academy-chain-style-state-fix"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy scene format

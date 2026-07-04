@@ -6,9 +6,9 @@ Purpose:
 - keep required-files chunk endpoints safe;
 - remove the obsolete loose emoji-card scene header format from this base runtime layer.
 
-Current visible scene format is the old Academy visual-novel header:
-🏛️ Академия Астрейн · 1198 г., 15 августа, пн
-🕒 Позднее утро · 📍 ...
+Current visible scene format is the Academy visual-novel header with current date/time/location from state, not hard-coded examples:
+🏛️ Академия Астрейн · 1198 г., {current_date}
+🕒 {current_time_or_phase} · 📍 {current_location_text}
 🌦️ Погода: ...
 ⚙️ Активное состояние сцены: учитывать в тексте, действиях и предметах
 
@@ -46,53 +46,36 @@ _ORIGINAL_READ_REQUIRED_FILE_FOR_BUNDLE = ccp._read_required_file_for_bundle
 MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — current Academy visual-novel format
 
-Use the selected old Academy visual-novel header/footer format.
-Do NOT use the obsolete loose card header with 🗓️ / 📍 / 👤 / 🎒 fields.
+Use the selected Academy visual-novel header/footer format. Do NOT use the obsolete loose card header with 🗓️ / 📍 / 👤 / 🎒 fields.
 
-Required header:
-🏛️ Академия Астрейн · 1198 г., 15 августа, пн
-🕒 Позднее утро · 📍 Главный двор Академии
-🌦️ Погода: ...
-⚙️ Активное состояние сцены: учитывать в тексте, действиях и предметах
-
-✦ видимое состояние Акиры
-🧥 одежда/форма только из current_state
-◈ предметы при себе / рядом только из current_state
-
+Required header uses current state values, not hard-coded examples:
+🏛️ Академия Астрейн · 1198 г., {current_date}
+🕒 {current_time_or_phase} · 📍 {current_location_text}
+🌦️ Погода/атмосфера if relevant · ⚙️ active scene tension/goal
+✦ POV: {pov_display_name} · visible state of current POV
+🧥 outfit only from current_state/inventory/latest visible scene
+◈ visible carried/nearby items only
 ━━━━━━━━━━━━━━━━━━━━
 
 Dialogue format:
 **Имя/видимый дескриптор** — Реплика. (*короткая ремарка*)
 
-Bottom blocks:
-━━━━━━━━━━━━━━━━━━━━
-
+Bottom blocks are POV-aware:
 ✦ Что можно сделать
-Варианты ниже не считаются действием, пока игрок не выбрал.
-
-◈ Прямое действие без “Акира может”.
-
-✦ Что Акира могла бы сказать
-
-— Реплика без кавычек.
-
-✦ Мысли Акиры
-
-— Короткая мысль.
-
+✦ Что [POV] мог(ла) бы сказать
+✦ Мысли [POV]
 ✦ Уровни
-Физика/энергия числом.
-
 ✦ Отношения
-Текущий общий score + label.
 
-Akira suggestion tone: poisonous, dry, sharp, socially dangerous, not cute-friendly, not generic helper jokes.
+If POV is Akira, use the familiar labels for Akira. If POV is not Akira, do not show Akira thoughts.
 
 Scene direction:
 - Academy is a visual-novel scene, not a dry checklist.
 - Resolve routine movement/waiting/following to the nearest meaningful beat.
-- The world does not freeze when Akira is silent; NPCs act from goals, status, attraction, fear, orders and habits.
-- Light dry director irony is allowed when tied to visible action.
+- If a meaningful NPC hook interrupts a movement chain, stop before completing the chain.
+- Dense readable paragraphs; do not split every 3-5 words into separate paragraphs.
+- The world does not freeze when POV is silent; NPCs act from goals, status, attraction, fear, orders and habits.
+- Light dry director irony/sarcasm is allowed when tied to visible action.
 
 Name visibility:
 - Loaded character id is internal, not visible name permission.
@@ -231,7 +214,7 @@ def is_known_character_id(cid: str) -> bool:
 
 def scene_character_ids(current: dict[str, Any] | None = None, future: dict[str, Any] | None = None) -> list[str]:
     current = current or {}
-    ids: list[str] = ["akira"]
+    ids: list[str] = []
 
     for field in CHARACTER_FIELDS:
         for value in current.get(field, []) or []:
@@ -423,10 +406,10 @@ def medium_output_format_contract() -> dict[str, Any]:
 
     rules = list(original.get("rules", []) or [])
     required_rules = [
-        "Scene MUST start with the old Academy visual-novel header: 🏛️ Академия Астрейн · date, then 🕒 time · 📍 location, 🌦️ weather, ⚙️ active scene state.",
+        "Scene MUST start with the Academy visual-novel header using current state date/time/location, not hard-coded examples.",
         "Forbidden header: loose card format with 🗓️ / 📍 / 👤 Акира / 🎒 Рядом fields.",
         "Bottom blocks must use ✦ headings, not 🎯/💬/🧠 markdown headers.",
-        "Possible Akira lines must be poisonous, dry, sharp and socially dangerous.",
+        "Possible POV lines should match the current POV; Akira options stay poisonous/dry/sharp when POV is Akira.",
         "Do not output technical commentary after a gameplay scene.",
         "Use visual-novel prose after the header; do not write the scene as a card/table/form.",
     ]
@@ -460,8 +443,8 @@ def medium_output_format_contract() -> dict[str, Any]:
         "required": True,
         "headers": [
             "✦ Что можно сделать",
-            "✦ Что Акира могла бы сказать",
-            "✦ Мысли Акиры",
+            "✦ Что [POV] мог(ла) бы сказать",
+            "✦ Мысли [POV]",
             "✦ Уровни",
             "✦ Отношения",
         ],
@@ -502,11 +485,11 @@ def build_scene_context_digest(session_id: str) -> str:
             "Scene must start with old Academy visual-novel header, not loose 🗓️ card header.",
             "Dialogue format: **Name/descriptor** — speech without quotation marks. (*short remark if needed*)",
             "Normal narration is plain text; italics only for short stage remarks or physical details.",
-            "Akira thoughts only in bottom block, not inside the scene body.",
-            "Bottom blocks use ✦ headings: Что можно сделать / Что Акира могла бы сказать / Мысли Акиры / Уровни / Отношения.",
+            "POV thoughts only in bottom block, not inside the scene body; do not show Akira thoughts in non-Akira POV.",
+            "Bottom blocks use ✦ headings: Что можно сделать / Что [POV] мог(ла) бы сказать / Мысли [POV] / Уровни / Отношения.",
             "No empty scene: add hook/reaction/conflict/consequence or time movement.",
             "Do not leak engine-known names into visible text before POV has a name source.",
-            "Do not make scenes dry checklists; resolve routine action to nearest meaningful beat.",
+            "Do not make scenes dry checklists; resolve routine action to nearest meaningful beat, but stop at meaningful interruptions before completing a chain.",
         ],
         "state_write": [
             "Backend does not infer state from prose.",
