@@ -1,4 +1,4 @@
-"""Runtime header/footer hotfix v26 clean.
+"""Runtime header/footer hotfix v27 scene packet.
 
 Keeps runtime simple, serves a minimal GPT-compatible OpenAPI schema,
 enables living NPC memory, explicit non-Akira POV mode, scene format rules,
@@ -45,8 +45,12 @@ try:
     import app.response_size_guard_runtime_patch as response_size_guard_patch  # noqa: F401
 except Exception:
     response_size_guard_patch = None
+try:
+    import app.scene_packet_runtime_patch as scene_packet_patch  # noqa: F401
+except Exception:
+    scene_packet_patch = None
 
-app.version = "0.3.70-academy-chain-style-state-fix"
+app.version = "0.3.72-scene-packet-v1"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy scene format
@@ -78,6 +82,9 @@ def _components_schemas() -> dict:
                 "active_character_ids": _array_string(),
                 "nearby_character_ids": _array_string(),
                 "required_files": _array_string(),
+                "load_if_needed_files": _array_string(),
+                "reference_only_files": _array_string(),
+                "required_file_tiers": _object_schema(),
                 "output_format_contract": _object_schema(),
                 "required_checks_before_answer": _array_string(),
                 "knowledge_table": _object_schema(),
@@ -98,6 +105,9 @@ def _components_schemas() -> dict:
                 "active_character_ids": _array_string(),
                 "nearby_character_ids": _array_string(),
                 "required_files": _array_string(),
+                "load_if_needed_files": _array_string(),
+                "reference_only_files": _array_string(),
+                "required_file_tiers": _object_schema(),
                 "usage_note": {"type": "string"},
             },
             required=["session_id"],
@@ -144,6 +154,28 @@ def _components_schemas() -> dict:
                 "missing_count": {"type": "integer"},
                 "total_loaded_parts": {"type": "integer"},
             }
+        ),
+        "BuildScenePacketRequest": _object_schema(
+            {
+                "player_input": {"type": "string"},
+                "mode": {"type": "string", "default": "game_turn"},
+                "include_sources": {"type": "boolean", "default": True},
+                "include_diagnostics": {"type": "boolean", "default": True},
+                "max_file_chars": {"type": "integer", "default": 18000},
+                "max_total_chars": {"type": "integer", "default": 130000},
+            }
+        ),
+        "ScenePacketResponse": _object_schema(
+            {
+                "session_id": {"type": "string"},
+                "mode": {"type": "string"},
+                "usage_note": {"type": "string"},
+                "scene_packet": _object_schema(),
+                "loaded_files": {"type": "array", "items": _object_schema()},
+                "missing_files": _array_string(),
+                "diagnostics": _object_schema(),
+            },
+            required=["session_id", "scene_packet"],
         ),
         "ApplyTurnResultResponse": _object_schema(
             {
@@ -278,6 +310,22 @@ def _minimal_gpt_openapi() -> dict:
                     "summary": "Backward-compatible required files chunk endpoint",
                     "parameters": [_session_path_param()] + _chunk_query_params(),
                     "responses": {"200": _response_ref("Required files chunk", "RequiredFilesChunkResponse")},
+                }
+            },
+            "/api/v1/sessions/{session_id}/build-scene-packet": {
+                "post": {
+                    "operationId": "buildScenePacket",
+                    "summary": "Build one compact scene packet for the next gameplay scene",
+                    "parameters": [_session_path_param()],
+                    "requestBody": {
+                        "required": False,
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/BuildScenePacketRequest"}
+                            }
+                        },
+                    },
+                    "responses": {"200": _response_ref("Compact scene packet", "ScenePacketResponse")},
                 }
             },
             "/api/v1/sessions/{session_id}/apply-turn-result": {
