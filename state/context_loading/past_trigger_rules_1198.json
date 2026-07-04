@@ -1,0 +1,54 @@
+{
+  "id": "past_trigger_rules_1198",
+  "version": "v1-strong-trigger-guard",
+  "file_type": "context_builder_rules",
+  "status": "active",
+  "purpose": "Decide when characters/<id>/past.yaml can be included in Academy 1198 scene_contract.",
+  "default": "do_not_load_past",
+  "allowed_triggers": [
+    {
+      "trigger": "direct_flashback",
+      "description": "The scene explicitly enters a flashback or memory sequence."
+    },
+    {
+      "trigger": "spoken_past_fact_with_source",
+      "description": "A character with valid loaded knowledge says or asks about a past fact in-scene."
+    },
+    {
+      "trigger": "scene_goal_requires_past",
+      "description": "The scene goal explicitly says to process a past event, confession, old school incident, document, trauma, or memory."
+    },
+    {
+      "trigger": "object_or_place_memory_trigger",
+      "description": "A meaningful object/place/date directly connected to past.yaml is active and noticed."
+    },
+    {
+      "trigger": "calendar_event_requires_past",
+      "description": "Current calendar day marks a past-related beat as active now."
+    },
+    {
+      "trigger": "character_memory_open_hook",
+      "description": "Existing character/session memory has an open hook pointing to a past event and current scene touches it."
+    }
+  ],
+  "not_valid_triggers": [
+    "author knows the past",
+    "model wants stronger drama",
+    "relationship tension exists but no past fact is surfaced",
+    "ordinary presence of Raiden/Haru/Kir/Livia",
+    "ordinary inventory words such as documents, phone, bag, notebook",
+    "ordinary start-scene setup",
+    "hidden-bond or future canon is known to the project but not to the scene",
+    "character archetype suggests trauma"
+  ],
+  "load_modes": {
+    "none": "past.yaml is not included; hidden facts go to forbidden_context if risky.",
+    "narrow_slice": "Only the relevant past block is included with exact trigger and who knows it.",
+    "full_past": "Allowed only for explicit flashback/author-debug/context-audit, not normal scene generation."
+  },
+  "required_when_loaded": [
+    "past_load_reason must be explicit",
+    "visible_knowledge_boundaries must state who knows and who does not know the past fact",
+    "forbidden_context must list related facts still unavailable"
+  ]
+}

@@ -50,6 +50,15 @@ BASE_RULE_FILES = [
     "gpt/scene_format.md",
     "gpt/locks/npc_living_scene_rules.md",
     "gpt/locks/state_update_payload_contract.md",
+    "gpt/scene_output_contract_1198.json",
+    "state/context_loading/scene_context_builder_rules_1198.json",
+    "state/context_loading/character_selection_rules_1198.json",
+    "state/context_loading/past_trigger_rules_1198.json",
+    "state/context_loading/forbidden_fallback_rules_1198.json",
+    "state/update_contracts/turn_update_pipeline_1198.json",
+    "state/update_contracts/character_memory_patch_rules_1198.json",
+    "state/update_contracts/relationship_pair_patch_rules_1198.json",
+    "state/update_contracts/scene_state_patch_rules_1198.json",
 
     # Minimal restore from the old working repo. These files are not decorative:
     # they protect player agency, roster continuity, calendar/lore boundaries,

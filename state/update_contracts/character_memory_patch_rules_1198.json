@@ -1,0 +1,42 @@
+{
+  "id": "character_memory_patch_rules_1198",
+  "file_type": "character_memory_update_rules",
+  "version": "1.0.0-academy",
+  "status": "active",
+  "purpose": "How to update future state/character_memory/<id>.json or equivalent Academy memory slices after scenes.",
+  "memory_is_for": "Dynamic state: what a character saw, heard, learned, misunderstood, decided, felt, promised, hides, suspects, or waits for.",
+  "memory_is_not_for": [
+    "static appearance",
+    "base personality",
+    "biography rewrite",
+    "future arcs",
+    "hidden past as ordinary knowledge",
+    "global relationships with everyone"
+  ],
+  "allowed_sections": [
+    "known_facts",
+    "recent_observations",
+    "emotional_state",
+    "open_questions",
+    "intentions",
+    "promises_or_threats",
+    "boundaries",
+    "scene_hooks"
+  ],
+  "update_style": {
+    "length": "1-2 short sentences per fact",
+    "tense": "after-scene factual note, no prose",
+    "source": "each fact needs scene_evidence or turn event",
+    "scope": "one update = one meaning"
+  },
+  "good_examples": [
+    "Райден заметил, что Акира сбрасывает темп перед наблюдением; он подозревает не слабость, а контроль.",
+    "Ливия увидела, что Мартен помог без давления, но пока не восприняла это всерьёз."
+  ],
+  "bad_examples": [
+    "Райден понял всю правду о связи с Акирой.",
+    "Хару вспомнил прошлые жизни.",
+    "Ливия любит Райдена, потому что так задумано."
+  ],
+  "protected_rule": "Do not delete emotionally/logically important traces. Cleanup compresses but preserves promises, threats, trust, betrayal, fear, guilt, protective reactions and important questions."
+}

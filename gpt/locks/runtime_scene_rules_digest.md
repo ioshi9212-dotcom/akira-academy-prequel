@@ -214,3 +214,37 @@ This single compact lock replaces the normal stack of old gameplay locks in requ
 - If a character enters late, save their actual entry point and do not backfill them as witness to earlier scenes.
 - If an invented NPC becomes meaningful, save them as a session NPC, not as an existing canon character.
 - After apply-turn-result, final visible answer must remain the scene, not changed_files/status.
+
+## V3 context builder transfer — Academy 1198
+
+- Build `current_frame` first: date/time, location, POV, active/full characters, reference characters, scene_goal, last_player_input, visible inventory/items.
+- Do not repair a missing frame by assuming Akira, court, registration, or a default location. Return diagnostics/repair instead.
+- Split characters before loading:
+  - `full_character_ids`: POV, physically present, speaking, addressed, observing/hearing, or required by current beat.
+  - `reference_character_ids`: scheduled, delayed, mentioned, future beat, first-introduction registry, or off-screen relevance.
+- Reference-only characters must not get full behavior/knowledge unless the current beat activates them.
+- Do not load a character because they are globally important, romantic future, hidden-bond relevant, or likely useful for drama.
+- Past files and hidden lore require explicit trigger. Ordinary tension, attraction, a bag, documents, phone, or a character merely being nearby is not a trigger.
+- Relationship context is scene-local. Do not dump all Akira pairs or all base/academy relationships.
+- Every loaded character needs boundaries when identity/past/relationship/hidden facts matter: `known`, `unknown`, `must_not_assume`.
+- `forbidden_context` must list dangerous hidden/unloaded facts that cannot be used in narration, dialogue, NPC decisions, or state updates.
+- If old fallback would insert Akira, promote scheduled characters to active, use summary as behavior, load hidden past, or force an arrival without trigger: block it and return diagnostics.
+
+## V3 writer transfer — names and visible descriptors
+
+- character_id/display_name/calendar/relationship data are engine facts, not name sources for POV/NPC.
+- If POV does not know a name, use a stable visible descriptor in dialogue and narration.
+- Good: **Рыжий старшекурсник у кольца** — ...
+- Good: **Беловолосый парень у края площадки** — ...
+- Bad: **Хару** before introduction/source.
+- Bad: **Райден** before introduction/source.
+- If the same unnamed NPC speaks again, reuse the same descriptor.
+
+## V3 state update transfer
+
+- ChatGPT proposes updates; API/state layer validates and applies only sourced changes.
+- Do not save hidden past, future relationships, new character presence, name knowledge, or identity facts without scene evidence.
+- Normal scene turns must not rewrite `characters/<id>/*.yaml`, `canon_lore/`, `calendar/`, `api_contracts/`, or global rules.
+- Memory updates are short factual notes with scene evidence, not prose and not future arc summaries.
+- Relationship changes require concrete interaction, observation, help, refusal, conflict, choice, rumor, or witnessed consequence.
+

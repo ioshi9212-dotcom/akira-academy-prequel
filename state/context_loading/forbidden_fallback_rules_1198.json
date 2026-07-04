@@ -1,0 +1,50 @@
+{
+  "id": "forbidden_fallback_rules_1198",
+  "version": "v1-academy",
+  "file_type": "context_builder_rules",
+  "status": "active",
+  "purpose": "Fallbacks the Academy 1198 context builder must not use because they caused old scene errors.",
+  "forbidden_fallbacks": [
+    {
+      "id": "default_protagonist_insertion",
+      "rule": "Do not insert Akira into scene_ids or loaded_characters just because the active list is empty.",
+      "correct_behavior": "Return diagnostic: active character selection failed."
+    },
+    {
+      "id": "scheduled_as_full_character",
+      "rule": "Do not load Haru/Raiden/Kir/Kiara full cards only because they are scheduled later today.",
+      "correct_behavior": "Keep them reference-only until location/time/beat makes them present."
+    },
+    {
+      "id": "summary_as_behavior_source",
+      "rule": "Do not replace full character files with a short personality summary.",
+      "correct_behavior": "Load main/character and memory if present for selected characters."
+    },
+    {
+      "id": "hidden_past_as_motivation",
+      "rule": "Do not use hidden past, hidden-bond, or future canon to drive dialogue, narration or reaction unless explicit trigger allows it.",
+      "correct_behavior": "Keep hidden fact out of context and add it to forbidden_context."
+    },
+    {
+      "id": "global_relationship_dump",
+      "rule": "Do not load all relationship pairs for POV or all pairs connected to Akira.",
+      "correct_behavior": "Load only pairs relevant to current scene."
+    },
+    {
+      "id": "calendar_as_character_knowledge",
+      "rule": "Do not treat calendar/canon notes as something a character knows.",
+      "correct_behavior": "Convert only visible, sourced facts into knowledge_boundary."
+    },
+    {
+      "id": "npc_knows_identity_without_source",
+      "rule": "Do not let NPCs know names, roles, relationships or hidden status without source in loaded knowledge/memory/scene.",
+      "correct_behavior": "Put missing source facts into unknown/must_not_assume."
+    },
+    {
+      "id": "force_arrival_without_trigger",
+      "rule": "Do not make a character physically arrive because they are important to plot.",
+      "correct_behavior": "Arrival requires calendar, location, message, order, route, prior motion, or direct scene trigger."
+    }
+  ],
+  "diagnostic_required_when_fallback_would_have_been_used": true
+}

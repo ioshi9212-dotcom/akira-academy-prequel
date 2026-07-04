@@ -28,3 +28,12 @@ Academy technology is modern-realistic:
 - people do the actual observation and judgement.
 
 Do not write super-scanners, total AI surveillance, holographic sci-fi, instant organ scans, or devices that reveal hidden lore.
+
+## V2/V3 visibility transfer
+
+- Narration may describe only what POV perceives or what the scene established.
+- NPC dialogue may reveal facts only if the NPC knows them and has a reason to say them.
+- Calendar/canon/relationship metadata are engine facts, not character knowledge.
+- Hidden relationship tension may appear as pause, irritation, attention, body reaction, or unexplained discomfort, but must not be explained as bond/reincarnation/past love.
+- If source is absent, write suspicion/question/mistake, not fact.
+

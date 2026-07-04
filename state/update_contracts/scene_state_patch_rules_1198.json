@@ -1,0 +1,48 @@
+{
+  "id": "scene_state_patch_rules_1198",
+  "file_type": "scene_state_update_rules",
+  "version": "1.0.0-academy",
+  "status": "active",
+  "purpose": "How to update Academy current scene state after a ChatGPT answer.",
+  "allowed_scene_state_updates": [
+    "location change after player/NPC action",
+    "time advancement if scene explicitly passed time",
+    "active_characters add/remove with reason",
+    "scheduled/delayed to active when beat is reached",
+    "session_npc presence update",
+    "open_hook add/close",
+    "scene_status continue/pause/end"
+  ],
+  "active_character_rules": {
+    "add_only_if": [
+      "character physically enters",
+      "character is contacted by phone/message and becomes active",
+      "character is directly observed/heard",
+      "scene contract included delayed/conditional arrival and condition is met",
+      "calendar beat currently activates them"
+    ],
+    "do_not_add_if": [
+      "character is important in canon but absent",
+      "assistant wants dramatic entrance without setup",
+      "player only thought about them",
+      "they are only in relationship data",
+      "they are scheduled later but current beat has not reached them"
+    ],
+    "remove_if": [
+      "character leaves",
+      "POV leaves and no contact remains",
+      "scene shifts away",
+      "contact ends"
+    ]
+  },
+  "time_rules": {
+    "small_step": "minutes if dialogue/action continues",
+    "medium_step": "tens of minutes for summarized travel/training/meal",
+    "large_step": "hours/days only if player requested skip or scene contract permits",
+    "forbidden": "do not skip important NPC answer/question without offering choice"
+  },
+  "location_rules": {
+    "update_requires": "clear movement or scene cut",
+    "privacy_change": "location changes NPC presence and next-turn character loading"
+  }
+}
