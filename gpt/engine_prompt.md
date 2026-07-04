@@ -79,15 +79,19 @@
 
 - `calendar/calendar_index.yaml`
 - `calendar/days/{current_date}.yaml`
+- `calendar/story_spine_1198.yaml`
+- `engine/calendar_day_runtime_rules.md`
 - `state/calendar_runtime.json`
 
-Календарь задаёт важные крючки дня, а не готовую прозу.
+Календарь задаёт ритм Академии, давление мира, цели NPC, последствия и важные крючки дня, а не готовую прозу и не действия Акиры.
+
+В обычной сцене использовать только текущий day-файл. Будущие даты читать только при таймскипе, переходе даты или календарном аудите.
 
 Отсутствие персонажа в файле дня не означает запрет на появление после первого введения.
 
 Если день перегружен событиями, мягко вести его к завершению: вечер, усталость, мысль Акиры, переход ко сну или следующий значимый момент.
 
-Старый `state/academy_schedule.json` не должен быть главным источником после подключения calendar module.
+Старый `state/academy_schedule.json` удалён как активный источник; расписание берётся из calendar module.
 
 ### Лор
 
@@ -104,7 +108,7 @@ Tagged lore:
 - Кайросы → `canon_lore/world/kairos.yaml`
 - материки / второй мир → `canon_lore/world/continents_and_worlds.yaml`
 - энергия → `canon_lore/world/energy_system.yaml`
-- Академия / форма / общежитие / рейтинги → `canon_lore/academy/academy_full.yaml` + `canon_lore/academy/academy_locations.yaml`
+- Академия / форма / общежитие / рейтинги / технологии / проверки → `canon_lore/academy/academy_full.yaml` + `canon_lore/academy/academy_locations.yaml`
 - тренировки / оружие / рейдерская подготовка → `canon_lore/academy/academy_full.yaml` + `canon_lore/academy/academy_locations.yaml`
 
 Старый `canon/` может существовать как архив, но не должен перебивать `canon_lore/`, если старый файл не был явно загружен в required_files.
@@ -113,8 +117,4 @@ Tagged lore:
 
 Скрытый лор — знание автора/движка, а не автоматическое знание персонажей.
 
-Если в сцене одновременно есть `akira` и `raiden`, обязательно учитывать:
-
-- `canon_lore/hidden/raiden_akira_bond.yaml`
-
-Использовать это только для подтекста, микрореакций, напряжения, странного узнавания, избегания, раздражения или слишком точного внимания.
+В обычной сцене не подгружать длинные hidden-файлы автоматически. Для подтекста использовать карточки персонажей, current_state, knowledge_state и уже сыгранные события.

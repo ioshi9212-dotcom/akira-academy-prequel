@@ -85,10 +85,7 @@ def character_lock_files_clean(scene_chars: list[str]) -> list[str]:
     files: list[str] = []
     if callable(_ORIGINAL_CHARACTER_LOCK_FILES):
         files.extend(_ORIGINAL_CHARACTER_LOCK_FILES(scene_chars))
-    files = [path for path in files if path != "canon/hidden_raiden_akira_bond.md"]
-    normalized = {rt.canonical_id(cid) for cid in scene_chars}
-    if {"akira", "raiden"} <= normalized:
-        files.append("canon_lore/hidden/raiden_akira_bond.yaml")
+    files = [path for path in files if path not in {"canon/hidden_raiden_akira_bond.md", "canon_lore/hidden/raiden_akira_bond.yaml"}]
     result: list[str] = []
     for path in files:
         if path and path not in result and base.repo_file_exists(path):
