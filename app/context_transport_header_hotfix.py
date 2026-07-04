@@ -1,4 +1,4 @@
-"""Runtime header/footer hotfix v27 scene packet.
+"""Runtime header/footer hotfix v28 scene packet render contract.
 
 Keeps runtime simple, serves a minimal GPT-compatible OpenAPI schema,
 enables living NPC memory, explicit non-Akira POV mode, scene format rules,
@@ -50,7 +50,7 @@ try:
 except Exception:
     scene_packet_patch = None
 
-app.version = "0.3.73-scene-packet-standalone-v2"
+app.version = "0.3.74-scene-packet-render-contract-v3"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy scene format
@@ -159,10 +159,11 @@ def _components_schemas() -> dict:
             {
                 "player_input": {"type": "string"},
                 "mode": {"type": "string", "default": "game_turn"},
-                "include_sources": {"type": "boolean", "default": True},
+                "include_sources": {"type": "boolean", "default": False},
                 "include_diagnostics": {"type": "boolean", "default": True},
-                "max_file_chars": {"type": "integer", "default": 18000},
-                "max_total_chars": {"type": "integer", "default": 130000},
+                "include_source_index": {"type": "boolean", "default": True},
+                "max_file_chars": {"type": "integer", "default": 12000},
+                "max_total_chars": {"type": "integer", "default": 70000},
             }
         ),
         "ScenePacketResponse": _object_schema(

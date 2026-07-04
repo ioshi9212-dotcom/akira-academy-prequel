@@ -1,5 +1,5 @@
 """
-Scene packet runtime patch v2.1 — standalone/safe.
+Scene packet runtime patch v3 — packet owns render contract.
 
 Main gameplay endpoint:
 POST /api/v1/sessions/{session_id}/build-scene-packet
@@ -39,10 +39,11 @@ SCENE_PACKET_PATH = "/api/v1/sessions/{session_id}/build-scene-packet"
 class BuildScenePacketRequest(BaseModel):
     player_input: str | None = None
     mode: str = "game_turn"
-    include_sources: bool = True
+    include_sources: bool = False
     include_diagnostics: bool = True
-    max_file_chars: int = Field(default=18000, ge=4000, le=60000)
-    max_total_chars: int = Field(default=130000, ge=20000, le=220000)
+    include_source_index: bool = True
+    max_file_chars: int = Field(default=12000, ge=4000, le=40000)
+    max_total_chars: int = Field(default=70000, ge=20000, le=140000)
 
 
 class ScenePacketResponse(BaseModel):
@@ -116,6 +117,21 @@ MENTION_HINTS: dict[str, list[str]] = {
     "kai_renwick": ["кай", "слепая зона", "ставка"],
 }
 
+DISPLAY_NAMES: dict[str, str] = {
+    "akira": "Акира",
+    "livia": "Ливия",
+    "haru": "Хару",
+    "raiden": "Райден",
+    "kir": "Кир",
+    "kiara": "Киара",
+    "kael_north": "Каэл",
+    "ray_carter": "Рэй",
+    "jun_carter": "Джун",
+    "samuel_sterling": "Самуэль",
+    "asher_lane": "Ашер",
+    "kai_renwick": "Кай",
+}
+
 MOVEMENT_HINTS = [
     "идти", "пойти", "уйти", "выйти", "зайти", "подойти", "пройти", "дойти",
     "подняться", "спуститься", "к выходу", "к двери", "в комнат", "в душ", "по коридор",
@@ -166,6 +182,11 @@ def _folder(cid: str) -> str | None:
         except Exception:
             pass
     return CHARACTER_FOLDERS.get(cid)
+
+
+def _display_name(cid: Any) -> str:
+    canon = _canon(cid)
+    return DISPLAY_NAMES.get(canon, _text(cid) or canon or "POV")
 
 
 def _repo_exists(path: str) -> bool:
@@ -308,7 +329,7 @@ def _pov_info(current: dict[str, Any], active: list[str]) -> dict[str, Any]:
     target = _canon(target) or "akira"
     return {
         "pov_character_id": target,
-        "pov_display": target,
+        "pov_display": _display_name(target),
         "rule": "Player controls current POV. Low-stakes automatic POV lines are allowed; meaningful choices stop for player input.",
     }
 
@@ -497,6 +518,75 @@ def _context_needs(player_input: str, active: list[str]) -> dict[str, Any]:
     }
 
 
+
+_MONTHS_RU = {
+    "01": "января", "02": "февраля", "03": "марта", "04": "апреля", "05": "мая", "06": "июня",
+    "07": "июля", "08": "августа", "09": "сентября", "10": "октября", "11": "ноября", "12": "декабря",
+}
+_TIME_RU = {
+    "early_morning": "раннее утро",
+    "morning": "утро",
+    "late_morning": "позднее утро",
+    "midday": "полдень",
+    "afternoon": "день",
+    "evening": "вечер",
+    "night": "ночь",
+    "late_night": "поздняя ночь",
+}
+
+
+def _date_ru(value: Any) -> str:
+    raw = _text(value)
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", raw)
+    if not m:
+        return raw
+    year, month, day = m.groups()
+    return f"{int(day)} {_MONTHS_RU.get(month, month)}"
+
+
+def _time_ru(value: Any) -> str:
+    raw = _text(value)
+    return _TIME_RU.get(raw, raw.replace("_", " "))
+
+
+def _visible_state(current: dict[str, Any]) -> str:
+    akira_state = current.get("akira_state") if isinstance(current.get("akira_state"), dict) else {}
+    return _text(akira_state.get("visible_state") or current.get("visible_state") or "видимо спокойна")
+
+
+def _weather_text(current: dict[str, Any]) -> str:
+    weather = current.get("weather") if isinstance(current.get("weather"), dict) else {}
+    summary = _text(weather.get("summary"))
+    if not summary or summary == "set in first scene":
+        return "погода не акцентирована"
+    return summary
+
+
+def _header_values(current: dict[str, Any], active: list[str]) -> dict[str, Any]:
+    pov = _pov_info(current, active)
+    inv = current.get("visible_inventory") or []
+    nearby = current.get("nearby_items") or []
+    inv_line = []
+    if isinstance(inv, list):
+        inv_line.extend([_text(x) for x in inv if _text(x)])
+    elif _text(inv):
+        inv_line.append(_text(inv))
+    if isinstance(nearby, list):
+        inv_line.extend([_text(x) for x in nearby if _text(x)])
+    elif _text(nearby):
+        inv_line.append(_text(nearby))
+    return {
+        "current_date": _date_ru(current.get("current_date")),
+        "current_time_or_phase": _time_ru(current.get("current_time")),
+        "current_location_text": current.get("current_location_text"),
+        "weather_if_relevant": _weather_text(current),
+        "current_scene_goal_or_tension": current.get("current_scene_goal"),
+        "pov_display_name": pov.get("pov_display") or pov.get("pov_character_id"),
+        "visible_state": _visible_state(current),
+        "current_outfit_if_relevant": current.get("current_outfit"),
+        "visible_inventory_or_nearby_items_if_relevant": "; ".join(_unique(inv_line[:4])),
+    }
+
 def _current_frame(current: dict[str, Any], future: dict[str, Any], active: list[str], player_input: str) -> dict[str, Any]:
     return {
         "date": current.get("current_date"),
@@ -517,19 +607,119 @@ def _current_frame(current: dict[str, Any], future: dict[str, Any], active: list
         "uniform_worn": current.get("uniform_worn"),
         "last_player_input_from_state": current.get("last_player_input"),
         "player_input_for_this_turn": player_input,
+        "header_values": _header_values(current, active),
+        "visible_state": _visible_state(current),
     }
 
 
-def _output_template() -> dict[str, Any]:
-    if sg is not None and hasattr(sg, "_small_output_contract"):
-        try:
-            return sg._small_output_contract()  # type: ignore[attr-defined]
-        except Exception:
-            pass
+
+def _read_project_json(path: str, session_id: str, default: Any) -> Any:
+    """Read project/session JSON defensively without turning scene packet into 500."""
+    value = _safe_json(path, session_id, None)
+    if value is not None:
+        return value
+    content, _ = _read_source(path, session_id)
+    if not content:
+        return default
+    try:
+        import json
+        return json.loads(content)
+    except Exception:
+        return default
+
+
+def _source_index(paths: list[str]) -> list[dict[str, Any]]:
+    return [{"path": p, "kind": _source_kind(p), "required_for_packet": True} for p in paths]
+
+
+def _character_table(session_id: str, chars: list[str]) -> dict[str, Any]:
+    """Compact full-character cards for active/full characters only."""
+    out: dict[str, Any] = {}
+    for cid in chars:
+        folder = _folder(cid)
+        if not folder:
+            continue
+        selected_path = ""
+        content = ""
+        for rel in (f"characters/{folder}/character.yaml", f"characters/{folder}/main.yaml"):
+            if _repo_exists(rel):
+                selected_path = rel
+                raw, _source = _read_source(rel, session_id)
+                content = raw or ""
+                break
+        if selected_path:
+            out[cid] = {
+                "path": selected_path,
+                "mode": "compact_full_character_card_for_scene_packet",
+                "content_excerpt": _compact(content, 3600),
+            }
+    return {"mode": "active_full_characters_only", "characters": out}
+
+
+def _lore_packet(session_id: str, paths: list[str]) -> dict[str, Any]:
+    """Small lore slice; enough for scene, not the whole project."""
+    out: dict[str, Any] = {}
+    for path in paths:
+        if path.startswith("canon_lore/academy/") or path.startswith("canon_lore/world/"):
+            raw, _source = _read_source(path, session_id)
+            if raw:
+                out[path] = _compact(raw, 2200)
+    return {"mode": "scene_relevant_lore_only", "items": out}
+
+
+def _strict_output_contract(session_id: str) -> dict[str, Any]:
+    contract = _read_project_json("gpt/scene_output_contract_1198.json", session_id, {})
+    if not isinstance(contract, dict) or not contract:
+        contract = {}
+    header_template = contract.get("header_template") or [
+        "🏛️ Академия Астрейн · 1198 г., {current_date}",
+        "🕒 {current_time_or_phase} · 📍 {current_location_text}",
+        "🌦️ {weather_if_relevant} · ⚙️ {current_scene_goal_or_tension}",
+        "✦ POV: {pov_display_name} · {visible_state}",
+        "🧥 {current_outfit_if_relevant}",
+        "◈ {visible_inventory_or_nearby_items_if_relevant}",
+        "━━━━━━━━━━━━━━━━━━━━",
+    ]
+    bottom_blocks_order = contract.get("bottom_blocks_order") or [
+        "✦ Что можно сделать",
+        "✦ Что [POV] мог(ла) бы сказать",
+        "✦ Мысли [POV]",
+        "✦ Уровни",
+        "✦ Отношения",
+    ]
     return {
-        "header": "date · time / location / POV",
-        "dialogue": "**Имя** — реплика.",
-        "bottom_blocks": ["Что можно сделать", "Что сказать", "Мысли <POV> if required"],
+        "source": "gpt/scene_output_contract_1198.json",
+        "contract_id": contract.get("id", "scene_output_contract_1198"),
+        "version": contract.get("version", "fallback_v3"),
+        "visible_scene_must_start_with_header": True,
+        "must_use_header_template_exactly": True,
+        "header_template": header_template,
+        "header_render_rules": {
+            "date": "Use current_frame.date/current_state.current_date; keep 1198 year.",
+            "time": "Render current_frame.time in Russian if possible; do not leave English labels like late morning.",
+            "location": "Use current_frame.location_text.",
+            "weather_goal": "Use weather summary and current scene goal/tension; if unknown, write compact visible tension, not placeholders.",
+            "pov_state": "Use ✦ POV: <name> · <visible_state>; visible_state may come from akira_state.visible_state/current_frame.",
+            "outfit": "Use 🧥 line when current_outfit exists.",
+            "inventory": "Use ◈ line for visible_inventory/nearby_items if present.",
+            "separator": "Always include ━━━━━━━━━━━━━━━━━━━━ after header.",
+        },
+        "dialogue_format_required": contract.get("dialogue_format_required", "**Имя/видимый дескриптор** — реплика."),
+        "unknown_name_rule": contract.get("unknown_name_rule", []),
+        "prose_rules": contract.get("prose_rules", []),
+        "bottom_blocks_order": bottom_blocks_order,
+        "bottom_blocks_rules": contract.get("bottom_blocks_rules", []),
+        "fallback_forbidden": "Never invent a loose markdown header if this contract is present. If packet_status is not ready, do not write scene.",
+    }
+
+def _output_template() -> dict[str, Any]:
+    # Kept for backward compatibility; strict contract is now in output_contract.
+    return {
+        "format": "academy_old_visual_novel_header_v2",
+        "strict_contract_location": "scene_packet.output_contract",
+        "header": "Use output_contract.header_template exactly; no loose markdown fallback.",
+        "dialogue": "**Имя/видимый дескриптор** — реплика.",
+        "bottom_blocks": ["✦ Что можно сделать", "✦ Что [POV] мог(ла) бы сказать", "✦ Мысли [POV]", "✦ Уровни", "✦ Отношения"],
         "style": "dense readable paragraphs; no micro-lines of 3-5 words",
     }
 
@@ -580,7 +770,7 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
         inventory = _safe_json("state/inventory_state.json", sid, {})
         story = _safe_json("state/story_lines.json", sid, {})
         packet = {
-            "packet_version": "scene_packet_v2_1_standalone",
+            "packet_version": "scene_packet_v3_render_contract",
             "packet_status": "ready",
             "mode": req.mode,
             "session_id": sid,
@@ -598,8 +788,10 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
                 "must_load_now_paths": files,
                 "rule": "Railway selected sources for this turn. GPT should not fetch all project files manually.",
             },
+            "characters": _character_table(sid, active),
             "knowledge": _memory_table(sid, active),
             "relationships": _relationship_table(sid, active),
+            "lore": _lore_packet(sid, files),
             "story_context": _story_slice(story),
             "scene_history": _scene_history(sid),
             "inventory": {
@@ -608,6 +800,7 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
                 "current_outfit": _compact(current.get("current_outfit"), 1000),
                 "akira_inventory_state": _compact((inventory.get("akira") or {}) if isinstance(inventory, dict) else {}, 1000),
             },
+            "output_contract": _strict_output_contract(sid),
             "output_template": _output_template(),
             "save_contract": _save_contract(),
             "forbidden_context": [
@@ -617,10 +810,18 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
                 "Do not reveal hidden lore as narrator fact, NPC fact, sensor result, or unexplained thought.",
                 "Do not complete a movement chain after meaningful NPC interruption; stop at choice.",
             ],
-            "loaded_sources": loaded,
+            "source_index": _source_index(files) if req.include_source_index else [],
+            "loaded_sources": loaded if req.include_sources else [],
+            "render_guard": {
+                "packet_owns_scene_format": True,
+                "do_not_call_manifest_chunks_for_render": True,
+                "do_not_write_scene_if_packet_status_not_ready": True,
+                "must_start_with": "🏛️ Академия Астрейн",
+                "forbidden_header_examples": ["1198-08-15 · late morning", "Академия Астрейн, ... / POV: Акира as plain markdown"],
+            },
         }
         diagnostics = {
-            "build": "standalone_v2_1_no_required_file_tiers_dependency",
+            "build": "scene_packet_v3_render_contract_default_no_sources",
             "loaded_file_count": len(loaded),
             "missing_file_count": len(missing),
             "selected_path_count": len(files),
@@ -630,13 +831,13 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
         return ScenePacketResponse(
             session_id=sid,
             scene_packet=packet,
-            loaded_files=[{k: v for k, v in item.items() if k != "content"} for item in loaded],
+            loaded_files=[{k: v for k, v in item.items() if k != "content"} for item in loaded] if req.include_sources else [],
             missing_files=missing,
             diagnostics=diagnostics,
         )
     except Exception as exc:  # final safety: never hide route behind 500 if possible
         packet = {
-            "packet_version": "scene_packet_v2_1_standalone",
+            "packet_version": "scene_packet_v3_render_contract",
             "packet_status": "error_no_scene",
             "session_id": sid,
             "error_rule": "Do not write a gameplay scene from this packet. Fix API or use technical diagnostics.",
@@ -651,4 +852,4 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
         )
 
 
-app.version = "0.3.73-scene-packet-standalone-v2"
+app.version = "0.3.74-scene-packet-render-contract-v3"
