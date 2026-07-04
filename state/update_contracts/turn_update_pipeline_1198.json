@@ -1,0 +1,68 @@
+{
+  "id": "turn_update_pipeline_1198",
+  "file_type": "state_update_contract_rules",
+  "version": "1.0.0-academy",
+  "status": "active",
+  "purpose": "Path from ChatGPT scene response to verified Academy 1198 state changes after a turn.",
+  "core_rule": "ChatGPT does not change files directly. It returns proposed_updates/state payload. API validates source, visibility and scene evidence before applying.",
+  "pipeline": [
+    {
+      "step": 1,
+      "name": "receive_scene_response",
+      "description": "API receives scene_text, footer/choices, and proposed updates."
+    },
+    {
+      "step": 2,
+      "name": "validate_response_shape",
+      "description": "Check output sections and no forbidden writer behavior."
+    },
+    {
+      "step": 3,
+      "name": "validate_proposed_updates",
+      "description": "Check each update for scene evidence, source access, visibility, and allowed target."
+    },
+    {
+      "step": 4,
+      "name": "reject_unsafe_updates",
+      "description": "Reject hidden/past/future updates without scene evidence or trigger."
+    },
+    {
+      "step": 5,
+      "name": "normalize_safe_updates",
+      "description": "Compress safe updates into short atomic patches."
+    },
+    {
+      "step": 6,
+      "name": "apply_turn_result",
+      "description": "Apply only validated changes to current state, relationships, story lines, memory/state files."
+    },
+    {
+      "step": 7,
+      "name": "write_audit",
+      "description": "Record brief diagnostics: applied, rejected, reason."
+    }
+  ],
+  "never_apply_directly": [
+    "hidden past as current known fact",
+    "future relationship state before scene evidence",
+    "new character presence without scene reason",
+    "POV choice made by assistant",
+    "identity/name knowledge without source",
+    "changes to characters/<id>/*.yaml from a normal scene turn",
+    "calendar/canon_lore rewrites from a normal scene turn"
+  ],
+  "allowed_targets_current_project": [
+    "state/current_state.json",
+    "state/relationships.json",
+    "state/story_lines.json",
+    "state/session_npcs.json",
+    "state/calendar_runtime.json",
+    "state/inventory_state.json",
+    "state/knowledge_state.json if explicitly allowed later"
+  ],
+  "recommended_future_targets": [
+    "state/character_memory/<id>.json",
+    "state/relationship_pairs/<a>__<b>.json"
+  ],
+  "note": "Academy currently still uses relationships.json and knowledge_state.json. This rule introduces the v3 safety contract without forcing state migration now. knowledge_state.json is intentionally left for later cleanup."
+}

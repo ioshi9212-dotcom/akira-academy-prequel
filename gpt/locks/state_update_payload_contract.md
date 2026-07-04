@@ -71,3 +71,19 @@ Example:
 
 ## Final check
 Before final gameplay answer, apply state changes. If apply-turn-result returns no_changes_detected after a meaningful scene, repair the payload and apply again once. Never claim state was saved if changed_files is empty.
+
+## V3 validation transfer
+
+ChatGPT does not directly change files. It proposes changes; the API/state layer validates them before apply-turn-result.
+
+Reject updates when they try to save:
+- hidden past as current known fact;
+- future relationship state before scene evidence;
+- new character presence without physical/scene reason;
+- POV choice made by assistant;
+- identity/name knowledge without source;
+- changes to `characters/<id>/*.yaml`, `canon_lore/`, `calendar/`, `api_contracts/`, or global rule files from a normal scene turn.
+
+Memory/update notes must be short, factual, and sourced by the scene.
+Relationship updates must name the concrete interaction or visible consequence that caused the shift.
+

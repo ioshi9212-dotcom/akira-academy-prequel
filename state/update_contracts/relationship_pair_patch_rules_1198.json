@@ -1,0 +1,51 @@
+{
+  "id": "relationship_pair_patch_rules_1198",
+  "file_type": "relationship_pair_update_rules",
+  "version": "1.0.0-academy",
+  "status": "active",
+  "purpose": "How to update Academy relationship dynamics after scenes.",
+  "pair_update_principle": "Relationships change only from concrete interaction, observation, help, refusal, conflict, choice, rumor or witnessed consequence; never from author knowledge of future/hidden lore.",
+  "current_project_target": "state/relationships.json relationship_changes until relationship_pairs migration exists.",
+  "recommended_future_target": "state/relationship_pairs/<a>__<b>.json",
+  "allowed_dimensions": [
+    "trust",
+    "tension",
+    "fear",
+    "attachment",
+    "guilt",
+    "respect",
+    "protectiveness",
+    "conflict",
+    "curiosity",
+    "avoidance",
+    "jealousy",
+    "social_interest"
+  ],
+  "change_scale": {
+    "minor": "small shift after line/gesture",
+    "moderate": "important talk/help/conflict/refusal",
+    "major": "only after large scene/reveal/betrayal/rescue; needs explicit scene evidence"
+  },
+  "forbidden_relationship_updates": [
+    "activate romance without scene and state",
+    "make full trust after one soft line",
+    "make enemies after one irritation",
+    "put hidden past into surface_dynamic",
+    "update pair where neither character was tied to scene"
+  ],
+  "surface_vs_hidden": {
+    "surface_dynamic": "visible behavior in scene",
+    "private_dynamic": "inner/POV context if allowed",
+    "hidden_locked": "author/canon facts not active as ordinary knowledge"
+  },
+  "academy_examples_good": [
+    "akira__raiden: curiosity + minor; Райден заметил искусственность темпа Акиры, но не знает причины.",
+    "livia__marten: warmth + minor; Мартен помог Ливии без давления, Ливия отшутилась.",
+    "livia__raiden: tension + minor; Райден сухо обрезал флирт, Ливия скрыла задетость улыбкой."
+  ],
+  "academy_examples_bad": [
+    "akira__raiden: romance active, потому что они связаны скрытым лором.",
+    "raiden__akira: Райден вспомнил прошлые жизни.",
+    "kiara__livia: враги навсегда после одного взгляда."
+  ]
+}

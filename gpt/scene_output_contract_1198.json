@@ -1,0 +1,43 @@
+{
+  "id": "scene_output_contract_1198",
+  "version": "v1-academy-writer-contract-from-1206v3",
+  "purpose": "Final writer contract for visible Academy 1198 scene after state/calendar/location/character/knowledge blocks.",
+  "must_be_last_writer_instruction": true,
+  "visible_scene_must_start_with_header": true,
+  "header_template": [
+    "🏛️ Академия Астрейн · 1198 г., {current_date}",
+    "🕒 {current_time_or_phase} · 📍 {current_location_text}",
+    "🌦️ {weather_if_relevant} · ⚙️ {current_scene_goal_or_tension}",
+    "✦ POV: {pov_display_name} · {visible_state}",
+    "🧥 {current_outfit_if_relevant}",
+    "◈ {visible_inventory_or_nearby_items_if_relevant}",
+    "━━━━━━━━━━━━━━━━━━━━"
+  ],
+  "dialogue_format_required": "**Имя/видимый дескриптор** — реплика.",
+  "unknown_name_rule": [
+    "If POV/active character does not know the name, use a stable visible descriptor: **Рыжий старшекурсник** —, **Беловолосый парень у края корта** —, **Девушка в бордовом жакете** —.",
+    "character_id, display_name, calendar, relationship data and hidden files are engine facts, not name sources for POV/NPC.",
+    "A name can be used only after introduction, document, memory, direct scene source, or valid knowledge/memory source."
+  ],
+  "prose_rules": [
+    "Write compact cinematic VN prose in third person.",
+    "NPCs are active but do not take control of Akira.",
+    "Do not turn Academy into sci-fi lab; use modern-realistic tech only.",
+    "Do not transfer engine_state/POV-visible items into NPC knowledge without seen/heard/source in knowledge boundary.",
+    "Believes/assumes are not facts; unknown/must_not_assume cannot be spoken as knowledge."
+  ],
+  "bottom_blocks_order": [
+    "✦ Что можно сделать",
+    "✦ Что Акира могла бы сказать",
+    "✦ Мысли Акиры",
+    "✦ Состояние",
+    "✦ Риск",
+    "✦ Отношения"
+  ],
+  "bottom_blocks_rules": [
+    "Options are not facts until player chooses.",
+    "State only actual body/position/item/danger changes.",
+    "Relationships only if tension/trust/interest visibly changed; do not list everyone.",
+    "If scene is tense/short, footer may be compact but must not lose choice clarity."
+  ]
+}

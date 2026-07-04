@@ -1,18 +1,55 @@
-lore_id: hidden_lore_policy
-visibility: system_rule
-always_load: true
-version: compact_no_hidden_dump_v2
+id: hidden_lore_policy_1198
+file_type: hidden_lore_policy
+version: academy_1198_v2_no_leak
+status: active
 
-rules:
-  - "Скрытый лор — знание автора/движка, не знание персонажей."
-  - "В обычной сцене читать только эту политику, а не длинные hidden-файлы."
-  - "Скрытые факты раскрываются только через state/knowledge, сыгранную сцену, документ, признание, наблюдение или прямой сюжетный override."
-  - "Подтекст допустим: пауза, взгляд, раздражение, неверный вывод, напряжение, избегание, интерес без объяснения."
-  - "Подтекст не должен превращаться в готовое знание NPC."
-  - "Если факт не раскрыт, персонаж не называет его точным именем."
+purpose:
+  - "Разделить author/engine hidden lore, сценическую видимость, мысли POV и знания NPC."
+  - "Скрытый лор не должен становиться репликой, выводом или действием NPC без источника."
 
-do_not:
-  - "Не писать hidden lore как открытую справку в видимой сцене."
-  - "Не давать NPC знание, которого нет в их карточке, state/knowledge или сыгранной сцене."
-  - "Не подгружать отдельные hidden-файлы автоматически только потому, что два персонажа оказались рядом."
-  - "Не ускорять отношения через скрытый канон без действий игрока."
+core_rule:
+  - "Narration may describe only what POV can perceive or what has been established in-scene."
+  - "Akira thoughts may not explain hidden lore that Akira does not remember/know."
+  - "NPC dialogue may reveal facts only if the NPC knows them and has a reason to say them."
+  - "Internal cards can guide behavior, but must not leak as narrator explanation."
+  - "Calendar/canon/relationship metadata are engine facts, not character knowledge."
+
+allowed_hidden_tension_forms:
+  - "взгляд задержался"
+  - "пауза стала длиннее"
+  - "дыхание сбилось"
+  - "раздражение появилось без понятной причины"
+  - "телесный отклик без объяснения"
+  - "знакомое ощущение без названия"
+  - "персонаж сам не понял, почему это задело"
+
+forbidden_as_narrator_fact_until_known:
+  - "это связь Акиры и Райдена"
+  - "это стёртая любовь"
+  - "это прошлые жизни"
+  - "это память тела о нём"
+  - "Акира чистокровный кайрос"
+  - "Райден гибрид"
+  - "Хару связан с прошлым пожаром Акиры"
+  - "Самуэль станет/является ключом к будущей травме, если сцена этого не раскрыла"
+  - "врач/куратор/студент понял скрытую природу Акиры без источника"
+
+akira_raiden_surface_rule:
+  may_manifest_as:
+    - "напряжение"
+    - "интерес"
+    - "раздражение"
+    - "пауза"
+    - "необъяснимое внимание"
+    - "желание проверить/дистанцироваться"
+  must_not_be_explained_as:
+    - "связь"
+    - "любовь"
+    - "реинкарнация"
+    - "прошлая жизнь"
+    - "они были вместе"
+    - "они помнят друг друга"
+
+knowledge_boundary_rule:
+  - "Если источник знания не найден в loaded character card, current scene, current memory/state or visible document, персонаж этого не знает."
+  - "Если источник сомнительный, персонаж может подозревать или ошибаться, но не говорить как факт."
