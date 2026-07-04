@@ -50,7 +50,7 @@ try:
 except Exception:
     scene_packet_patch = None
 
-app.version = "0.3.72-scene-packet-v1"
+app.version = "0.3.73-scene-packet-standalone-v2"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy scene format

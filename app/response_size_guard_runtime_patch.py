@@ -1,5 +1,5 @@
 """
-Response size guard runtime patch v6-minimal-lock-restore.
+Response size guard runtime patch v7-tiered-required-files.
 
 Keeps getSessionContext and getSessionTurnContract small, but does not starve the scene
 assembly. Calendar/day/state files stay available through chunked required files.
@@ -39,21 +39,38 @@ PROGRESS_FILES = [
 
 LIGHT_STATE_FILES = [
     "state/current_state.json",
+    "state/calendar_runtime.json",
     "state/inventory_state.json",
     "state/story_lines.json",
-    "state/character_memory/README.md",
-    "state/relationship_pairs/README.md",
-    "state/calendar_runtime.json",
+    "state/open_threads.json",
+    "state/scene_history.json",
     "state/location_registry.md",
 ]
 
+OPTIONAL_STATE_FILES = [
+    "state/relationship_score_panel.json",
+    "state/reputation_state.json",
+    "state/rumors_state.json",
+    "state/gossip_state.json",
+    "state/social_feed.json",
+    "state/session_npcs.json",
+    "state/shared_incidents.json",
+    "state/power_state.json",
+    "state/rating_state.json",
+]
+
 BASE_RULE_FILES = [
+    # Always required: compact runtime/current frame rules, not the whole old lock stack.
     "runtime/scene_context_digest.md",
     "gpt/locks/runtime_scene_rules_digest.md",
+    "gpt/scene_output_contract_1198.json",
+]
+
+LOAD_IF_NEEDED_RULE_FILES = [
+    # Load only for diagnostics, format audit, or when the scene explicitly touches this layer.
     "gpt/scene_format.md",
     "gpt/locks/npc_living_scene_rules.md",
     "gpt/locks/state_update_payload_contract.md",
-    "gpt/scene_output_contract_1198.json",
     "state/context_loading/scene_context_builder_rules_1198.json",
     "state/context_loading/character_selection_rules_1198.json",
     "state/context_loading/past_trigger_rules_1198.json",
@@ -62,10 +79,6 @@ BASE_RULE_FILES = [
     "state/update_contracts/character_memory_patch_rules_1198.json",
     "state/update_contracts/relationship_pair_patch_rules_1198.json",
     "state/update_contracts/scene_state_patch_rules_1198.json",
-
-    # Minimal restore from the old working repo. These files are not decorative:
-    # they protect player agency, roster continuity, calendar/lore boundaries,
-    # outfit source, non-empty scenes and progress panels.
     "gpt/locks/player_input_anchor_lock.md",
     "gpt/locks/character_presence_rotation_lock.md",
     "gpt/locks/story_lines_memory_lock.md",
@@ -235,8 +248,62 @@ def _character_files_compact(cid: str) -> list[str]:
 
 
 def _relationship_pair_files(chars: list[str]) -> list[str]:
+    """Return only high-value relationship pairs for the current frame.
+
+    Old behavior loaded every combination of active characters.
+    At court with Akira/Livia/Haru/Raiden that pulled livia__haru and
+    livia__raiden even when Livia had no direct interaction.
+    New behavior:
+    - always load pairs with the current POV / first focus character;
+    - load core non-POV pairs only when both are present and the pair is
+      structurally important for the scene, e.g. raiden__haru friendship;
+    - secondary flirt/side pairs stay load_if_needed until direct contact.
+    """
     files: list[str] = []
     focus = [_canonical_id(c) for c in chars if c]
+    focus = [c for c in _unique(focus) if c]
+    if len(focus) < 2:
+        return []
+
+    pair_candidates: list[tuple[str, str]] = []
+    primary = focus[0]
+    for other in focus[1:]:
+        pair_candidates.append((primary, other))
+
+    core_pairs = {
+        tuple(sorted(("raiden", "haru"))),
+        tuple(sorted(("livia", "kir"))),
+    }
+    focus_set = set(focus)
+    for a, b in core_pairs:
+        if {a, b} <= focus_set:
+            pair_candidates.append((a, b))
+
+    # For very small scenes, all pairs are still cheap and useful.
+    if len(focus) <= 3:
+        for i, a in enumerate(focus):
+            for b in focus[i + 1:]:
+                pair_candidates.append((a, b))
+
+    seen_pairs: set[tuple[str, str]] = set()
+    for a, b in pair_candidates:
+        key = tuple(sorted((a, b)))
+        if key in seen_pairs:
+            continue
+        seen_pairs.add(key)
+        for rel in (
+            f"state/relationship_pairs/{a}__{b}.json",
+            f"state/relationship_pairs/{b}__{a}.json",
+        ):
+            if _repo_exists(rel):
+                files.append(rel)
+                break
+    return _unique(files)
+
+
+def _secondary_relationship_pair_files(chars: list[str]) -> list[str]:
+    focus = [_canonical_id(c) for c in chars if c]
+    all_files: list[str] = []
     for i, a in enumerate(focus):
         for b in focus[i + 1:]:
             for rel in (
@@ -244,8 +311,9 @@ def _relationship_pair_files(chars: list[str]) -> list[str]:
                 f"state/relationship_pairs/{b}__{a}.json",
             ):
                 if _repo_exists(rel):
-                    files.append(rel)
-    return _unique(files)
+                    all_files.append(rel)
+                    break
+    return [f for f in _unique(all_files) if f not in set(_relationship_pair_files(chars))]
 
 
 def _read_character_memory_table(session_id: str, chars: list[str]) -> dict[str, Any]:
@@ -274,10 +342,8 @@ def _read_relationship_pair_table(session_id: str, chars: list[str]) -> dict[str
 
 
 def _calendar_files(current: dict[str, Any]) -> list[str]:
+    # Normal turn needs only the active day. Index/spine are reference-only.
     files: list[str] = []
-    for rel in ("calendar/calendar_index.yaml", "calendar/story_spine_1198.yaml", "engine/calendar_day_runtime_rules.md"):
-        if _repo_exists(rel):
-            files.append(rel)
     current_date = str(current.get("current_date") or "").strip()
     if current_date:
         day_file = f"calendar/days/{current_date}.yaml"
@@ -286,23 +352,88 @@ def _calendar_files(current: dict[str, Any]) -> list[str]:
     return files
 
 
+def _calendar_reference_files(current: dict[str, Any]) -> list[str]:
+    files = []
+    for rel in ("calendar/calendar_index.yaml", "calendar/story_spine_1198.yaml", "engine/calendar_day_runtime_rules.md"):
+        if _repo_exists(rel):
+            files.append(rel)
+    return files
+
+
 def _existing_files(paths: list[str]) -> list[str]:
     return [rel for rel in paths if _repo_exists(rel)]
 
 
 def _required_files(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
+    """Files that GPT must load now before writing a scene.
+
+    Everything else is exposed as load_if_needed/reference_only in the turn contract,
+    but does not force manifest/chunk loading.
+    """
     files: list[str] = []
     files.extend(_existing_files(BASE_RULE_FILES))
-    if _repo_exists("characters/character_id_index.md"):
-        files.append("characters/character_id_index.md")
-    files.extend(_existing_files(LIGHT_STATE_FILES))
+    # Current state is already in getSessionContext/turn-contract/runtime digest.
+    # Do not force raw state files into chunks every turn.
     files.extend(_calendar_files(current))
     scene_chars = _scene_chars(current, future)
     for cid in scene_chars:
         files.extend(_character_files_compact(cid))
     files.extend(_relationship_pair_files(scene_chars))
-    files.extend(_existing_files(PROGRESS_FILES))
+    # Keep numeric progress light and direct; big progress rules are optional.
+    if _repo_exists("state/akira_progress_state.json"):
+        files.append("state/akira_progress_state.json")
     return _unique(files)
+
+
+def _load_if_needed_files(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
+    files: list[str] = []
+    scene_chars = _scene_chars(current, future)
+    files.extend(_existing_files(LOAD_IF_NEEDED_RULE_FILES))
+    files.extend(_existing_files(LIGHT_STATE_FILES))
+    files.extend(_existing_files(OPTIONAL_STATE_FILES))
+    files.extend(_calendar_reference_files(current))
+    files.extend(_secondary_relationship_pair_files(scene_chars))
+    # Character past is optional and trigger-guarded.
+    for cid in scene_chars:
+        folder = _known_character_folder(cid)
+        if folder:
+            rel = f"characters/{folder}/past.yaml"
+            if _repo_exists(rel):
+                files.append(rel)
+    return [f for f in _unique(files) if f not in set(_required_files(current, future))]
+
+
+def _reference_only_files(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for field in ("scheduled_character_ids", "delayed_character_ids", "mentioned_character_ids"):
+        for raw in current.get(field, []) or []:
+            cid = _canonical_id(raw)
+            folder = _known_character_folder(cid)
+            if folder:
+                rel = f"characters/{folder}/main.yaml"
+                if _repo_exists(rel):
+                    refs.append(rel)
+                mem = f"state/character_memory/{cid}.json"
+                if _repo_exists(mem):
+                    refs.append(mem)
+    # Global disabled migration stubs are reference-only for diagnostics.
+    for rel in ("state/knowledge_state.json", "state/relationships.json"):
+        if _repo_exists(rel):
+            refs.append(rel)
+    return [f for f in _unique(refs) if f not in set(_required_files(current, future)) and f not in set(_load_if_needed_files(current, future))]
+
+
+def _required_file_tiers(current: dict[str, Any], future: dict[str, Any]) -> dict[str, Any]:
+    must = _required_files(current, future)
+    optional = _load_if_needed_files(current, future)
+    reference = _reference_only_files(current, future)
+    return {
+        "must_load_now": must,
+        "load_if_needed": optional,
+        "reference_only_do_not_chunk": reference,
+        "rule": "Only must_load_now is returned by required_files/manifest/chunks. load_if_needed is fetched by getProjectFile only if a scene trigger requires it. reference_only is not gameplay context.",
+        "counts": {"must": len(must), "load_if_needed": len(optional), "reference_only": len(reference)},
+    }
 
 
 def _current_state_slice(current: dict[str, Any]) -> dict[str, Any]:
@@ -536,14 +667,14 @@ def _read_required_file_for_bundle_size_guard(path: str, session_id: str) -> tup
         return None, None
 
 
-def _split_text_size_guard(content: str, part_chars: int = 11000) -> list[str]:
-    part_chars = max(7000, min(int(part_chars or 11000), 11000))
+def _split_text_size_guard(content: str, part_chars: int = 50000) -> list[str]:
+    part_chars = max(7000, min(int(part_chars or 50000), 50000))
     if not content:
         return [""]
     return [content[i:i + part_chars] for i in range(0, len(content), part_chars)]
 
 
-def _required_file_parts_size_guard(session_id: str, *, file_part_chars: int = 11000):
+def _required_file_parts_size_guard(session_id: str, *, file_part_chars: int = 50000):
     sid = base.safe_session_id(session_id)
     base.ensure_session(sid)
     current = _safe_read_json("state/current_state.json", sid, {})
@@ -565,9 +696,9 @@ def _required_file_parts_size_guard(session_id: str, *, file_part_chars: int = 1
     return required_files, loaded_parts, manifest, missing_files
 
 
-def _chunk_loaded_parts_size_guard(loaded_parts: list[Any], *, max_chars: int = 30000, max_items: int = 3) -> list[list[Any]]:
-    max_chars = max(16000, min(int(max_chars or 30000), 32000))
-    max_items = max(1, min(int(max_items or 3), 3))
+def _chunk_loaded_parts_size_guard(loaded_parts: list[Any], *, max_chars: int = 120000, max_items: int = 120) -> list[list[Any]]:
+    max_chars = max(16000, min(int(max_chars or 120000), 200000))
+    max_items = max(1, min(int(max_items or 120), 200))
     chunks: list[list[Any]] = []
     current: list[Any] = []
     current_chars = 0
@@ -584,7 +715,7 @@ def _chunk_loaded_parts_size_guard(loaded_parts: list[Any], *, max_chars: int = 
     return chunks
 
 
-def _required_files_chunk_response_size_guard(session_id: str, *, chunk_index: int = 0, max_chars: int = 30000, max_items: int = 3):
+def _required_files_chunk_response_size_guard(session_id: str, *, chunk_index: int = 0, max_chars: int = 120000, max_items: int = 120):
     sid = base.safe_session_id(session_id)
     base.ensure_session(sid)
     required_files, loaded_parts, _manifest, missing_files = _required_file_parts_size_guard(sid)
@@ -615,7 +746,10 @@ class SizeGuardContextResponse(BaseModel):
     active_character_ids: list[str] = Field(default_factory=list)
     nearby_character_ids: list[str] = Field(default_factory=list)
     required_files: list[str] = Field(default_factory=list)
-    usage_note: str = "Compact endpoint. Load full context through getRequiredFilesManifest + getRequiredFilesChunk."
+    load_if_needed_files: list[str] = Field(default_factory=list)
+    reference_only_files: list[str] = Field(default_factory=list)
+    required_file_tiers: dict[str, Any] = Field(default_factory=dict)
+    usage_note: str = "Compact endpoint. Load only required_files through manifest/chunks. Optional/reference files are trigger-gated."
 
 
 class TurnContractWithPromptPreview(BaseModel):
@@ -624,6 +758,9 @@ class TurnContractWithPromptPreview(BaseModel):
     active_character_ids: list[str] = Field(default_factory=list)
     nearby_character_ids: list[str] = Field(default_factory=list)
     required_files: list[str] = Field(default_factory=list)
+    load_if_needed_files: list[str] = Field(default_factory=list)
+    reference_only_files: list[str] = Field(default_factory=list)
+    required_file_tiers: dict[str, Any] = Field(default_factory=dict)
     output_format_contract: dict[str, Any] = Field(default_factory=dict)
     required_checks_before_answer: list[str] = Field(default_factory=list)
     knowledge_table: dict[str, Any] = Field(default_factory=dict)
@@ -631,8 +768,8 @@ class TurnContractWithPromptPreview(BaseModel):
     relationship_context: dict[str, Any] = Field(default_factory=dict)
     story_context: dict[str, Any] = Field(default_factory=dict)
     prompt_preview: str = ""
-    prompt_preview_usage: str = "Small brief only. Load manifest/chunks before rendering gameplay."
-    usage_note: str = "Do not stop after this compact contract. Load manifest/chunks next."
+    prompt_preview_usage: str = "Small brief only. Load manifest/chunks for required_files before rendering gameplay."
+    usage_note: str = "Load only required_files via manifest/chunks. Use load_if_needed files only on explicit trigger."
 
 
 def _small_output_contract() -> dict[str, Any]:
@@ -712,12 +849,12 @@ def get_required_files_manifest_size_guard(session_id: str) -> ccp.RequiredFiles
 
 
 @app.get(CHUNK_PATH, response_model=ccp.RequiredFilesChunkResponse, operation_id="getRequiredFilesChunk")
-def get_required_files_chunk_size_guard(session_id: str, chunk_index: int = 0, max_chars: int = 30000, max_items: int = 3) -> ccp.RequiredFilesChunkResponse:
+def get_required_files_chunk_size_guard(session_id: str, chunk_index: int = 0, max_chars: int = 120000, max_items: int = 120) -> ccp.RequiredFilesChunkResponse:
     return _required_files_chunk_response_size_guard(session_id, chunk_index=chunk_index, max_chars=max_chars, max_items=max_items)
 
 
 @app.get(BUNDLE_PATH, response_model=ccp.RequiredFilesChunkResponse, operation_id="getRequiredFilesBundle")
-def get_required_files_bundle_size_guard(session_id: str, chunk_index: int = 0, max_chars: int = 30000, max_items: int = 3) -> ccp.RequiredFilesChunkResponse:
+def get_required_files_bundle_size_guard(session_id: str, chunk_index: int = 0, max_chars: int = 120000, max_items: int = 120) -> ccp.RequiredFilesChunkResponse:
     return _required_files_chunk_response_size_guard(session_id, chunk_index=chunk_index, max_chars=max_chars, max_items=max_items)
 
 @app.get(CONTEXT_PATH, response_model=SizeGuardContextResponse, operation_id="getSessionContext")
@@ -727,12 +864,16 @@ def get_session_context_size_guard(session_id: str) -> SizeGuardContextResponse:
     current = _safe_read_json("state/current_state.json", sid, {})
     future = _safe_read_json("state/future_locks_progress.json", sid, {})
     files = _required_files(current, future)
+    tiers = _required_file_tiers(current, future)
     return SizeGuardContextResponse(
         session_id=sid,
         current_state=_current_state_slice(current),
         active_character_ids=_unique(current.get("active_characters", []) or []),
         nearby_character_ids=_unique(current.get("nearby_characters", []) or []),
         required_files=files,
+        load_if_needed_files=tiers.get("load_if_needed", []),
+        reference_only_files=tiers.get("reference_only_do_not_chunk", []),
+        required_file_tiers=tiers,
     )
 
 
@@ -749,11 +890,12 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
     relationship_pair_table = _read_relationship_pair_table(sid, chars)
     relationships = {"pairs": relationship_pair_table.get("pairs", {})}
     files = _required_files(current, future)
+    tiers = _required_file_tiers(current, future)
 
     required_checks = [
-        "Call getRequiredFilesManifest next.",
-        "Then call getRequiredFilesChunk starting with chunk_index=0 until has_more=false.",
-        "Do not render gameplay from this compact contract alone.",
+        "Call getRequiredFilesManifest next; it contains must_load_now only.",
+        "Then call getRequiredFilesChunk for required_files chunks until has_more=false.",
+        "Do not load load_if_needed/reference_only files unless an explicit scene trigger requires them.",
         "Use scheduled/delayed ids only as calendar hints; do not treat them as active characters until current state promotes them.",
         "Use latest visible scene facts before stale current_state.",
         "Header ✦ is short visible condition; bottom ✦ Уровни is numeric levels only.",
@@ -770,6 +912,9 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
         active_character_ids=_unique(current.get("active_characters", []) or []),
         nearby_character_ids=_unique(current.get("nearby_characters", []) or []),
         required_files=files,
+        load_if_needed_files=tiers.get("load_if_needed", []),
+        reference_only_files=tiers.get("reference_only_do_not_chunk", []),
+        required_file_tiers=tiers,
         output_format_contract=_small_output_contract(),
         required_checks_before_answer=required_checks,
         knowledge_table=character_memory_table,
@@ -786,4 +931,4 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
     )
 
 
-app.version = "0.3.64-minimal-lock-restore-v1"
+app.version = "0.3.71-tiered-required-files-v1"
