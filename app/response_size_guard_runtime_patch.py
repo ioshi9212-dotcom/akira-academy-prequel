@@ -224,7 +224,7 @@ def _character_files_compact(cid: str) -> list[str]:
 
 def _calendar_files(current: dict[str, Any]) -> list[str]:
     files: list[str] = []
-    for rel in ("calendar/calendar_index.yaml",):
+    for rel in ("calendar/calendar_index.yaml", "calendar/story_spine_1198.yaml", "engine/calendar_day_runtime_rules.md"):
         if _repo_exists(rel):
             files.append(rel)
     current_date = str(current.get("current_date") or "").strip()
@@ -232,9 +232,6 @@ def _calendar_files(current: dict[str, Any]) -> list[str]:
         day_file = f"calendar/days/{current_date}.yaml"
         if _repo_exists(day_file):
             files.append(day_file)
-    # Legacy fallback still contains some first-scene scheduling in older setups.
-    if _repo_exists("state/academy_schedule.json"):
-        files.append("state/academy_schedule.json")
     return files
 
 

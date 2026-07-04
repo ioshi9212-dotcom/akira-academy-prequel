@@ -1,27 +1,64 @@
-date: "1198-08-31"
-label: "день рождения Райдена / появление Самуэля"
-first_introduction_ids: [samuel]
-required_character_ids: [raiden, samuel]
+date: '1198-08-31'
+year: 1198
+day_month: 31 августа
+label: день рождения Райдена / появление Самуэля
+calendar_role:
+  type: samuel_pressure_node
+  rule:
+  - Сильный сюжетный узел давления.
+  - День не раскрывает hidden lore напрямую.
+  - Реакции Райдена, Акиры и Академии зависят от видимых действий Самуэля и сыгранных отношений.
+scene_general_info:
+  summary:
+  - У Райдена день рождения; это может быть личным/социальным фоном.
+  - Самуэль впервые появляется в Академии для проверки новичков/внешнего контроля.
+  - Самуэль может заметить Акиру и получить будущий интерес.
+  player_freedom:
+  - Игрок решает, где Акира находится, как реагирует на Самуэля и вступает ли в контакт.
+  world_pressure_if_player_hesitates:
+  - Самуэль продолжает публичное действие/заявление.
+  - Райден может реагировать на брата и на внимание к Акире, но не знать скрытую правду.
+scene_characters:
+  required_if_beat_reached:
+  - raiden
+  - samuel
+  conditional:
+  - akira
+  - livia
+  - haru
+  - kir
+  - kiara
+  - kael_north
 day_beats:
-  - beat_id: raiden_birthday
-    order: 1
-    character_ids: [raiden]
-    summary: "День рождения Райдена."
-  - beat_id: samuel_intro
-    order: 2
-    character_ids: [samuel]
-    summary: "Самуэль впервые появляется в Академии для проверки новичков."
-  - beat_id: samuel_public_statement
-    order: 3
-    character_ids: [samuel, raiden]
-    summary: "Самуэль делает публичное заявление. Райден слышит его."
-  - beat_id: samuel_notices_akira
-    order: 4
-    character_ids: [samuel, akira]
-    summary: "Самуэль замечает Акиру."
+- beat_id: raiden_birthday
+  order: 1
+  character_ids:
+  - raiden
+  summary: День рождения Райдена как социальный фон, не обязательная романтическая сцена.
+- beat_id: samuel_intro
+  order: 2
+  character_ids:
+  - samuel
+  summary: Самуэль впервые входит в Академию как внешний взрослый фактор власти.
+- beat_id: samuel_public_statement
+  order: 3
+  character_ids:
+  - samuel
+  - raiden
+  summary: Самуэль делает публичное заявление или демонстрирует контроль; Райден слышит/видит это.
+- beat_id: samuel_notices_akira
+  order: 4
+  character_ids:
+  - samuel
+  - akira
+  summary: Самуэль замечает Акиру, если она в зоне видимости/события; интерес строится на видимом, не на полном знании будущего.
 notes:
-  - "Это сильный сюжетный бит."
-  - "Райден уже был введён раньше, это не его первое появление."
+- Райден уже мог быть введён раньше; это не его первое появление.
+- Это сильный бит, но не финал и не прямое раскрытие канона.
 do_not:
-  - "Не делать Самуэля знакомым раньше этой даты без отдельного override."
-  - "Не раскрывать hidden lore напрямую."
+- Не писать за Акиру намеренное действие, реплику, выбор маршрута или внутренний вывод.
+- Не раскрывать hidden lore персонажам без сценического источника.
+- Не раздувать день пустыми переходами.
+- Не делать Самуэля знакомым раньше этой даты без explicit override.
+- Не раскрывать hidden lore напрямую.
+- Не делать день рождения Райдена причиной мгновенного романа.

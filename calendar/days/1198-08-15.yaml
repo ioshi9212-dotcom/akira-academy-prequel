@@ -1,49 +1,108 @@
-date: "1198-08-15"
-label: "прибытие / задний вход у корта / регистрация / заселение"
-first_introduction_ids: [haru, raiden, kir]
-required_character_ids: [akira, livia]
+date: '1198-08-15'
+year: 1198
+day_month: 15 августа
+start_phase: позднее утро
+label: прибытие / задний вход у корта / регистрация / заселение
+calendar_role:
+  type: arrival_social_node
+  rule:
+  - День задаёт вход в Академию, первый социальный крючок и базовую фиксацию состояния.
+  - День не задаёт действия Акиры; игрок решает, куда смотреть, что говорить, идти ли к людям и как реагировать.
+  - 'Если игрок медлит, мир продолжает жить: мяч летит, студенты шумят, Ливия реагирует, Хару может заметить движение.'
+scene_general_info:
+  summary:
+  - Акира и Ливия входят через менее людный задний выход со стороны корта / баскетбольных площадок по совету Рэя.
+  - 'Акира не в форме Академии: кроссовки, чёрные штаны карго, топ, бордовый худи.'
+  - На щеке Акиры пластырь от Ливии после ссадины с котом; это видимая деталь, но не повод всем знать историю.
+  - 'Первый живой крючок дня — баскетбольная зона: Хару, шум студентов, возможный фон Райдена.'
+  player_freedom:
+  - Акира может пройти мимо, остановиться, ответить Ливии, заметить Хару, проигнорировать корт, выбрать регистрацию или другую
+    логичную реакцию.
+  - Форма может быть выдана, но не считается надетой, пока игрок или state не указал uniform_worn=true.
+  world_pressure_if_player_hesitates:
+  - Ливия может заполнить паузу разговором/флиртом/комментарием.
+  - Хару может обратить внимание на новичек через мяч, шум или реакцию толпы.
+  - Райден может оставаться фоном рядом с Хару, но не обязан вступать в контакт.
+scene_characters:
+  active_at_start:
+    akira:
+      role: player_character
+      control_rule: player_controls_actions_speech_route_inner_conclusions
+    livia:
+      role: old_friend
+      scene_goal:
+      - разрядить напряжение
+      - тащить Акиру в живую Академию
+      - флиртовать и шуметь по характеру
+  scheduled_or_nearby:
+    haru:
+      load_when: basketball_court_reached_or_visible
+      scene_goal:
+      - быть живым центром корта
+      - реагировать на Ливию/Акиру по видимому
+    raiden:
+      load_when: background_near_haru_or_if_scene_gives_reason
+      rule:
+      - фон возможен 15 августа
+      - прямой контакт требует видимого повода
+      - не знает hidden lore
+    kir:
+      load_when: late_arrival_beat_or_state_trigger
+      rule:
+      - старый знакомый Акиры и Ливии
+      - не знакомить с нуля
 day_beats:
-  - beat_id: arrival_back_court
-    order: 1
-    character_ids: [akira, livia]
-    summary: "Акира и Ливия в обычной одежде входят с заднего выхода Академии со стороны корта / баскетбольных площадок. По совету Рэя, потому что там меньше толпы."
-    notes:
-      - "Акира не в форме Академии: кроссовки, чёрные штаны карго, топ, бордовый худи."
-  - beat_id: court_basketball
-    order: 2
-    character_ids: [haru, raiden]
-    summary: "Хару появляется на корте и играет в баскетбол. Райден находится рядом и наблюдает за игрой."
-  - beat_id: registration
-    order: 3
-    character_ids: [akira, livia]
-    summary: "Короткая регистрация без раскрытия конфиденциального досье."
-    notes:
-      - "Форма Академии может быть выдана как комплект, но не считается надетой."
-  - beat_id: dorm_assignment
-    order: 4
-    character_ids: [akira, livia]
-    summary: "Акира и Ливия получают комнату 214 и заселяются."
-    notes:
-      - "Окна комнаты 214 не заперты и не заблокированы."
-  - beat_id: kir_late_arrival
-    order: 5
-    character_ids: [kir]
-    summary: "Кир появляется позже как опоздавший и старый знакомый Акиры и Ливии."
-  - beat_id: medical_check
-    order: 6
-    character_ids: [akira]
-    summary: "Медосмотр после заселения."
-    notes:
-      - "Можно отметить ссадины, порезы, ушибы и физическую подготовку."
-  - beat_id: energy_response
-    order: 7
-    character_ids: [akira]
-    summary: "Минимальный энергетический отклик для подтверждения типа."
-    notes:
-      - "Не раскрывать максимум Акиры."
+- beat_id: arrival_back_court
+  order: 1
+  status: active_start
+  character_ids:
+  - akira
+  - livia
+  summary: Вход через задний маршрут у корта; первый ракурс Академии через шум, спортзону и реакцию Ливии.
+- beat_id: court_basketball
+  order: 2
+  status: available_when_seen_or_approached
+  character_ids:
+  - haru
+  - raiden
+  summary: Хару играет/шумит на корте. Райден может быть рядом фоном; прямой контакт зависит от сцены.
+- beat_id: registration
+  order: 3
+  status: available_after_arrival
+  character_ids:
+  - akira
+  - livia
+  summary: Короткая регистрация без раскрытия конфиденциального досье.
+- beat_id: dorm_assignment
+  order: 4
+  status: available_after_registration
+  character_ids:
+  - akira
+  - livia
+  summary: Акира и Ливия получают комнату 214 и заселяются; окна не заблокированы.
+- beat_id: kir_late_arrival
+  order: 5
+  status: delayed
+  character_ids:
+  - kir
+  summary: Кир появляется позже как опоздавший старый знакомый, если темп дня дошёл до этого.
+- beat_id: medical_check
+  order: 6
+  status: optional_or_scheduled
+  character_ids:
+  - akira
+  summary: Медосмотр может отметить ссадины, ушибы, физподготовку и базовую реакцию тела.
+- beat_id: energy_response
+  order: 7
+  status: optional_minimal
+  character_ids:
+  - akira
+  summary: Минимальный энергетический отклик для подтверждения типа; максимум Акиры не раскрывать.
 do_not:
-  - "Не вводить Самуэля."
-  - "Не вводить Кэйла Норта."
-  - "Не делать баскетбол тайным тестом."
-  - "Не переодевать Акиру в форму без действия игрока или явного state."
-  - "Не раздувать день пустыми переходами."
+- Не писать за Акиру намеренное действие, реплику, выбор маршрута или внутренний вывод.
+- Не раскрывать hidden lore персонажам без сценического источника.
+- Не раздувать день пустыми переходами.
+- Не вводить Самуэля.
+- Не вводить Кэйла Норта.
+- Не делать баскетбол тайным тестом.
+- Не переодевать Акиру в форму без player/state.

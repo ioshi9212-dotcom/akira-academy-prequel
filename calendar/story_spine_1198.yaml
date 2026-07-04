@@ -1,0 +1,87 @@
+id: story_spine_1198
+file_type: calendar_story_spine
+version: academy_clean_story_rules_v1
+status: active
+core_rule:
+- Story spine is not a scene script.
+- It names pressure nodes, social windows, possible consequences and character links.
+- It must not prescribe Akira actions, speech, inner conclusions or route.
+- Player input and current state decide the path.
+arc_summary:
+  arrival_social_hook:
+    date: '1198-08-15'
+    function:
+    - Акира и Ливия входят через задний маршрут у корта, чтобы не идти через толпу.
+    - Хару задаёт первый живой социальный крючок Академии.
+    - Райден может быть рядом фоном; прямой контакт требует сценической причины.
+    - Кир появляется позже как старый знакомый, а не как новый персонаж с нуля.
+    - Регистрация, форма, комната и медосмотр фиксируют базовое состояние, но не должны съедать день пустой рутиной.
+    possible_outcomes:
+    - Акира держится рядом с Ливией или отделяется.
+    - Хару замечает Акиру/Ливию или остаётся фоном до действия игрока.
+    - 'Райден реагирует минимально: взгляд, пауза, раздражение, молчание, но не знает hidden lore.'
+    - Кир может усилить старую связку или создать напряжение вокруг нового круга.
+  checks_week:
+    date_window: 1198-08-16_to_1198-08-22
+    function:
+    - первые проверки, наблюдения, маршруты, рейтинг, бытовая адаптация
+    - Академия показывает систему без превращения в протокол
+    - Кэйл Норт может появляться через кураторство/инструкторов/проверки
+    - социальный фон растёт через слухи, столовую, спортзону, общежитие, рейтинги и мелкие последствия
+  adaptation_social_window:
+    date_window: 1198-08-23_to_1198-08-30
+    function:
+    - дать игроку пространство играть быт, компании, тренировки, соперничество, флирт и первые личные сцены
+    - Киара становится сильнее в социальном поле, но не обязана забирать центр сцены
+    - отношения с Райденом, Хару, Киром и Ливией растут только через сыгранные основания
+    - нельзя заранее раскрывать событие 31 августа персонажам без источника
+  samuel_pressure_node:
+    date: '1198-08-31'
+    function:
+    - день рождения Райдена становится фоном сильного узла давления
+    - Самуэль впервые входит в Академию как внешний взрослый фактор власти
+    - Самуэль замечает Акиру и получает повод для будущего интереса
+    - Райден слышит/видит часть давления, но не получает скрытую правду автоматически
+    possible_outcomes:
+    - публичное напряжение без немедленного раскрытия hidden lore
+    - сдвиг отношения Райдена к Акире через видимое поведение Самуэля
+    - новые слухи и наблюдения Академии
+  lessons_start:
+    date: '1198-09-01'
+    function:
+    - переход к регулярному обучению
+    - теория, физические блоки, стрельбище, энергетическая практика, рейтинги
+    - инструкторы и персонал могут делать выводы по посещаемости/активности, но не давить без причины
+character_refs:
+  akira:
+    main: characters/akira/main.yaml
+    character: characters/akira/character.yaml
+    past: characters/akira/past.yaml
+  livia:
+    main: characters/livia/main.yaml
+    character: characters/livia/character.yaml
+    past: characters/livia/past.yaml
+  haru:
+    main: characters/haru/main.yaml
+    character: characters/haru/character.yaml
+    past: characters/haru/past.yaml
+  raiden:
+    main: characters/raiden/main.yaml
+    character: characters/raiden/character.yaml
+    past: characters/raiden/past.yaml
+  kir:
+    main: characters/kir/main.yaml
+    character: characters/kir/character.yaml
+    past: characters/kir/past.yaml
+  kiara:
+    main: characters/kiara/main.yaml
+    character: characters/kiara/character.yaml
+    past: characters/kiara/past.yaml
+  kael_north:
+    main: characters/kael_north/main.yaml
+    character: characters/kael_north/character.yaml
+    past: characters/kael_north/past.yaml
+  samuel:
+    main: characters/samuel/main.yaml
+    character: characters/samuel/character.yaml
+    past: characters/samuel/past.yaml
