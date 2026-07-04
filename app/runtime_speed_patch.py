@@ -4,7 +4,7 @@ Runtime speed patch v17.
 Goals:
 - replace many old lock files with one compact runtime_scene_rules_digest.md;
 - reduce full character loading to characters truly present in the scene;
-- treat scheduled scene appearances as active characters for required files;
+- keep scheduled scene appearances as calendar/reference hints until the current beat promotes them;
 - keep relationship slice limited to active/nearby scene focus;
 - keep delayed/mentioned characters as context inside digest, not full YAML files;
 - include last 15 gameplay scene texts only when exact 15-turn audit is due;
@@ -47,9 +47,7 @@ ACTIVE_CHARACTER_FIELDS = [
     "observing_character_ids",
     "addressed_character_ids",
     "looked_at_character_ids",
-    # Calendar/current-beat appearances are scene participants for required files.
-    # This prevents missing character cards for scheduled arrivals.
-    "scheduled_character_ids",
+    # scheduled_character_ids are reference/calendar hints, not full scene participants.
 ]
 
 RELATIONSHIP_FOCUS_CHARACTER_FIELDS = [

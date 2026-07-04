@@ -178,9 +178,6 @@ def _scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
         "observing_character_ids",
         "addressed_character_ids",
         "looked_at_character_ids",
-        "mentioned_character_ids",
-        "scheduled_character_ids",
-        "delayed_character_ids",
     ]
     for field in fields:
         values.extend(current.get(field, []) or [])
@@ -193,9 +190,8 @@ def _scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
         if isinstance(lock, dict) and lock.get("status") in {"due", "active", "triggered"}:
             values.extend(lock.get("participants", []) or [])
 
-    # First-day Academy entry needs these files even if the compact state forgot to list them.
-    if str(current.get("current_date") or "") == "1198-08-15":
-        values.extend(["livia_cross", "haru_foster", "raiden_sterling", "kir"])
+    # First-day Academy entry must not full-load scheduled/delayed characters.
+    # Hару/Райден/Кир are pulled only when they become active/nearby/speaking/etc.
 
     result: list[str] = []
     for value in values:
@@ -300,11 +296,11 @@ def _relationship_slice(relationships: Any, chars: list[str]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for pair_id, data in pairs.items():
         parts = {part for part in str(pair_id).split("__") if part}
-        if parts and (parts <= focus or "akira" in parts):
+        if parts and parts <= focus:
             out[pair_id] = _compact_text(data, 900)
         if len(out) >= 24:
             break
-    return {"pairs": out, "_context_filter": "focus_pairs_and_akira_pairs_size_guard"}
+    return {"pairs": out, "_context_filter": "active_focus_pairs_only_no_unseen_akira_pairs"}
 
 
 def _story_slice(story: Any) -> dict[str, Any]:
@@ -415,12 +411,14 @@ def _computed_relationship_panel(relationships: Any, stored_panel: Any) -> dict[
         stored_items = stored_panel.get("relationship_score_panel") or {}
         if not isinstance(stored_items, dict):
             stored_items = {}
-    wanted = [
-        "akira__livia_cross",
-        "akira__kir",
-        "akira__haru_foster",
-        "akira__raiden_sterling",
-    ]
+    current_focus = set(getattr(_computed_relationship_panel, "_current_focus", []) or [])
+    wanted = ["akira__livia_cross"]
+    if "kir" in current_focus or "kir_knox" in current_focus:
+        wanted.append("akira__kir")
+    if "haru" in current_focus or "haru_foster" in current_focus:
+        wanted.append("akira__haru_foster")
+    if "raiden" in current_focus or "raiden_sterling" in current_focus:
+        wanted.append("akira__raiden_sterling")
     aliases = {
         "akira__kir": ["akira__kir", "akira__kir_knox"],
         "akira__haru_foster": ["akira__haru_foster", "akira__haru"],
@@ -452,9 +450,10 @@ def _computed_relationship_panel(relationships: Any, stored_panel: Any) -> dict[
     return result
 
 
-def _progress_slice(session_id: str, relationships: Any | None = None) -> dict[str, Any]:
+def _progress_slice(session_id: str, relationships: Any | None = None, chars: list[str] | None = None) -> dict[str, Any]:
     progress = _safe_read_json("state/akira_progress_state.json", session_id, {})
     relationship_panel = _safe_read_json("state/relationship_score_panel.json", session_id, {})
+    _computed_relationship_panel._current_focus = list(chars or ["akira"])  # type: ignore[attr-defined]
     computed_panel = _computed_relationship_panel(relationships or {}, relationship_panel)
     return {
         "akira_progress_state": _compact_text(progress, 1400),
@@ -576,7 +575,7 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
         "Call getRequiredFilesManifest next.",
         "Then call getRequiredFilesChunk starting with chunk_index=0 until has_more=false.",
         "Do not render gameplay from this compact contract alone.",
-        "Use calendar/day files for first scene scheduled characters, including Haru/Raiden when scheduled.",
+        "Use scheduled/delayed ids only as calendar hints; do not treat them as active characters until current state promotes them.",
         "Use latest visible scene facts before stale current_state.",
         "Header ✦ is short visible condition; bottom ✦ Уровни is numeric levels only.",
         "Do not use quotation marks around dialogue or speech choices.",
@@ -585,7 +584,7 @@ def get_session_turn_contract_size_guard(session_id: str) -> TurnContractWithPro
     ]
 
     story_context = _story_slice(story_lines)
-    story_context["progress_panel"] = _progress_slice(sid, relationships)
+    story_context["progress_panel"] = _progress_slice(sid, relationships, chars)
 
     return TurnContractWithPromptPreview(
         session_id=sid,

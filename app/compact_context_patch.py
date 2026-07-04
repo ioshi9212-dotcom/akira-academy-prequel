@@ -213,9 +213,9 @@ def active_scene_characters(current: dict[str, Any], future: dict[str, Any] | No
     addressed = list(current.get("addressed_character_ids", []) or [])
     looked_at = list(current.get("looked_at_character_ids", []) or [])
 
-    scheduled = list(current.get("scheduled_character_ids", []) or current.get("scheduled_characters", []) or [])
-    mentioned = list(current.get("mentioned_character_ids", []) or current.get("mentioned_characters", []) or [])
-    delayed = list(current.get("delayed_character_ids", []) or current.get("delayed_characters", []) or [])
+    # Background rosters are intentionally NOT full-loaded.
+    # scheduled_character_ids / delayed_character_ids / mentioned_character_ids are calendar/reference hints,
+    # not proof that a character is physically present in the current frame.
 
     triggered: list[str] = []
     for thread in current.get("open_threads", []) or []:
@@ -226,7 +226,7 @@ def active_scene_characters(current: dict[str, Any], future: dict[str, Any] | No
         if isinstance(lock, dict) and lock.get("status") in {"due", "active", "triggered"}:
             triggered.extend(lock.get("participants", []) or [])
 
-    return _unique(["akira"] + active + nearby + speaking + observing + addressed + looked_at + scheduled + mentioned + delayed + triggered)
+    return _unique(["akira"] + active + nearby + speaking + observing + addressed + looked_at + triggered)
 
 
 def recommended_files_for_context(current: dict[str, Any] | None = None, future: dict[str, Any] | None = None) -> list[str]:

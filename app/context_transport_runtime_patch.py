@@ -137,7 +137,7 @@ Use relationship slice to decide:
 - who tests boundaries;
 - who becomes jealous, protective, wary, curious, or annoyed.
 
-Only use relationship pairs where both characters are in current scene focus unless a third character is explicitly mentioned or scheduled.
+Only use relationship pairs where both characters are in active scene focus. Mentioned/scheduled/delayed ids are reference hints, not full scene focus.
 If the scene changes a relationship, save it through relationship_changes.
 """
 
@@ -170,7 +170,9 @@ BACKGROUND_CHARACTER_FIELDS = [
     "delayed_character_ids",
 ]
 
-CHARACTER_FIELDS = ACTIVE_CHARACTER_FIELDS + BACKGROUND_CHARACTER_FIELDS
+# Full character cards are loaded only for the current physical/social frame.
+# Background fields stay visible in current_state/calendar, but do not pull full character files.
+CHARACTER_FIELDS = ACTIVE_CHARACTER_FIELDS
 
 SCENE_GROUP_IDS = {
     "block_b_dorm_staff",
