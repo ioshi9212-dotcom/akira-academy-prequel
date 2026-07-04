@@ -1,7 +1,7 @@
 {
   "id": "turn_update_pipeline_1198",
   "file_type": "state_update_contract_rules",
-  "version": "1.0.0-academy",
+  "version": "1.1.0-academy-split-state-only",
   "status": "active",
   "purpose": "Path from ChatGPT scene response to verified Academy 1198 state changes after a turn.",
   "core_rule": "ChatGPT does not change files directly. It returns proposed_updates/state payload. API validates source, visibility and scene evidence before applying.",
@@ -52,19 +52,17 @@
     "calendar/canon_lore rewrites from a normal scene turn"
   ],
   "allowed_targets_current_project": [
+    "state/character_memory/<id>.json",
+    "state/relationship_pairs/<a>__<b>.json",
     "state/current_state.json",
-    "state/relationships.json",
     "state/story_lines.json",
     "state/session_npcs.json",
     "state/calendar_runtime.json",
     "state/inventory_state.json",
-    "state/knowledge_state.json if explicitly allowed later"
+    "state/reputation_state.json",
+    "state/rumors_state.json"
   ],
-  "recommended_future_targets": [
-    "state/character_memory/<id>.json",
-    "state/relationship_pairs/<a>__<b>.json"
-  ],
-  "note": "Academy state knowledge is now split into state/character_memory/<id>.json and state/relationship_pairs/<a>__<b>.json. Global knowledge_state/relationships files are disabled migration stubs.",
+  "note": "Academy uses split state now: per-character memory and pair relationship files. Global knowledge_state/relationships are disabled migration stubs and are forbidden for normal turn updates.",
   "allowed_targets": [
     "state/character_memory/<id>.json",
     "state/relationship_pairs/<a>__<b>.json",

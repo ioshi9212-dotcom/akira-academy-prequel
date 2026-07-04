@@ -2,6 +2,6 @@
   "state_id": "relationships_migrated",
   "status": "disabled_legacy_stub",
   "runtime_source": "state/relationship_pairs/<a>__<b>.json",
-  "legacy_archive": "state/legacy/relationships_legacy_archive.json",
-  "rule": "Do not load global relationships.json for normal scenes. Load only pair files selected by current_frame/scene characters/scene_goal."
+  "rule": "Do not load global relationships.json for normal scenes. Load only pair files selected by current_frame/scene characters/scene_goal.",
+  "archive_removed_from_runtime_zip": true
 }
