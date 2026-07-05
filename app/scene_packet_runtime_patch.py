@@ -1,5 +1,5 @@
 """
-Scene packet runtime patch v3 — packet owns render contract.
+Scene packet runtime patch v4 — pre-rendered header contract.
 
 Main gameplay endpoint:
 POST /api/v1/sessions/{session_id}/build-scene-packet
@@ -562,6 +562,47 @@ def _weather_text(current: dict[str, Any]) -> str:
     return summary
 
 
+_VISIBLE_STATE_RU = {
+    "calm outside": "внешне спокойна",
+    "controlled": "собрана",
+    "tense": "напряжена",
+    "tired": "устала",
+}
+_SCENE_GOAL_RU = {
+    "Fixed start: Ray drops Akira and Livia at Academy; short bag dialogue before first player choice and route toward back court entrance.":
+        "первый вход в Академию; Рэй высаживает Акиру и Ливию, дальше — регистрация и выбор маршрута",
+}
+
+
+def _ru_value(value: Any, table: dict[str, str]) -> str:
+    raw = _text(value)
+    return table.get(raw, raw)
+
+
+def _visible_state_ru(value: Any) -> str:
+    raw = _text(value)
+    return _VISIBLE_STATE_RU.get(raw, raw or "внешне спокойна")
+
+
+def _scene_goal_ru(value: Any) -> str:
+    raw = _text(value)
+    return _SCENE_GOAL_RU.get(raw, raw or "первый вход в Академию; пауза перед выбором маршрута")
+
+
+def _dedupe_visible_items(items: list[str]) -> list[str]:
+    out: list[str] = []
+    for raw in items:
+        item = _text(raw)
+        if not item:
+            continue
+        low = item.lower()
+        # Do not repeat a shorter nearby item if the longer visible inventory already says the same thing.
+        if any(low in prev.lower() or prev.lower() in low for prev in out):
+            continue
+        out.append(item)
+    return out
+
+
 def _header_values(current: dict[str, Any], active: list[str]) -> dict[str, Any]:
     pov = _pov_info(current, active)
     inv = current.get("visible_inventory") or []
@@ -580,14 +621,58 @@ def _header_values(current: dict[str, Any], active: list[str]) -> dict[str, Any]
         "current_time_or_phase": _time_ru(current.get("current_time")),
         "current_location_text": current.get("current_location_text"),
         "weather_if_relevant": _weather_text(current),
-        "current_scene_goal_or_tension": current.get("current_scene_goal"),
+        "current_scene_goal_or_tension": _scene_goal_ru(current.get("current_scene_goal")),
         "pov_display_name": pov.get("pov_display") or pov.get("pov_character_id"),
-        "visible_state": _visible_state(current),
+        "visible_state": _visible_state_ru(_visible_state(current)),
         "current_outfit_if_relevant": current.get("current_outfit"),
-        "visible_inventory_or_nearby_items_if_relevant": "; ".join(_unique(inv_line[:4])),
+        "visible_inventory_or_nearby_items_if_relevant": "; ".join(_dedupe_visible_items(inv_line)[:4]),
     }
 
+def _render_header(values: dict[str, Any]) -> str:
+    lines = [
+        f"🏛️ Академия Астрейн · 1198 г., {values.get('current_date') or '15 августа'}",
+        f"🕒 {values.get('current_time_or_phase') or 'позднее утро'} · 📍 {values.get('current_location_text') or 'Академия Астрейн'}",
+        f"🌦️ {values.get('weather_if_relevant') or 'погода не акцентирована'} · ⚙️ {values.get('current_scene_goal_or_tension') or 'первый вход в Академию'}",
+        f"✦ POV: {values.get('pov_display_name') or 'Акира'} · {values.get('visible_state') or 'внешне спокойна'}",
+    ]
+    outfit = _text(values.get('current_outfit_if_relevant'))
+    inventory = _text(values.get('visible_inventory_or_nearby_items_if_relevant'))
+    if outfit:
+        lines.append(f"🧥 {outfit}")
+    if inventory:
+        lines.append(f"◈ {inventory}")
+    lines.append("━━━━━━━━━━━━━━━━━━━━")
+    return "\n".join(lines)
+
+
+_GENITIVE_RU = {
+    "Акира": "Акиры",
+    "Ливия": "Ливии",
+    "Киара": "Киары",
+    "Райден": "Райдена",
+    "Хару": "Хару",
+    "Кир": "Кира",
+    "Рэй": "Рэя",
+    "Каэл": "Каэла",
+}
+_FEMALE_NAMES = {"Акира", "Ливия", "Киара"}
+
+
+def _bottom_labels(pov_display: str) -> dict[str, str]:
+    pov = pov_display or "Акира"
+    gen = _GENITIVE_RU.get(pov, pov)
+    say_aux = "могла бы" if pov in _FEMALE_NAMES else "мог бы"
+    return {
+        "actions": "✦ Что можно сделать",
+        "say": f"✦ Что {pov} {say_aux} сказать",
+        "thoughts": f"✦ Мысли {gen}",
+        "levels": "✦ Уровни",
+        "relationships": "✦ Отношения",
+    }
+
+
 def _current_frame(current: dict[str, Any], future: dict[str, Any], active: list[str], player_input: str) -> dict[str, Any]:
+    header_values = _header_values(current, active)
     return {
         "date": current.get("current_date"),
         "time": current.get("current_time"),
@@ -607,8 +692,10 @@ def _current_frame(current: dict[str, Any], future: dict[str, Any], active: list
         "uniform_worn": current.get("uniform_worn"),
         "last_player_input_from_state": current.get("last_player_input"),
         "player_input_for_this_turn": player_input,
-        "header_values": _header_values(current, active),
-        "visible_state": _visible_state(current),
+        "header_values": header_values,
+        "rendered_header": _render_header(header_values),
+        "bottom_block_labels": _bottom_labels(str(header_values.get("pov_display_name") or "Акира")),
+        "visible_state": _visible_state_ru(_visible_state(current)),
     }
 
 
@@ -694,15 +781,17 @@ def _strict_output_contract(session_id: str) -> dict[str, Any]:
         "visible_scene_must_start_with_header": True,
         "must_use_header_template_exactly": True,
         "header_template": header_template,
+        "rendered_header_source": "scene_packet.current_frame.rendered_header",
+        "writer_rule": "Copy scene_packet.current_frame.rendered_header exactly as the first block of the visible scene. Do not rebuild the header manually.",
         "header_render_rules": {
-            "date": "Use current_frame.date/current_state.current_date; keep 1198 year.",
-            "time": "Render current_frame.time in Russian if possible; do not leave English labels like late morning.",
-            "location": "Use current_frame.location_text.",
-            "weather_goal": "Use weather summary and current scene goal/tension; if unknown, write compact visible tension, not placeholders.",
-            "pov_state": "Use ✦ POV: <name> · <visible_state>; visible_state may come from akira_state.visible_state/current_frame.",
-            "outfit": "Use 🧥 line when current_outfit exists.",
-            "inventory": "Use ◈ line for visible_inventory/nearby_items if present.",
-            "separator": "Always include ━━━━━━━━━━━━━━━━━━━━ after header.",
+            "date": "Используй готовую строку rendered_header; дату не пересобирай вручную.",
+            "time": "Используй rendered_header; не оставляй английские late_morning/late morning.",
+            "location": "Используй rendered_header; место не сокращай до markdown-строки.",
+            "weather_goal": "Используй rendered_header; не пиши placeholder.",
+            "pov_state": "Используй rendered_header: ✦ POV: <имя> · <видимое состояние>.",
+            "outfit": "Используй строку 🧥 из rendered_header, если она есть.",
+            "inventory": "Используй строку ◈ из rendered_header, если она есть.",
+            "separator": "Разделитель уже есть в rendered_header; не удаляй его.",
         },
         "dialogue_format_required": contract.get("dialogue_format_required", "**Имя/видимый дескриптор** — реплика."),
         "unknown_name_rule": contract.get("unknown_name_rule", []),
@@ -717,7 +806,7 @@ def _output_template() -> dict[str, Any]:
     return {
         "format": "academy_old_visual_novel_header_v2",
         "strict_contract_location": "scene_packet.output_contract",
-        "header": "Use output_contract.header_template exactly; no loose markdown fallback.",
+        "header": "Copy scene_packet.current_frame.rendered_header exactly; no loose markdown fallback.",
         "dialogue": "**Имя/видимый дескриптор** — реплика.",
         "bottom_blocks": ["✦ Что можно сделать", "✦ Что [POV] мог(ла) бы сказать", "✦ Мысли [POV]", "✦ Уровни", "✦ Отношения"],
         "style": "dense readable paragraphs; no micro-lines of 3-5 words",
@@ -770,7 +859,7 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
         inventory = _safe_json("state/inventory_state.json", sid, {})
         story = _safe_json("state/story_lines.json", sid, {})
         packet = {
-            "packet_version": "scene_packet_v3_render_contract",
+            "packet_version": "scene_packet_v4_rendered_header",
             "packet_status": "ready",
             "mode": req.mode,
             "session_id": sid,
@@ -814,14 +903,17 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
             "loaded_sources": loaded if req.include_sources else [],
             "render_guard": {
                 "packet_owns_scene_format": True,
+                "copy_rendered_header_exactly": True,
+                "rendered_header_path": "scene_packet.current_frame.rendered_header",
                 "do_not_call_manifest_chunks_for_render": True,
                 "do_not_write_scene_if_packet_status_not_ready": True,
                 "must_start_with": "🏛️ Академия Астрейн",
+                "first_visible_block_must_equal_rendered_header": True,
                 "forbidden_header_examples": ["1198-08-15 · late morning", "Академия Астрейн, ... / POV: Акира as plain markdown"],
             },
         }
         diagnostics = {
-            "build": "scene_packet_v3_render_contract_default_no_sources",
+            "build": "scene_packet_v4_rendered_header_default_no_sources",
             "loaded_file_count": len(loaded),
             "missing_file_count": len(missing),
             "selected_path_count": len(files),
@@ -837,7 +929,7 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
         )
     except Exception as exc:  # final safety: never hide route behind 500 if possible
         packet = {
-            "packet_version": "scene_packet_v3_render_contract",
+            "packet_version": "scene_packet_v4_rendered_header",
             "packet_status": "error_no_scene",
             "session_id": sid,
             "error_rule": "Do not write a gameplay scene from this packet. Fix API or use technical diagnostics.",
@@ -852,4 +944,4 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
         )
 
 
-app.version = "0.3.74-scene-packet-render-contract-v3"
+app.version = "0.3.75-scene-packet-rendered-header-v4"
