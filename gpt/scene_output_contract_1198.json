@@ -1,6 +1,6 @@
 {
   "id": "scene_output_contract_1198",
-  "version": "v2-academy-writer-contract-pov-dense-style",
+  "version": "v3-academy-rendered-header-contract",
   "purpose": "Final writer contract for visible Academy 1198 scene after state/calendar/location/character/knowledge blocks.",
   "must_be_last_writer_instruction": true,
   "visible_scene_must_start_with_header": true,
@@ -20,27 +20,29 @@
     "A name can be used only after introduction, document, memory, direct scene source, or valid knowledge/memory source."
   ],
   "prose_rules": [
-    "Write compact cinematic VN prose in third person.",
-    "Use dense readable paragraphs; do not split narration into one-fragment / 3-5-word paragraphs.",
-    "NPCs are active but do not steal meaningful choices from current POV.",
-    "Low-stakes automatic POV lines are allowed; choice-weighted POV replies require player choice.",
-    "If a meaningful NPC hook interrupts a movement chain, stop before completing the chain.",
-    "Light dry irony/sarcasm is allowed when tied to visible action, not meta-commentary.",
-    "Do not turn Academy into sci-fi lab; use modern-realistic tech only.",
-    "Do not transfer engine_state/POV-visible items into NPC knowledge without seen/heard/source in knowledge boundary."
+    "Пиши плотную читаемую VN-сцену от третьего лица.",
+    "Не дроби режиссуру на микростроки по 3–5 слов; абзац должен нести цельное действие, реакцию или изменение.",
+    "NPC действуют самостоятельно, но не закрывают значимый выбор POV.",
+    "Низковесные автоматические реплики POV допустимы; выборные реплики оставляй игроку.",
+    "Если важный NPC-крючок прерывает цепочку движения, останови сцену до завершения цепочки.",
+    "Лёгкая ирония/сухой сарказм допустимы, если они привязаны к действию и характеру.",
+    "Не превращай Академию в sci-fi лабораторию; техника современно-реалистичная.",
+    "Не превращай engine_state/видимые предметы в знание NPC без источника: видел/слышал/прочитал/ему сказали."
   ],
   "bottom_blocks_order": [
     "✦ Что можно сделать",
-    "✦ Что [POV] мог(ла) бы сказать",
-    "✦ Мысли [POV]",
+    "✦ Что {POV} могла бы сказать / мог(ла) бы сказать",
+    "✦ Мысли {POV}",
     "✦ Уровни",
     "✦ Отношения"
   ],
   "bottom_blocks_rules": [
-    "Options are not facts until player chooses.",
-    "If POV is Akira, labels may use: Что Акира могла бы сказать / Мысли Акиры.",
-    "If POV is not Akira, labels must use current POV name and must not show Akira hidden thoughts.",
-    "State/levels only actual body/position/item/danger/numeric changes.",
-    "Relationships only if tension/trust/interest visibly changed or is relevant now; do not list everyone."
-  ]
+    "Используй готовые labels из scene_packet.current_frame.bottom_block_labels, если они есть.",
+    "Варианты не являются фактами, пока игрок их не выбрал.",
+    "Если POV не Акира, не показывай скрытые мысли Акиры.",
+    "Уровни выводи только для реального изменения тела/позиции/предметов/риска/ресурса.",
+    "Отношения выводи только если напряжение/доверие/интерес изменились или важны прямо сейчас; не перечисляй всех."
+  ],
+  "rendered_header_source": "scene_packet.current_frame.rendered_header",
+  "writer_rule": "Первым видимым блоком сцены скопируй scene_packet.current_frame.rendered_header дословно. Не пересобирай шапку вручную."
 }

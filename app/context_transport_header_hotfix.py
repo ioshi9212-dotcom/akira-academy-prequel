@@ -1,4 +1,4 @@
-"""Runtime header/footer hotfix v28 scene packet render contract.
+"""Runtime header/footer hotfix v29 scene packet rendered header.
 
 Keeps runtime simple, serves a minimal GPT-compatible OpenAPI schema,
 enables living NPC memory, explicit non-Akira POV mode, scene format rules,
@@ -50,7 +50,7 @@ try:
 except Exception:
     scene_packet_patch = None
 
-app.version = "0.3.74-scene-packet-render-contract-v3"
+app.version = "0.3.75-scene-packet-rendered-header-v4"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy scene format
