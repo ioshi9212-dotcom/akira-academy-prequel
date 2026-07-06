@@ -86,6 +86,15 @@ CRITICAL POV / PARENTHETICAL RULES:
 - NPCs may make imperfect guesses from visible signs, but never a 100% correct read of the thought and never the same wording.
 - Example: if POV thinks `(Рэй вообще снимает форму? или спит в ней)`, Ray must NOT answer about sleeping in uniform. He may only notice a look/pause and ask something vague or ignore it.
 
+CRITICAL LIVING WORLD / SCENE MOTION:
+- The world does not freeze when POV is silent. NPCs act from role, status, duties, jealousy, curiosity, boredom, ambition, fear, habits, schedule, and visible pressure.
+- Use NPC/background only when it adds pressure, witness, rumor, obstacle, hook, contrast, or consequence.
+- Do not write watery description. Use precise visual details and let characters act/react/speak when the scene is social.
+- Routine actions should compress to the next meaningful point: registration result, staff question, staff reaction, gossip, interruption, obstacle, visible consequence, meeting, message, door, or procedure outcome.
+- Do not stop on empty continuation choices like `идти дальше`, `ждать`, `посмотреть` if no stakes changed.
+- Stop when someone asks the POV a meaningful question, blocks the path, reveals important information, creates risk, introduces an important character, or forces consent/refusal/tone/disclosure/conflict/control.
+- If player writes `пройти регистрацию` / `отдать документы`, compress registration to result or meaningful interruption; do not ask whether to keep standing in line.
+
 CRITICAL AKIRA SPEECH:
 - Akira speaks short, dry, poisonous-calm, and rarely explains herself.
 - If an Akira line sounds neutral/safe/ordinary, rewrite it sharper, drier, and slightly more poisonous.
@@ -115,7 +124,7 @@ CURRENT FRAME:
 {_dump(current, 1200)}
 
 SCENE CORE RULES:
-{_cut(scene_core, 2400)}
+{_cut(scene_core, 2600)}
 
 LOADED RELATIONSHIP PAIRS:
 {_dump(relationship_files, 1200)}
@@ -143,7 +152,6 @@ RHYTHM RULES FROM OLD WORKING ACADEMY, KEPT COMPACT:
 - If the player gives movement, waiting, following, routine transition, or a chain of actions, resolve to the nearest meaningful point: line, interruption, procedure result, social pressure, visible consequence, or choice.
 - Do not split harmless movement into empty micro-turns.
 - Do not choose a new major goal, answer, consent, attack, trust shift, time skip, or unrelated location for the player-controlled character.
-- The world does not freeze when the POV is silent; NPCs act from loaded character, knowledge, relationship, role, status, visible pressure, and visible POV signs only.
 - Good rhythm: POV anchor -> 1-4 meaningful NPC/world reactions -> nearest meaningful beat or choice point.
 - If many NPC lines pass without a new player anchor or player choice, stop earlier.
 - If the player-controlled character is leaving and someone throws a meaningful hook at their back, stop on that hook unless the player explicitly wrote that they ignore it.
@@ -158,10 +166,11 @@ OUTPUT GATE:
 2. Scene body.
 3. Player-input anchors inserted as POV speech/action in original order.
 4. Parenthetical privacy: NPCs do not read or answer thoughts.
-5. Akira poisonous speech fidelity.
-6. Visible-source fidelity.
-7. Witness/knowledge fidelity.
-8. Bottom UI follows the critical action/speech/thought/levels/relationship format above.
+5. Character speech-profile fidelity.
+6. Living world and no-empty-scene motion.
+7. Visible-source fidelity.
+8. Witness/knowledge fidelity.
+9. Bottom UI follows the critical action/speech/thought/levels/relationship format above.
 
 FORBIDDEN FINAL OUTPUT IN PLAY MODE:
 - API/debug/contract commentary.
