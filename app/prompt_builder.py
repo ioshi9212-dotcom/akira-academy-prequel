@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-MAX_PROMPT_PREVIEW_CHARS = 12000
+MAX_PROMPT_PREVIEW_CHARS = 8000
 
 
 def _cut(text: Any, limit: int = 2000) -> str:
@@ -67,7 +67,7 @@ def build_prompt_preview(scene_packet: dict[str, Any]) -> str:
 ACADEMY 1198 SCENE RENDER BRIEF
 
 ROLE SPLIT:
-- Railway/API has already assembled the scene packet and loaded files.
+- Railway/API has already assembled the scene packet and loaded files internally.
 - GPT renders the scene from this packet only.
 - Do not search for extra gameplay files during normal play.
 - Do not invent exact room, floor, route, group, schedule, procedure result, or staff decision.
@@ -79,34 +79,34 @@ RENDERED HEADER:
 {scene_packet.get("rendered_header")}
 
 PLAYER INPUT SEGMENTS, ORIGINAL ORDER:
-{_dump(player, 1800)}
+{_dump(player, 1200)}
 
 CURRENT FRAME:
-{_dump(current, 1800)}
+{_dump(current, 1400)}
 
 SCENE CORE RULES:
-{_cut(scene_core, 3500)}
+{_cut(scene_core, 1800)}
 
 LOADED CALENDAR:
-{_dump(calendar_files, 2600)}
+{_dump(calendar_files, 1200)}
 
 LOADED LOCATION:
-{_dump(location_files, 2600)}
+{_dump(location_files, 1400)}
 
 LOADED CHARACTER CARDS:
-{_dump(character_files, 5000)}
+{_dump(character_files, 3000)}
 
 LOADED CHARACTER MEMORY:
-{_dump(memory_files, 2600)}
+{_dump(memory_files, 1200)}
 
 LOADED RELATIONSHIP PAIRS:
-{_dump(relationship_files, 2600)}
+{_dump(relationship_files, 1200)}
 
 LOADED CONDITIONAL STATE:
-{_dump(state_files, 3000)}
+{_dump(state_files, 1200)}
 
 REQUIRED FILES:
-{_dump(required, 1800)}
+{_dump(required, 1000)}
 
 RHYTHM RULES FROM OLD WORKING ACADEMY, KEPT COMPACT:
 - Player outside-parentheses text is exact POV speech.
@@ -126,7 +126,6 @@ CHARACTER FIDELITY:
 - If a character is reference-only and not full-loaded, do not give them meaningful new dialogue/action.
 
 OUTPUT GATE:
-A gameplay answer must include:
 1. The rendered header exactly.
 2. Scene body.
 3. Player-input anchors inserted as POV speech/action in original order.
