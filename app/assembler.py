@@ -84,6 +84,20 @@ OBSERVATION_WORDS = [
     "проморгаться",
 ]
 
+COURT_SCAN_WORDS = [
+    "площадк",
+    "корт",
+    "баскетбол",
+    "мяч",
+    "игр",
+    "игрок",
+    "студент",
+    "спортзон",
+    "сетк",
+    "огражден",
+    "огражд",
+]
+
 
 def detect_observed_characters(
     user_input: str,
@@ -128,17 +142,25 @@ def detect_observed_characters(
     court_context = (
         current_location_id in {"back_court_route", "basketball_court"}
         or target_location_id in {"back_court_route", "basketball_court"}
-        or "корт" in text
-        or "мяч" in text
-        or "площадк" in text
+        or any(word in text for word in COURT_SCAN_WORDS)
     )
+    broad_court_scan = court_context and any(word in text for word in COURT_SCAN_WORDS)
 
     if court_context:
+        # Court introduction pair: Haru is the noisy/bright anchor, Raiden is beside/near him.
+        # A broad scan of the court must load both, even if the player did not write
+        # "dark/tall" explicitly. Otherwise Raiden disappears from the court beat.
+        if broad_court_scan:
+            if "haru" in scene_people or "haru" in scheduled_set:
+                found.append("haru")
+            if "raiden" in scene_people or "raiden" in scheduled_set:
+                found.append("raiden")
+
         if "haru" in scene_people or "haru" in scheduled_set:
             if any(word in text for word in ["рыж", "конопат", "улыб", "мяч"]):
                 found.append("haru")
         if "raiden" in scene_people or "raiden" in scheduled_set:
-            if any(word in text for word in ["темн", "тёмн", "черноволос", "высок", "рядом с хару", "рядом с рыж"]):
+            if any(word in text for word in ["темн", "тёмн", "черноволос", "высок", "рядом с хару", "рядом с рыж", "рядом с ним"]):
                 found.append("raiden")
 
     return unique(found)
@@ -176,6 +198,10 @@ def detect_target_location(
         word in text for word in ["мяч", "корт", "баскетбол", "площадк", "задн", "маршрут"]
     ):
         return resolve_location_id("back_court_route", location_index)
+
+    # Once the POV is already on the back route, a court scan should resolve the court.
+    if current_location_id == "back_court_route" and any(word in text for word in ["корт", "баскетбол", "площадк", "игр", "мяч"]):
+        return resolve_location_id("basketball_court", location_index)
 
     for loc_id, words in LOCATION_KEYWORDS.items():
         if any(word in text for word in words):
@@ -242,10 +268,12 @@ def resolve_character_scope(
     full = unique(["akira"] + active + nearby + addressed + observed + beat_chars)
 
     # Important scene-specific promotions. These are assembly decisions, not GPT locks.
+    # At the basketball court Haru and Raiden are introduced as a visible pair.
     if target_location_id == "basketball_court" or current_location_id == "basketball_court":
         if "haru" in scheduled:
             full.append("haru")
-        # Raiden becomes full only through address/meaningful observation/nearby/beat.
+        if "raiden" in scheduled:
+            full.append("raiden")
     if "raiden" in addressed or "raiden" in observed:
         full.append("raiden")
 
