@@ -1,0 +1,422 @@
+openapi: 3.1.0
+info:
+  title: Akira Academy Prequel API
+  version: 1.0.0-clean
+  description: Clean Railway API for the interactive novel "Akira: Academy, prequel". Railway assembles scene packets; GPT renders scenes from packets only.
+servers:
+  - url: https://akira-academy-prequel-production.up.railway.app
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: Health check
+      responses:
+        "200":
+          description: API status
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /api/v1/sessions:
+    post:
+      operationId: createSession
+      summary: Create or reset a gameplay session
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSessionRequest"
+      responses:
+        "200":
+          description: Session info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionInfo"
+  /api/v1/sessions/{session_id}/context:
+    get:
+      operationId: getSessionContext
+      summary: Get compact session context for diagnostics
+      parameters:
+        - $ref: "#/components/parameters/session_id"
+      responses:
+        "200":
+          description: Compact session context
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /api/v1/sessions/{session_id}/turn-contract:
+    post:
+      operationId: getSessionTurnContract
+      summary: Build a compact turn contract for diagnostics
+      parameters:
+        - $ref: "#/components/parameters/session_id"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TurnRequest"
+      responses:
+        "200":
+          description: Turn contract
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /api/v1/sessions/{session_id}/required-files-manifest:
+    post:
+      operationId: getRequiredFilesManifest
+      summary: Get required files manifest for diagnostics
+      parameters:
+        - $ref: "#/components/parameters/session_id"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TurnRequest"
+      responses:
+        "200":
+          description: Required files manifest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequiredFilesManifest"
+  /api/v1/sessions/{session_id}/required-files-chunk:
+    post:
+      operationId: getRequiredFilesChunk
+      summary: Get required file contents by chunks for diagnostics
+      parameters:
+        - $ref: "#/components/parameters/session_id"
+        - name: chunk_index
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: chunk_size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 6
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TurnRequest"
+      responses:
+        "200":
+          description: Required files chunk
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequiredFilesChunk"
+  /api/v1/sessions/{session_id}/scene-packet:
+    post:
+      operationId: buildScenePacket
+      summary: Build the scene packet for the current turn
+      parameters:
+        - $ref: "#/components/parameters/session_id"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TurnRequest"
+      responses:
+        "200":
+          description: Scene packet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScenePacket"
+  /api/v1/sessions/{session_id}/apply-turn-result:
+    post:
+      operationId: applyTurnResult
+      summary: Apply meaningful scene result changes to session state
+      parameters:
+        - $ref: "#/components/parameters/session_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplyTurnResultRequest"
+      responses:
+        "200":
+          description: Apply result response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplyTurnResultResponse"
+  /api/v1/files:
+    get:
+      operationId: listProjectFiles
+      summary: List seeded project files for diagnostics
+      responses:
+        "200":
+          description: File list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      type: string
+                additionalProperties: true
+  /api/v1/files/{file_path}:
+    get:
+      operationId: getProjectFile
+      summary: Read a project file for diagnostics
+      parameters:
+        - name: file_path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileResponse"
+components:
+  parameters:
+    session_id:
+      name: session_id
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 80
+  schemas:
+    CreateSessionRequest:
+      type: object
+      properties:
+        session_id:
+          type:
+            - string
+            - "null"
+        title:
+          type:
+            - string
+            - "null"
+        reset:
+          type: boolean
+          default: false
+      additionalProperties: false
+    SessionInfo:
+      type: object
+      required:
+        - session_id
+        - created_at
+        - updated_at
+      properties:
+        session_id:
+          type: string
+        title:
+          type:
+            - string
+            - "null"
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        context_url:
+          type: string
+        turn_contract_url:
+          type: string
+      additionalProperties: true
+    TurnRequest:
+      type: object
+      properties:
+        user_input:
+          type: string
+          default: ""
+        mode:
+          type: string
+          enum:
+            - play
+            - technical
+            - audit
+          default: play
+      additionalProperties: false
+    RequiredFilesManifest:
+      type: object
+      properties:
+        session_id:
+          type: string
+        packet_status:
+          type: string
+        required_files:
+          type: array
+          items:
+            type: string
+        missing_files:
+          type: array
+          items:
+            type: string
+        full_character_ids:
+          type: array
+          items:
+            type: string
+        reference_character_ids:
+          type: array
+          items:
+            type: string
+        location_ids_loaded:
+          type: array
+          items:
+            type: string
+        relationship_pairs_loaded:
+          type: array
+          items:
+            type: string
+      additionalProperties: true
+    RequiredFilesChunk:
+      type: object
+      properties:
+        session_id:
+          type: string
+        chunk_index:
+          type: integer
+        next_chunk_index:
+          type:
+            - integer
+            - "null"
+        has_more:
+          type: boolean
+        files:
+          type: object
+          additionalProperties:
+            type: string
+        missing_files:
+          type: array
+          items:
+            type: string
+      additionalProperties: true
+    ScenePacket:
+      type: object
+      properties:
+        session_id:
+          type: string
+        packet_status:
+          type: string
+        rendered_header:
+          type: string
+        player_input:
+          type: object
+          additionalProperties: true
+        current_frame:
+          type: object
+          additionalProperties: true
+        required_files:
+          type: array
+          items:
+            type: string
+        loaded_files:
+          type: object
+          additionalProperties:
+            type: string
+        missing_files:
+          type: array
+          items:
+            type: string
+        full_character_ids:
+          type: array
+          items:
+            type: string
+        reference_character_ids:
+          type: array
+          items:
+            type: string
+        location_ids_loaded:
+          type: array
+          items:
+            type: string
+        relationship_pairs_loaded:
+          type: array
+          items:
+            type: string
+        prompt_preview:
+          type:
+            - string
+            - "null"
+      additionalProperties: true
+    ApplyTurnResultRequest:
+      type: object
+      properties:
+        scene_text:
+          type: string
+          default: ""
+        technical:
+          type: boolean
+          default: false
+        current_state_changes:
+          type: object
+          additionalProperties: true
+        calendar_runtime_changes:
+          type: object
+          additionalProperties: true
+        character_memory_changes:
+          type: object
+          additionalProperties: true
+        relationship_pair_changes:
+          type: object
+          additionalProperties: true
+        inventory_changes:
+          type: object
+          additionalProperties: true
+        reputation_changes:
+          type: object
+          additionalProperties: true
+        rumors_changes:
+          type: object
+          additionalProperties: true
+        power_changes:
+          type: object
+          additionalProperties: true
+        akira_progress_changes:
+          type: object
+          additionalProperties: true
+        dry_run:
+          type: boolean
+          default: false
+      additionalProperties: false
+    ApplyTurnResultResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        changed_files:
+          type: array
+          items:
+            type: string
+        notes:
+          type: array
+          items:
+            type: string
+      additionalProperties: true
+    FileResponse:
+      type: object
+      properties:
+        path:
+          type: string
+        content:
+          type: string
+      additionalProperties: false
