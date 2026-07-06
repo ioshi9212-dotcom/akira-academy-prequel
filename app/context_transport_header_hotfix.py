@@ -1,11 +1,8 @@
-"""Runtime header/footer hotfix v29 scene packet rendered header.
+"""Runtime header/footer hotfix v30 — slim scene packet v5.
 
 Keeps runtime simple, serves a minimal GPT-compatible OpenAPI schema,
 enables living NPC memory, explicit non-Akira POV mode, scene format rules,
-and transport-only size-guard context/turn-contract endpoints.
-
-Important: OpenAPI must expose TurnContractWithPromptPreview schema because
-the smoke test checks that exact component name.
+transport-only size-guard context/turn-contract endpoints, and slim scene packet.
 """
 from __future__ import annotations
 
@@ -50,20 +47,18 @@ try:
 except Exception:
     scene_packet_patch = None
 
-app.version = "0.3.75-scene-packet-rendered-header-v4"
+app.version = "0.3.76-scene-packet-slim-ordered-input-v5"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
-## Medium scene style digest — strict Academy scene format
-Use old Academy header/footer. Energy should be visually/physically felt when relevant: cold, heat, sound, vibration, pressure, metal tremor, trajectory shift. Personal energy is in character cards, not in separate per-type files.
+## Medium scene style digest — strict Academy rendered-header format
+Use scene_packet.current_frame.rendered_header exactly as the first visible scene block.
+Do not use old loose emoji-card headers such as 📅 Дата or 🎒 При себе.
+Energy should be visually/physically felt when relevant, but hidden lore stays hidden.
 """
 
 
 def _object_schema(properties: dict | None = None, *, required: list[str] | None = None) -> dict:
-    schema = {
-        "type": "object",
-        "properties": properties or {},
-        "additionalProperties": True,
-    }
+    schema = {"type": "object", "properties": properties or {}, "additionalProperties": True}
     if required:
         schema["required"] = required
     return schema
@@ -161,7 +156,7 @@ def _components_schemas() -> dict:
                 "mode": {"type": "string", "default": "game_turn"},
                 "include_sources": {"type": "boolean", "default": False},
                 "include_diagnostics": {"type": "boolean", "default": True},
-                "include_source_index": {"type": "boolean", "default": True},
+                "include_source_index": {"type": "boolean", "default": False},
                 "max_file_chars": {"type": "integer", "default": 12000},
                 "max_total_chars": {"type": "integer", "default": 70000},
             }
@@ -193,57 +188,28 @@ def _components_schemas() -> dict:
 def _response_ref(description: str, schema_name: str) -> dict:
     return {
         "description": description,
-        "content": {
-            "application/json": {
-                "schema": {"$ref": f"#/components/schemas/{schema_name}"},
-            }
-        },
+        "content": {"application/json": {"schema": {"$ref": f"#/components/schemas/{schema_name}"}}},
     }
 
 
 def _session_path_param() -> dict:
-    return {
-        "name": "session_id",
-        "in": "path",
-        "required": True,
-        "schema": {"type": "string"},
-    }
+    return {"name": "session_id", "in": "path", "required": True, "schema": {"type": "string"}}
 
 
 def _chunk_query_params() -> list[dict]:
     return [
-        {
-            "name": "chunk_index",
-            "in": "query",
-            "required": False,
-            "schema": {"type": "integer", "default": 0},
-        },
-        {
-            "name": "max_chars",
-            "in": "query",
-            "required": False,
-            "schema": {"type": "integer", "default": 30000},
-        },
-        {
-            "name": "max_items",
-            "in": "query",
-            "required": False,
-            "schema": {"type": "integer", "default": 3},
-        },
+        {"name": "chunk_index", "in": "query", "required": False, "schema": {"type": "integer", "default": 0}},
+        {"name": "max_chars", "in": "query", "required": False, "schema": {"type": "integer", "default": 30000}},
+        {"name": "max_items", "in": "query", "required": False, "schema": {"type": "integer", "default": 3}},
     ]
 
 
 def _minimal_gpt_openapi() -> dict:
     return {
         "openapi": "3.1.0",
-        "info": {
-            "title": "Akira Academy Prequel Actions",
-            "version": app.version,
-        },
+        "info": {"title": "Akira Academy Prequel Actions", "version": app.version},
         "servers": [{"url": base.BASE_URL}],
-        "components": {
-            "schemas": _components_schemas(),
-        },
+        "components": {"schemas": _components_schemas()},
         "paths": {
             "/health": {
                 "get": {
@@ -258,17 +224,7 @@ def _minimal_gpt_openapi() -> dict:
                     "summary": "Create a new gameplay session",
                     "requestBody": {
                         "required": False,
-                        "content": {
-                            "application/json": {
-                                "schema": _object_schema(
-                                    {
-                                        "session_id": {"type": "string"},
-                                        "title": {"type": "string"},
-                                        "reset": {"type": "boolean"},
-                                    }
-                                )
-                            }
-                        },
+                        "content": {"application/json": {"schema": _object_schema({"session_id": {"type": "string"}, "title": {"type": "string"}, "reset": {"type": "boolean"}})}},
                     },
                     "responses": {"200": _response_ref("Created session", "SessionResponse")},
                 }
@@ -316,16 +272,9 @@ def _minimal_gpt_openapi() -> dict:
             "/api/v1/sessions/{session_id}/build-scene-packet": {
                 "post": {
                     "operationId": "buildScenePacket",
-                    "summary": "Build one compact scene packet for the next gameplay scene",
+                    "summary": "Build one slim scene packet for render/header/input/UI rules",
                     "parameters": [_session_path_param()],
-                    "requestBody": {
-                        "required": False,
-                        "content": {
-                            "application/json": {
-                                "schema": {"$ref": "#/components/schemas/BuildScenePacketRequest"}
-                            }
-                        },
-                    },
+                    "requestBody": {"required": False, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/BuildScenePacketRequest"}}}},
                     "responses": {"200": _response_ref("Compact scene packet", "ScenePacketResponse")},
                 }
             },
@@ -336,18 +285,7 @@ def _minimal_gpt_openapi() -> dict:
                     "parameters": [_session_path_param()],
                     "requestBody": {
                         "required": False,
-                        "content": {
-                            "application/json": {
-                                "schema": _object_schema(
-                                    {
-                                        "turn_file": {"type": "string"},
-                                        "data": _object_schema(),
-                                        "dry_run": {"type": "boolean", "default": False},
-                                        "visible_scene_text": {"type": "string"},
-                                    }
-                                )
-                            }
-                        },
+                        "content": {"application/json": {"schema": _object_schema({"turn_file": {"type": "string"}, "data": _object_schema(), "dry_run": {"type": "boolean", "default": False}, "visible_scene_text": {"type": "string"}})}},
                     },
                     "responses": {"200": _response_ref("Apply result", "ApplyTurnResultResponse")},
                 }

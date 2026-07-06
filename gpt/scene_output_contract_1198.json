@@ -1,9 +1,11 @@
 {
   "id": "scene_output_contract_1198",
-  "version": "v3-academy-rendered-header-contract",
+  "version": "v5-slim-packet-ordered-input-relationship-ui",
   "purpose": "Final writer contract for visible Academy 1198 scene after state/calendar/location/character/knowledge blocks.",
   "must_be_last_writer_instruction": true,
   "visible_scene_must_start_with_header": true,
+  "rendered_header_source": "scene_packet.current_frame.rendered_header",
+  "writer_rule": "Первым видимым блоком сцены скопируй scene_packet.current_frame.rendered_header дословно. Не пересобирай шапку вручную.",
   "header_template": [
     "🏛️ Академия Астрейн · 1198 г., {current_date}",
     "🕒 {current_time_or_phase} · 📍 {current_location_text}",
@@ -13,11 +15,26 @@
     "◈ {visible_inventory_or_nearby_items_if_relevant}",
     "━━━━━━━━━━━━━━━━━━━━"
   ],
+  "forbidden_headers": [
+    "📅 Дата:",
+    "🎒 При себе:",
+    "1198-08-15 · late_morning",
+    "самодельная markdown-шапка без scene_packet.current_frame.rendered_header"
+  ],
   "dialogue_format_required": "**Имя/видимый дескриптор** — реплика.",
   "unknown_name_rule": [
     "If POV/active character does not know the name, use a stable visible descriptor: **Рыжий старшекурсник** —, **Беловолосый парень у края корта** —, **Девушка в бордовом жакете** —.",
     "character_id, display_name, calendar, relationship data and hidden files are engine facts, not name sources for POV/NPC.",
     "A name can be used only after introduction, document, memory, direct scene source, or valid knowledge/memory source."
+  ],
+  "player_input_order_rules": [
+    "scene_packet.player_input.segments is the source of truth for player input order.",
+    "Text outside parentheses is exact POV speech and must be rendered as speech in the same order.",
+    "Text inside parentheses is POV action, gesture, body state, thought, intention, movement, or pause; it is not dialogue.",
+    "Do not merge speech segments that are separated by a parenthetical.",
+    "Do not move a later speech segment before an earlier parenthetical beat.",
+    "A short parenthetical is a short beat; a medium/long parenthetical is a visible pause where NPCs or the environment may react if the reaction is natural and does not steal player choice.",
+    "Example: 'Вы за кого переживаете? (поправить сумку) За меня или академию?' must render as speech, then action/pause, then speech."
   ],
   "prose_rules": [
     "Пиши плотную читаемую VN-сцену от третьего лица.",
@@ -27,7 +44,8 @@
     "Если важный NPC-крючок прерывает цепочку движения, останови сцену до завершения цепочки.",
     "Лёгкая ирония/сухой сарказм допустимы, если они привязаны к действию и характеру.",
     "Не превращай Академию в sci-fi лабораторию; техника современно-реалистичная.",
-    "Не превращай engine_state/видимые предметы в знание NPC без источника: видел/слышал/прочитал/ему сказали."
+    "Не превращай engine_state/видимые предметы в знание NPC без источника: видел/слышал/прочитал/ему сказали.",
+    "Не писать сцену, если scene_packet.packet_status не ready. В этом случае нужен технический отчёт, не fallback-сцена."
   ],
   "bottom_blocks_order": [
     "✦ Что можно сделать",
@@ -40,9 +58,22 @@
     "Используй готовые labels из scene_packet.current_frame.bottom_block_labels, если они есть.",
     "Варианты не являются фактами, пока игрок их не выбрал.",
     "Если POV не Акира, не показывай скрытые мысли Акиры.",
-    "Уровни выводи только для реального изменения тела/позиции/предметов/риска/ресурса.",
-    "Отношения выводи только если напряжение/доверие/интерес изменились или важны прямо сейчас; не перечисляй всех."
+    "Уровни выводи только для реального изменения тела/позиции/предметов/риска/ресурса или если игроку прямо нужны текущие числа.",
+    "Отношения выводи только если напряжение/доверие/интерес изменились или важны прямо сейчас; не перечисляй всех.",
+    "Если отношения не изменились и не нужны, блок ✦ Отношения можно опустить.",
+    "Если блок ✦ Отношения показан без изменения, допустима только строка 'Без изменений.'"
   ],
-  "rendered_header_source": "scene_packet.current_frame.rendered_header",
-  "writer_rule": "Первым видимым блоком сцены скопируй scene_packet.current_frame.rendered_header дословно. Не пересобирай шапку вручную."
+  "relationship_panel_rules": [
+    "Отношения — это UI-панель, а не авторский пересказ динамики.",
+    "Используй scene_packet.ui_panels.relationships.items или relationship pair state.",
+    "Формат строки: '{Пара}: {score} · {label}'.",
+    "Пример: 'Акира ↔ Ливия: 53 · старые школьные подруги'.",
+    "Запрещено: 'близость стабильна; Ливия заботится через шум и ворчание...' и любые похожие prose-summary строки.",
+    "Не выводи скрытые причины, будущие отношения и авторский анализ как факт."
+  ],
+  "levels_panel_rules": [
+    "Уровни — только компактные числа/риск из visible/current state.",
+    "Не выводи hidden_energy_potential как текущую usable-силу.",
+    "Не показывай уровни без причины, если в сцене ничего не менялось."
+  ]
 }

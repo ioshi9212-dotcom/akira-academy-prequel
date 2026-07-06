@@ -1,17 +1,20 @@
 """
-Scene packet runtime patch v4 — pre-rendered header contract.
+Scene packet runtime patch v5 — slim rendered-header packet + ordered player input.
 
 Main gameplay endpoint:
 POST /api/v1/sessions/{session_id}/build-scene-packet
 
-This version deliberately does NOT depend on helper functions added by earlier
-optimization patches. If Railway has only this file + header hotfix, the endpoint
-still builds a packet instead of returning 500.
+v5 fixes:
+- buildScenePacket no longer returns duplicated full character/lore/memory content by default;
+  required file contents are loaded through required-files-manifest/chunks.
+- player input is parsed into ordered segments, so speech/action/speech order is preserved.
+- relationship panel is exposed as compact UI data, not prose.
 """
 from __future__ import annotations
 
 from typing import Any
 import itertools
+import json
 import re
 
 from pydantic import BaseModel, Field
@@ -41,7 +44,7 @@ class BuildScenePacketRequest(BaseModel):
     mode: str = "game_turn"
     include_sources: bool = False
     include_diagnostics: bool = True
-    include_source_index: bool = True
+    include_source_index: bool = False
     max_file_chars: int = Field(default=12000, ge=4000, le=40000)
     max_total_chars: int = Field(default=70000, ge=20000, le=140000)
 
@@ -49,7 +52,7 @@ class BuildScenePacketRequest(BaseModel):
 class ScenePacketResponse(BaseModel):
     session_id: str
     mode: str = "scene_packet"
-    usage_note: str = "Use scene_packet as the main gameplay context. Do not manually load the whole project."
+    usage_note: str = "Use scene_packet for current frame/render rules. Load required file contents through manifest/chunks."
     scene_packet: dict[str, Any] = Field(default_factory=dict)
     loaded_files: list[dict[str, Any]] = Field(default_factory=list)
     missing_files: list[str] = Field(default_factory=list)
@@ -141,6 +144,10 @@ PAST_HINTS = ["прошл", "вспом", "сон", "травм", "детств"
 ENERGY_HINTS = ["энерг", "холод", "жар", "огонь", "простран", "давлен", "свет", "импульс", "вибрац", "иней", "перегруз", "датчик"]
 
 
+# ---------------------------------------------------------------------------
+# Small generic helpers
+# ---------------------------------------------------------------------------
+
 def _text(value: Any) -> str:
     return str(value or "").strip()
 
@@ -156,6 +163,25 @@ def _unique(values: list[Any]) -> list[str]:
         if item and item not in out:
             out.append(item)
     return out
+
+
+def _compact(value: Any, limit: int = 900) -> Any:
+    if value is None or isinstance(value, (int, float, bool)):
+        return value
+    if isinstance(value, str):
+        text = value.strip()
+        return text if len(text) <= limit else text[:limit].rstrip() + "...<truncated>"
+    if isinstance(value, list):
+        return [_compact(v, limit) for v in value[:12]]
+    if isinstance(value, dict):
+        out: dict[str, Any] = {}
+        for idx, (key, val) in enumerate(value.items()):
+            if idx >= 18:
+                out["..."] = "truncated"
+                break
+            out[str(key)] = _compact(val, limit)
+        return out
+    return str(value)[:limit]
 
 
 def _canon(value: Any) -> str:
@@ -211,25 +237,6 @@ def _safe_json(path: str, session_id: str, default: Any) -> Any:
         return default
 
 
-def _compact(value: Any, limit: int = 1200) -> Any:
-    if value is None or isinstance(value, (int, float, bool)):
-        return value
-    if isinstance(value, str):
-        text = value.strip()
-        return text if len(text) <= limit else text[:limit].rstrip() + "...<truncated>"
-    if isinstance(value, list):
-        return [_compact(v, limit) for v in value[:16]]
-    if isinstance(value, dict):
-        out: dict[str, Any] = {}
-        for idx, (key, val) in enumerate(value.items()):
-            if idx >= 28:
-                out["..."] = "truncated"
-                break
-            out[str(key)] = _compact(val, limit)
-        return out
-    return str(value)[:limit]
-
-
 def _read_source(path: str, session_id: str) -> tuple[str | None, str | None]:
     if sg is not None and hasattr(sg, "_read_required_file_for_bundle_size_guard"):
         try:
@@ -275,6 +282,10 @@ def _source_kind(path: str) -> str:
     return "project"
 
 
+# ---------------------------------------------------------------------------
+# Character/file selection
+# ---------------------------------------------------------------------------
+
 def _base_scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[str]:
     values: list[Any] = []
     if base is not None:
@@ -282,7 +293,10 @@ def _base_scene_chars(current: dict[str, Any], future: dict[str, Any]) -> list[s
             values.extend(base.active_scene_characters(current, future) or [])
         except Exception:
             pass
-    for field in ("active_characters", "nearby_characters", "speaking_character_ids", "observing_character_ids", "addressed_character_ids", "looked_at_character_ids"):
+    for field in (
+        "active_characters", "nearby_characters", "speaking_character_ids",
+        "observing_character_ids", "addressed_character_ids", "looked_at_character_ids",
+    ):
         values.extend(current.get(field, []) or [])
     for thread in current.get("open_threads", []) or []:
         if isinstance(thread, dict) and thread.get("status") in {"due", "active", "triggered"}:
@@ -317,46 +331,14 @@ def _reference_ids(current: dict[str, Any], active: list[str]) -> list[str]:
     return _unique([_canon(v) for v in values if _canon(v) and _canon(v) not in active_set])
 
 
-def _pov_info(current: dict[str, Any], active: list[str]) -> dict[str, Any]:
-    target = current.get("pov") or (active[0] if active else "akira")
-    if rt is not None and hasattr(rt, "pov_mode_info"):
+def _relationship_pair_files(chars: list[str]) -> list[str]:
+    if sg is not None and hasattr(sg, "_relationship_pair_files"):
         try:
-            info = rt.pov_mode_info(current)  # type: ignore[attr-defined]
-            if isinstance(info, dict):
-                target = info.get("target_character_id") or target
+            files = sg._relationship_pair_files(chars)  # type: ignore[attr-defined]
+            if files:
+                return _unique([str(f) for f in files])
         except Exception:
             pass
-    target = _canon(target) or "akira"
-    return {
-        "pov_character_id": target,
-        "pov_display": _display_name(target),
-        "rule": "Player controls current POV. Low-stakes automatic POV lines are allowed; meaningful choices stop for player input.",
-    }
-
-
-def _parenthetical_actions(player_input: str) -> list[str]:
-    return [_text(x) for x in re.findall(r"\(([^)]{1,500})\)", player_input or "") if _text(x)]
-
-
-def _speech(player_input: str) -> str:
-    return " ".join(re.sub(r"\([^)]*\)", " ", player_input or "").split()).strip()
-
-
-def _has_hint(text: str, hints: list[str]) -> bool:
-    low = _lower(text)
-    return any(h in low for h in hints)
-
-
-def _mentions(text: str) -> list[str]:
-    low = _lower(text)
-    out: list[str] = []
-    for cid, hints in MENTION_HINTS.items():
-        if any(h in low for h in hints):
-            out.append(cid)
-    return _unique(out)
-
-
-def _relationship_pair_files(chars: list[str]) -> list[str]:
     files: list[str] = []
     for a, b in itertools.combinations(_unique([_canon(c) for c in chars]), 2):
         for rel in (f"state/relationship_pairs/{a}__{b}.json", f"state/relationship_pairs/{b}__{a}.json"):
@@ -366,9 +348,19 @@ def _relationship_pair_files(chars: list[str]) -> list[str]:
     return _unique(files)
 
 
-def _character_files(chars: list[str]) -> list[str]:
+def _fallback_packet_files(player_input: str, current: dict[str, Any], future: dict[str, Any], active: list[str]) -> list[str]:
     files: list[str] = []
-    for cid in chars:
+    for rel in [
+        "runtime/scene_context_digest.md",
+        "gpt/locks/runtime_scene_rules_digest.md",
+        "gpt/scene_output_contract_1198.json",
+    ]:
+        if _repo_exists(rel):
+            files.append(rel)
+    date = _text(current.get("current_date"))
+    if date and _repo_exists(f"calendar/days/{date}.yaml"):
+        files.append(f"calendar/days/{date}.yaml")
+    for cid in active:
         folder = _folder(cid)
         if folder:
             for rel in (f"characters/{folder}/character.yaml", f"characters/{folder}/main.yaml"):
@@ -377,74 +369,24 @@ def _character_files(chars: list[str]) -> list[str]:
         mem = f"state/character_memory/{cid}.json"
         if _repo_exists(mem):
             files.append(mem)
-    return _unique(files)
-
-
-def _current_day_file(current: dict[str, Any]) -> list[str]:
-    date = _text(current.get("current_date"))
-    if not date:
-        return []
-    rel = f"calendar/days/{date}.yaml"
-    return [rel] if _repo_exists(rel) else []
-
-
-def _base_rule_files() -> list[str]:
-    candidates = [
-        "runtime/scene_context_digest.md",
-        "gpt/locks/runtime_scene_rules_digest.md",
-        "gpt/scene_output_contract_1198.json",
-        "state/context_loading/scene_context_builder_rules_1198.json",
-        "state/context_loading/character_selection_rules_1198.json",
-        "state/context_loading/forbidden_fallback_rules_1198.json",
-    ]
-    return [p for p in candidates if _repo_exists(p)]
-
-
-def _academy_lore_files() -> list[str]:
-    return [p for p in ["canon_lore/academy/academy_background.yaml", "canon_lore/academy/academy_locations.yaml"] if _repo_exists(p)]
-
-
-def _update_contract_files() -> list[str]:
-    return [p for p in [
-        "state/update_contracts/turn_update_pipeline_1198.json",
-        "state/update_contracts/character_memory_patch_rules_1198.json",
-        "state/update_contracts/relationship_pair_patch_rules_1198.json",
-        "state/update_contracts/scene_state_patch_rules_1198.json",
-        "gpt/locks/state_update_payload_contract.md",
-    ] if _repo_exists(p)]
-
-
-def _trigger_files(player_input: str, active: list[str]) -> list[str]:
-    files: list[str] = []
-    if _has_hint(player_input, ENERGY_HINTS):
-        files.extend([p for p in ["canon_lore/world/energy_system.yaml", "canon_lore/world/kairos.yaml"] if _repo_exists(p)])
-    if _has_hint(player_input, PAST_HINTS):
-        for cid in active:
-            folder = _folder(cid)
-            rel = f"characters/{folder}/past.yaml" if folder else ""
-            if rel and _repo_exists(rel):
-                files.append(rel)
-        if any(x in _lower(player_input) for x in ["кай", "ашер", "слеп"]):
-            rel = "state/knowledge_threads/kai_asher_school_thread.json"
-            if _repo_exists(rel):
-                files.append(rel)
-    return _unique(files)
+    files.extend(_relationship_pair_files(active))
+    if _repo_exists("state/akira_progress_state.json"):
+        files.append("state/akira_progress_state.json")
+    return _unique([f for f in files if f not in {"state/knowledge_state.json", "state/relationships.json"} and not f.startswith("state/legacy/")])
 
 
 def _packet_files(player_input: str, current: dict[str, Any], future: dict[str, Any], active: list[str]) -> list[str]:
-    files: list[str] = []
-    files.extend(_base_rule_files())
-    files.extend(_current_day_file(current))
-    files.extend(_character_files(active))
-    files.extend(_relationship_pair_files(active))
-    for rel in ["state/akira_progress_state.json", "state/open_threads.json", "state/inventory_state.json", "state/scene_history.json", "state/story_lines.json"]:
-        if _repo_exists(rel):
-            files.append(rel)
-    files.extend(_academy_lore_files())
-    files.extend(_trigger_files(player_input, active))
-    files.extend(_update_contract_files())
-    forbidden = {"state/knowledge_state.json", "state/relationships.json"}
-    return [f for f in _unique(files) if f not in forbidden and not f.startswith("state/legacy/")]
+    # Use the same selector as getRequiredFilesManifest/getRequiredFilesChunk when available.
+    # This prevents buildScenePacket from silently selecting a bigger file set than chunks.
+    if sg is not None and hasattr(sg, "_required_files"):
+        try:
+            files = sg._required_files(current, future)  # type: ignore[attr-defined]
+            if files:
+                forbidden = {"state/knowledge_state.json", "state/relationships.json"}
+                return [str(f) for f in _unique(list(files)) if str(f) not in forbidden and not str(f).startswith("state/legacy/")]
+        except Exception:
+            pass
+    return _fallback_packet_files(player_input, current, future, active)
 
 
 def _load_sources(paths: list[str], session_id: str, max_file_chars: int, max_total_chars: int) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
@@ -476,26 +418,95 @@ def _load_sources(paths: list[str], session_id: str, max_file_chars: int, max_to
             "chars_original": original,
             "chars_sent": len(text),
             "truncated": cut,
+            # Full content is intentionally not placed into scene_packet in v5.
             "content": text,
         })
     return loaded, missing, {"total_chars_sent": total, "truncated_files": truncated, "skipped_after_budget": skipped}
 
 
-def _memory_table(session_id: str, chars: list[str]) -> dict[str, Any]:
-    out: dict[str, Any] = {}
-    for cid in chars:
-        rel = f"state/character_memory/{cid}.json"
-        if _repo_exists(rel):
-            out[cid] = _compact(_safe_json(rel, session_id, {}), 1400)
-    return {"source": "state/character_memory/<id>.json", "mode": "per_character_runtime_memory_only", "characters": out}
+# ---------------------------------------------------------------------------
+# Ordered player input parser
+# ---------------------------------------------------------------------------
+
+def _pause_level(parenthetical: str) -> str:
+    text = _text(parenthetical)
+    if not text:
+        return "none"
+    comma_count = text.count(",") + text.count(";") + text.count(".")
+    long_markers = ["подум", "вспом", "изуч", "осмотр", "задерж", "сначала", "затем", "потом", "медленно"]
+    if len(text) >= 120 or comma_count >= 3 or any(marker in _lower(text) for marker in long_markers):
+        return "long"
+    if len(text) >= 55 or comma_count >= 1:
+        return "medium"
+    return "short"
 
 
-def _relationship_table(session_id: str, chars: list[str]) -> dict[str, Any]:
-    out: dict[str, Any] = {}
-    for rel in _relationship_pair_files(chars):
-        pair_id = rel.rsplit("/", 1)[-1].removesuffix(".json")
-        out[pair_id] = _compact(_safe_json(rel, session_id, {}), 1200)
-    return {"source": "state/relationship_pairs/<a>__<b>.json", "mode": "scene_relevant_pairs_only", "pairs": out}
+def _player_input_segments(player_input: str) -> list[dict[str, Any]]:
+    """Preserve the exact speech/action order from player input.
+
+    Example:
+    "Вы за кого переживаете? (поправить сумку) За меня или академию?"
+    -> speech, parenthetical, speech. The writer must not merge speech across
+    the parenthetical pause.
+    """
+    raw = player_input or ""
+    segments: list[dict[str, Any]] = []
+    pos = 0
+    order = 1
+    for match in re.finditer(r"\(([^)]{0,800})\)", raw):
+        before = raw[pos:match.start()].strip()
+        if before:
+            segments.append({
+                "order": order,
+                "type": "speech",
+                "text": " ".join(before.split()),
+                "render_rule": "Render as exact POV speech before the following parenthetical beat. Do not merge with later speech.",
+            })
+            order += 1
+        action = _text(match.group(1))
+        if action:
+            pause = _pause_level(action)
+            segments.append({
+                "order": order,
+                "type": "parenthetical",
+                "text": action,
+                "pause": pause,
+                "allows_npc_reaction": pause in {"medium", "long"},
+                "render_rule": "Render as POV action/thought/body beat/pause, not as dialogue. Keep it between surrounding speech segments.",
+            })
+            order += 1
+        pos = match.end()
+    tail = raw[pos:].strip()
+    if tail:
+        segments.append({
+            "order": order,
+            "type": "speech",
+            "text": " ".join(tail.split()),
+            "render_rule": "Render as exact POV speech after prior parenthetical beat. Do not move it before the beat.",
+        })
+    return segments
+
+
+def _parenthetical_actions(player_input: str) -> list[str]:
+    return [seg["text"] for seg in _player_input_segments(player_input) if seg.get("type") == "parenthetical" and _text(seg.get("text"))]
+
+
+def _speech(player_input: str) -> str:
+    return " ".join(seg["text"] for seg in _player_input_segments(player_input) if seg.get("type") == "speech" and _text(seg.get("text"))).strip()
+
+
+def _has_hint(text: str, hints: list[str]) -> bool:
+    low = _lower(text)
+    return any(h in low for h in hints)
+
+
+def _mentions(text: str) -> list[str]:
+    low = _lower(text)
+    out: list[str] = []
+    for cid, hints in MENTION_HINTS.items():
+        if any(h in low for h in hints):
+            out.append(cid)
+    return _unique(out)
 
 
 def _context_needs(player_input: str, active: list[str]) -> dict[str, Any]:
@@ -506,18 +517,24 @@ def _context_needs(player_input: str, active: list[str]) -> dict[str, Any]:
     return {
         "player_speech": _speech(player_input),
         "player_actions": _parenthetical_actions(player_input),
+        "player_input_segments": _player_input_segments(player_input),
+        "player_input_segment_rule": "Render player_input.segments in exact order. Speech outside parentheses is exact POV speech; parentheticals are action/thought/pause beats. Never merge speech across a parenthetical.",
         "mentioned_character_ids_from_input": mentions,
         "directly_relevant_character_ids": _unique(active + [m for m in mentions if m in set(active)]),
         "needs": _unique([
             "current_frame", "scene_output_template", "pov_rules", "active_character_cards",
             "active_character_memory", "scene_relevant_relationship_pairs", "current_calendar_day",
-            "academy_location_lore", "stop_chain_rules", "apply_turn_result_contract",
+            "ordered_player_input_segments", "relationship_ui_panel", "stop_chain_rules",
+            "apply_turn_result_contract",
         ] + (["movement_chain_interruption_check"] if movement else []) + (["past_trigger_check"] if past else []) + (["energy_body_control_rules"] if energy else [])),
         "trigger_flags": {"movement_chain": movement, "past_trigger": past, "energy_trigger": energy, "npc_interruption_must_stop_choice": movement},
         "chain_rule": "Parenthetical movement/action is intention, not guaranteed completion. If an NPC creates a meaningful interruption, stop before completing the chain.",
     }
 
 
+# ---------------------------------------------------------------------------
+# Header/current frame
+# ---------------------------------------------------------------------------
 
 _MONTHS_RU = {
     "01": "января", "02": "февраля", "03": "марта", "04": "апреля", "05": "мая", "06": "июня",
@@ -533,6 +550,16 @@ _TIME_RU = {
     "night": "ночь",
     "late_night": "поздняя ночь",
 }
+_VISIBLE_STATE_RU = {
+    "calm outside": "внешне спокойна",
+    "controlled": "собрана",
+    "tense": "напряжена",
+    "tired": "устала",
+}
+_SCENE_GOAL_RU = {
+    "Fixed start: Ray drops Akira and Livia at Academy; short bag dialogue before first player choice and route toward back court entrance.":
+        "первый вход в Академию; Рэй высаживает Акиру и Ливию, дальше — регистрация и выбор маршрута",
+}
 
 
 def _date_ru(value: Any) -> str:
@@ -540,7 +567,7 @@ def _date_ru(value: Any) -> str:
     m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", raw)
     if not m:
         return raw
-    year, month, day = m.groups()
+    _year, month, day = m.groups()
     return f"{int(day)} {_MONTHS_RU.get(month, month)}"
 
 
@@ -562,23 +589,6 @@ def _weather_text(current: dict[str, Any]) -> str:
     return summary
 
 
-_VISIBLE_STATE_RU = {
-    "calm outside": "внешне спокойна",
-    "controlled": "собрана",
-    "tense": "напряжена",
-    "tired": "устала",
-}
-_SCENE_GOAL_RU = {
-    "Fixed start: Ray drops Akira and Livia at Academy; short bag dialogue before first player choice and route toward back court entrance.":
-        "первый вход в Академию; Рэй высаживает Акиру и Ливию, дальше — регистрация и выбор маршрута",
-}
-
-
-def _ru_value(value: Any, table: dict[str, str]) -> str:
-    raw = _text(value)
-    return table.get(raw, raw)
-
-
 def _visible_state_ru(value: Any) -> str:
     raw = _text(value)
     return _VISIBLE_STATE_RU.get(raw, raw or "внешне спокойна")
@@ -596,18 +606,34 @@ def _dedupe_visible_items(items: list[str]) -> list[str]:
         if not item:
             continue
         low = item.lower()
-        # Do not repeat a shorter nearby item if the longer visible inventory already says the same thing.
         if any(low in prev.lower() or prev.lower() in low for prev in out):
             continue
         out.append(item)
     return out
 
 
+def _pov_info(current: dict[str, Any], active: list[str]) -> dict[str, Any]:
+    target = current.get("pov") or (active[0] if active else "akira")
+    if rt is not None and hasattr(rt, "pov_mode_info"):
+        try:
+            info = rt.pov_mode_info(current)  # type: ignore[attr-defined]
+            if isinstance(info, dict):
+                target = info.get("target_character_id") or target
+        except Exception:
+            pass
+    target = _canon(target) or "akira"
+    return {
+        "pov_character_id": target,
+        "pov_display": _display_name(target),
+        "rule": "Player controls current POV. Low-stakes automatic POV lines are allowed; meaningful choices stop for player input.",
+    }
+
+
 def _header_values(current: dict[str, Any], active: list[str]) -> dict[str, Any]:
     pov = _pov_info(current, active)
     inv = current.get("visible_inventory") or []
     nearby = current.get("nearby_items") or []
-    inv_line = []
+    inv_line: list[str] = []
     if isinstance(inv, list):
         inv_line.extend([_text(x) for x in inv if _text(x)])
     elif _text(inv):
@@ -628,6 +654,7 @@ def _header_values(current: dict[str, Any], active: list[str]) -> dict[str, Any]
         "visible_inventory_or_nearby_items_if_relevant": "; ".join(_dedupe_visible_items(inv_line)[:4]),
     }
 
+
 def _render_header(values: dict[str, Any]) -> str:
     lines = [
         f"🏛️ Академия Астрейн · 1198 г., {values.get('current_date') or '15 августа'}",
@@ -635,8 +662,8 @@ def _render_header(values: dict[str, Any]) -> str:
         f"🌦️ {values.get('weather_if_relevant') or 'погода не акцентирована'} · ⚙️ {values.get('current_scene_goal_or_tension') or 'первый вход в Академию'}",
         f"✦ POV: {values.get('pov_display_name') or 'Акира'} · {values.get('visible_state') or 'внешне спокойна'}",
     ]
-    outfit = _text(values.get('current_outfit_if_relevant'))
-    inventory = _text(values.get('visible_inventory_or_nearby_items_if_relevant'))
+    outfit = _text(values.get("current_outfit_if_relevant"))
+    inventory = _text(values.get("visible_inventory_or_nearby_items_if_relevant"))
     if outfit:
         lines.append(f"🧥 {outfit}")
     if inventory:
@@ -686,8 +713,8 @@ def _current_frame(current: dict[str, Any], future: dict[str, Any], active: list
         "nearby_character_ids_from_state": _unique(current.get("nearby_characters", []) or []),
         "scheduled_do_not_full_load": _unique(current.get("scheduled_character_ids", []) or []),
         "delayed_do_not_full_load": _unique(current.get("delayed_character_ids", []) or []),
-        "visible_inventory": _compact(current.get("visible_inventory"), 1000),
-        "nearby_items": _compact(current.get("nearby_items"), 1000),
+        "visible_inventory": _compact(current.get("visible_inventory"), 700),
+        "nearby_items": _compact(current.get("nearby_items"), 700),
         "current_outfit": current.get("current_outfit"),
         "uniform_worn": current.get("uniform_worn"),
         "last_player_input_from_state": current.get("last_player_input"),
@@ -699,9 +726,11 @@ def _current_frame(current: dict[str, Any], future: dict[str, Any], active: list
     }
 
 
+# ---------------------------------------------------------------------------
+# UI panels/contracts
+# ---------------------------------------------------------------------------
 
 def _read_project_json(path: str, session_id: str, default: Any) -> Any:
-    """Read project/session JSON defensively without turning scene packet into 500."""
     value = _safe_json(path, session_id, None)
     if value is not None:
         return value
@@ -709,7 +738,6 @@ def _read_project_json(path: str, session_id: str, default: Any) -> Any:
     if not content:
         return default
     try:
-        import json
         return json.loads(content)
     except Exception:
         return default
@@ -719,114 +747,159 @@ def _source_index(paths: list[str]) -> list[dict[str, Any]]:
     return [{"path": p, "kind": _source_kind(p), "required_for_packet": True} for p in paths]
 
 
-def _character_table(session_id: str, chars: list[str]) -> dict[str, Any]:
-    """Compact full-character cards for active/full characters only."""
-    out: dict[str, Any] = {}
-    for cid in chars:
+def _character_summary(active: list[str], files: list[str]) -> dict[str, Any]:
+    paths_by_character: dict[str, list[str]] = {}
+    for cid in active:
         folder = _folder(cid)
         if not folder:
             continue
-        selected_path = ""
-        content = ""
-        for rel in (f"characters/{folder}/character.yaml", f"characters/{folder}/main.yaml"):
-            if _repo_exists(rel):
-                selected_path = rel
-                raw, _source = _read_source(rel, session_id)
-                content = raw or ""
-                break
-        if selected_path:
-            out[cid] = {
-                "path": selected_path,
-                "mode": "compact_full_character_card_for_scene_packet",
-                "content_excerpt": _compact(content, 3600),
-            }
-    return {"mode": "active_full_characters_only", "characters": out}
+        wanted = [p for p in files if p.startswith(f"characters/{folder}/") or p == f"state/character_memory/{cid}.json"]
+        paths_by_character[cid] = wanted
+    return {
+        "mode": "summary_only_content_loaded_by_required_chunks",
+        "active_character_ids": active,
+        "paths_by_character": paths_by_character,
+        "rule": "Do not expect full character text inside buildScenePacket. Use already loaded required-file chunks as content source.",
+    }
 
 
-def _lore_packet(session_id: str, paths: list[str]) -> dict[str, Any]:
-    """Small lore slice; enough for scene, not the whole project."""
-    out: dict[str, Any] = {}
-    for path in paths:
-        if path.startswith("canon_lore/academy/") or path.startswith("canon_lore/world/"):
-            raw, _source = _read_source(path, session_id)
-            if raw:
-                out[path] = _compact(raw, 2200)
-    return {"mode": "scene_relevant_lore_only", "items": out}
+def _relationship_score(data: Any) -> int:
+    if sg is not None and hasattr(sg, "_relationship_score"):
+        try:
+            return int(sg._relationship_score(data))  # type: ignore[attr-defined]
+        except Exception:
+            pass
+    if not isinstance(data, dict):
+        return 0
+    dyn = data.get("surface_dynamic") if isinstance(data.get("surface_dynamic"), dict) else data
+    weights = {
+        "affection": 1.2, "trust": 1.2, "respect": 1.0, "interest": 0.8, "curiosity": 0.8,
+        "warmth": 1.2, "attachment": 1.5, "tension": -0.8, "irritation": -0.7,
+        "fear": -1.0, "resentment": -1.2, "suspicion": -1.0, "jealousy": -0.4,
+    }
+    total = 0.0
+    for key, weight in weights.items():
+        try:
+            total += float(dyn.get(key) or 0) * weight
+        except Exception:
+            pass
+    return max(-100, min(100, int(round(total))))
+
+
+def _short_label_from_pair(pair_id: str, data: Any, score: int) -> str:
+    if isinstance(data, dict):
+        dyn = data.get("surface_dynamic") if isinstance(data.get("surface_dynamic"), dict) else data
+        raw_label = _text(dyn.get("label")) if isinstance(dyn, dict) else ""
+        if raw_label:
+            return raw_label.split(";", 1)[0].strip()[:48]
+    pair = pair_id.lower()
+    if score <= -60:
+        return "враждебность"
+    if score <= -35:
+        return "сильное напряжение"
+    if score <= -15:
+        return "настороженность"
+    if score <= 14:
+        return "неясно"
+    if "livia" in pair:
+        if score >= 55:
+            return "тёплая близость"
+        if score >= 35:
+            return "старые подруги"
+        return "тёплый контакт"
+    if "kir" in pair:
+        return "доверяет неохотно" if score >= 35 else "осторожный интерес"
+    if "haru" in pair:
+        return "тянется ближе" if score >= 35 else "явный интерес"
+    if "raiden" in pair:
+        return "молча наблюдает" if score >= 35 else "холодная настороженность"
+    return "доверие" if score >= 35 else "интерес"
+
+
+def _relationship_ui_panel(session_id: str, chars: list[str]) -> dict[str, Any]:
+    items: list[dict[str, Any]] = []
+    for rel in _relationship_pair_files(chars):
+        pair_id = rel.rsplit("/", 1)[-1].removesuffix(".json")
+        data = _read_project_json(rel, session_id, {})
+        score = _relationship_score(data)
+        a, _, b = pair_id.partition("__")
+        items.append({
+            "pair_id": pair_id,
+            "display": f"{_display_name(a)} ↔ {_display_name(b)}",
+            "score": score,
+            "label": _short_label_from_pair(pair_id, data, score),
+            "changed_this_turn": False,
+            "render_line": f"{_display_name(a)} ↔ {_display_name(b)}: {score} · {_short_label_from_pair(pair_id, data, score)}",
+        })
+    return {
+        "format": "compact_numeric_relationship_panel_v1",
+        "items": items,
+        "render_rule": "If shown, render only '<pair>: <score> · <label>' or 'Без изменений.' Do not write prose summaries like 'Ливия заботится через шум'.",
+        "omit_rule": "Omit the block when no relationship is relevant and no relationship changed.",
+    }
+
+
+def _levels_ui_panel(session_id: str) -> dict[str, Any]:
+    progress = _safe_json("state/akira_progress_state.json", session_id, {})
+    state = progress.get("akira_progress_state") if isinstance(progress, dict) else {}
+    if not isinstance(state, dict):
+        state = {}
+    return {
+        "format": "compact_numeric_levels_panel_v1",
+        "source": "state/akira_progress_state.json",
+        "visible_current": {
+            key: state.get(key) for key in [
+                "physical_power", "stamina", "agility", "combat_habit", "fatigue",
+                "injury_level", "energy_access", "energy_control", "energy_capacity_visible", "energy_risk",
+            ] if key in state
+        },
+        "render_rule": "Show only when body/position/resources/risk changed or the player needs the numbers now. Do not mix hidden potential into current usable power.",
+    }
 
 
 def _strict_output_contract(session_id: str) -> dict[str, Any]:
     contract = _read_project_json("gpt/scene_output_contract_1198.json", session_id, {})
-    if not isinstance(contract, dict) or not contract:
+    if not isinstance(contract, dict):
         contract = {}
-    header_template = contract.get("header_template") or [
-        "🏛️ Академия Астрейн · 1198 г., {current_date}",
-        "🕒 {current_time_or_phase} · 📍 {current_location_text}",
-        "🌦️ {weather_if_relevant} · ⚙️ {current_scene_goal_or_tension}",
-        "✦ POV: {pov_display_name} · {visible_state}",
-        "🧥 {current_outfit_if_relevant}",
-        "◈ {visible_inventory_or_nearby_items_if_relevant}",
-        "━━━━━━━━━━━━━━━━━━━━",
-    ]
-    bottom_blocks_order = contract.get("bottom_blocks_order") or [
-        "✦ Что можно сделать",
-        "✦ Что [POV] мог(ла) бы сказать",
-        "✦ Мысли [POV]",
-        "✦ Уровни",
-        "✦ Отношения",
-    ]
     return {
         "source": "gpt/scene_output_contract_1198.json",
         "contract_id": contract.get("id", "scene_output_contract_1198"),
-        "version": contract.get("version", "fallback_v3"),
+        "version": contract.get("version", "v5-slim-packet-ordered-input"),
         "visible_scene_must_start_with_header": True,
-        "must_use_header_template_exactly": True,
-        "header_template": header_template,
         "rendered_header_source": "scene_packet.current_frame.rendered_header",
-        "writer_rule": "Copy scene_packet.current_frame.rendered_header exactly as the first block of the visible scene. Do not rebuild the header manually.",
-        "header_render_rules": {
-            "date": "Используй готовую строку rendered_header; дату не пересобирай вручную.",
-            "time": "Используй rendered_header; не оставляй английские late_morning/late morning.",
-            "location": "Используй rendered_header; место не сокращай до markdown-строки.",
-            "weather_goal": "Используй rendered_header; не пиши placeholder.",
-            "pov_state": "Используй rendered_header: ✦ POV: <имя> · <видимое состояние>.",
-            "outfit": "Используй строку 🧥 из rendered_header, если она есть.",
-            "inventory": "Используй строку ◈ из rendered_header, если она есть.",
-            "separator": "Разделитель уже есть в rendered_header; не удаляй его.",
-        },
+        "writer_rule": "Copy scene_packet.current_frame.rendered_header exactly as the first visible block. Do not rebuild the header manually.",
         "dialogue_format_required": contract.get("dialogue_format_required", "**Имя/видимый дескриптор** — реплика."),
         "unknown_name_rule": contract.get("unknown_name_rule", []),
         "prose_rules": contract.get("prose_rules", []),
-        "bottom_blocks_order": bottom_blocks_order,
+        "player_input_order_rules": contract.get("player_input_order_rules", [
+            "Render scene_packet.player_input.segments in exact order.",
+            "Speech segments are exact POV speech.",
+            "Parenthetical segments are action/thought/pause beats.",
+            "Never merge speech across a parenthetical beat.",
+        ]),
+        "bottom_blocks_order": contract.get("bottom_blocks_order", [
+            "✦ Что можно сделать",
+            "✦ Что {POV} могла бы сказать / мог(ла) бы сказать",
+            "✦ Мысли {POV}",
+            "✦ Уровни",
+            "✦ Отношения",
+        ]),
         "bottom_blocks_rules": contract.get("bottom_blocks_rules", []),
+        "relationship_panel_rules": contract.get("relationship_panel_rules", []),
         "fallback_forbidden": "Never invent a loose markdown header if this contract is present. If packet_status is not ready, do not write scene.",
     }
 
+
 def _output_template() -> dict[str, Any]:
-    # Kept for backward compatibility; strict contract is now in output_contract.
     return {
-        "format": "academy_old_visual_novel_header_v2",
-        "strict_contract_location": "scene_packet.output_contract",
+        "format": "academy_rendered_header_v5",
         "header": "Copy scene_packet.current_frame.rendered_header exactly; no loose markdown fallback.",
         "dialogue": "**Имя/видимый дескриптор** — реплика.",
+        "player_input": "Use scene_packet.player_input.segments in order: speech / parenthetical beat / speech.",
         "bottom_blocks": ["✦ Что можно сделать", "✦ Что [POV] мог(ла) бы сказать", "✦ Мысли [POV]", "✦ Уровни", "✦ Отношения"],
+        "relationships": "Numeric compact panel only, no prose summary.",
         "style": "dense readable paragraphs; no micro-lines of 3-5 words",
     }
-
-
-def _story_slice(story: Any) -> Any:
-    if sg is not None and hasattr(sg, "_story_slice"):
-        try:
-            return sg._story_slice(story)  # type: ignore[attr-defined]
-        except Exception:
-            pass
-    return _compact(story, 1400)
-
-
-def _scene_history(session_id: str) -> dict[str, Any]:
-    history = _safe_json("state/scene_history.json", session_id, {})
-    entries = history.get("entries") if isinstance(history, dict) else []
-    entries = entries if isinstance(entries, list) else []
-    return {"recent_entries": _compact(entries[-5:], 1800), "last_entry": _compact(entries[-1], 1200) if entries else None}
 
 
 def _save_contract() -> dict[str, Any]:
@@ -855,11 +928,12 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
         future = _safe_json("state/future_locks_progress.json", sid, {})
         active = _active_chars(current, future)
         files = _packet_files(player_input, current, future, active)
-        loaded, missing, source_diag = _load_sources(files, sid, req.max_file_chars, req.max_total_chars) if req.include_sources else ([], [], {"total_chars_sent": 0})
-        inventory = _safe_json("state/inventory_state.json", sid, {})
-        story = _safe_json("state/story_lines.json", sid, {})
+        loaded, missing, source_diag = _load_sources(files, sid, req.max_file_chars, req.max_total_chars) if req.include_sources else ([], [], {"total_chars_sent": 0, "truncated_files": [], "skipped_after_budget": []})
+
+        segments = _player_input_segments(player_input)
+        relationship_panel = _relationship_ui_panel(sid, active)
         packet = {
-            "packet_version": "scene_packet_v4_rendered_header",
+            "packet_version": "scene_packet_v5_slim_rendered_header_ordered_input",
             "packet_status": "ready",
             "mode": req.mode,
             "session_id": sid,
@@ -868,6 +942,8 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
                 "raw": player_input,
                 "speech": _speech(player_input),
                 "actions": _parenthetical_actions(player_input),
+                "segments": segments,
+                "segment_order_rule": "Render segments in exact order. Do not merge speech before/after parentheses. Parentheticals create a pause where the world/NPC may react if the beat is medium/long.",
                 "technical_turn_rule": "Debug/audit messages are not gameplay and must not be saved as scene.",
             },
             "context_needs": _context_needs(player_input, active),
@@ -875,19 +951,22 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
                 "full_character_ids": active,
                 "reference_character_ids": _reference_ids(current, active),
                 "must_load_now_paths": files,
-                "rule": "Railway selected sources for this turn. GPT should not fetch all project files manually.",
+                "rule": "These paths must be loaded through required-files-manifest/chunks. buildScenePacket intentionally contains only slim render/UI data.",
             },
-            "characters": _character_table(sid, active),
-            "knowledge": _memory_table(sid, active),
-            "relationships": _relationship_table(sid, active),
-            "lore": _lore_packet(sid, files),
-            "story_context": _story_slice(story),
-            "scene_history": _scene_history(sid),
-            "inventory": {
-                "visible_inventory": _compact(current.get("visible_inventory"), 1000),
-                "nearby_items": _compact(current.get("nearby_items"), 1000),
-                "current_outfit": _compact(current.get("current_outfit"), 1000),
-                "akira_inventory_state": _compact((inventory.get("akira") or {}) if isinstance(inventory, dict) else {}, 1000),
+            "characters": _character_summary(active, files),
+            "knowledge": {
+                "source": "state/character_memory/<id>.json",
+                "mode": "content_loaded_by_required_chunks_not_embedded_in_packet",
+                "active_character_ids": active,
+            },
+            "relationships": {
+                "source": "state/relationship_pairs/<a>__<b>.json",
+                "mode": "compact_ui_panel_not_prose_summary",
+                "ui_panel": relationship_panel,
+            },
+            "ui_panels": {
+                "relationships": relationship_panel,
+                "levels": _levels_ui_panel(sid),
             },
             "output_contract": _strict_output_contract(sid),
             "output_template": _output_template(),
@@ -898,26 +977,30 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
                 "Do not full-load scheduled/delayed characters before entrance/current_frame promotion.",
                 "Do not reveal hidden lore as narrator fact, NPC fact, sensor result, or unexplained thought.",
                 "Do not complete a movement chain after meaningful NPC interruption; stop at choice.",
+                "Do not render relationship block as prose summary; use compact numeric UI or omit.",
+                "Do not merge speech segments across parenthetical actions/thoughts.",
             ],
             "source_index": _source_index(files) if req.include_source_index else [],
-            "loaded_sources": loaded if req.include_sources else [],
             "render_guard": {
                 "packet_owns_scene_format": True,
                 "copy_rendered_header_exactly": True,
                 "rendered_header_path": "scene_packet.current_frame.rendered_header",
-                "do_not_call_manifest_chunks_for_render": True,
                 "do_not_write_scene_if_packet_status_not_ready": True,
                 "must_start_with": "🏛️ Академия Астрейн",
                 "first_visible_block_must_equal_rendered_header": True,
-                "forbidden_header_examples": ["1198-08-15 · late morning", "Академия Астрейн, ... / POV: Акира as plain markdown"],
+                "forbidden_header_examples": ["📅 Дата:", "🎒 При себе:", "1198-08-15 · late morning"],
             },
         }
+        approx_response_chars = len(json.dumps(packet, ensure_ascii=False))
         diagnostics = {
-            "build": "scene_packet_v4_rendered_header_default_no_sources",
+            "build": "scene_packet_v5_slim_rendered_header_ordered_input",
             "loaded_file_count": len(loaded),
             "missing_file_count": len(missing),
             "selected_path_count": len(files),
             "active_character_count": len(active),
+            "approx_scene_packet_chars": approx_response_chars,
+            "include_sources": bool(req.include_sources),
+            "include_source_index": bool(req.include_source_index),
             **source_diag,
         } if req.include_diagnostics else {}
         return ScenePacketResponse(
@@ -927,9 +1010,9 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
             missing_files=missing,
             diagnostics=diagnostics,
         )
-    except Exception as exc:  # final safety: never hide route behind 500 if possible
+    except Exception as exc:  # final safety: never write scene from broken packet
         packet = {
-            "packet_version": "scene_packet_v4_rendered_header",
+            "packet_version": "scene_packet_v5_slim_rendered_header_ordered_input",
             "packet_status": "error_no_scene",
             "session_id": sid,
             "error_rule": "Do not write a gameplay scene from this packet. Fix API or use technical diagnostics.",
@@ -944,4 +1027,4 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
         )
 
 
-app.version = "0.3.75-scene-packet-rendered-header-v4"
+app.version = "0.3.76-scene-packet-slim-ordered-input-v5"
