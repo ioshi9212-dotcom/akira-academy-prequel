@@ -98,6 +98,8 @@ COURT_SCAN_WORDS = [
     "огражд",
 ]
 
+REGISTRATION_WORDS = ["регистрац", "документ", "стойк"]
+
 
 def detect_observed_characters(
     user_input: str,
@@ -169,7 +171,7 @@ def detect_observed_characters(
 LOCATION_KEYWORDS = {
     "basketball_court": ["корт", "баскетбол", "площадк"],
     "back_court_route": ["задн", "маршрут", "со стороны корта", "мяч"],
-    "registration_area": ["регистрац", "документ", "стойк"],
+    "registration_area": REGISTRATION_WORDS,
     "dorm_block": ["общежит", "коридор", "лифт", "лестниц"],
     "room_214": ["214", "комнат"],
     "cafeteria": ["столов", "кофе", "еда", "завтрак", "обед"],
@@ -191,16 +193,16 @@ def detect_target_location(
 ) -> str | None:
     text = (user_input or "").lower().replace("ё", "е")
 
-    # The first day must not jump from Ray's dropoff straight to the court.
-    # Even if the player hears the ball or mentions the court, the next resolved
-    # location from arrival is the back-court route/transition.
+    # The first day route is linear: arrival -> back court route -> basketball court -> registration.
+    # Even if the player says "registration/documents", the entrance path still passes through the sports courts.
     if current_location_id == "arrival_dropoff" and any(
-        word in text for word in ["мяч", "корт", "баскетбол", "площадк", "задн", "маршрут"]
+        word in text for word in [*REGISTRATION_WORDS, "мяч", "корт", "баскетбол", "площадк", "задн", "маршрут"]
     ):
         return resolve_location_id("back_court_route", location_index)
 
-    # Once the POV is already on the back route, a court scan should resolve the court.
-    if current_location_id == "back_court_route" and any(word in text for word in ["корт", "баскетбол", "площадк", "игр", "мяч"]):
+    if current_location_id == "back_court_route" and any(
+        word in text for word in [*REGISTRATION_WORDS, "корт", "баскетбол", "площадк", "игр", "мяч"]
+    ):
         return resolve_location_id("basketball_court", location_index)
 
     for loc_id, words in LOCATION_KEYWORDS.items():
