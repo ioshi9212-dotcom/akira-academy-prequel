@@ -100,7 +100,7 @@ LOADED CHARACTER MEMORY:
 {_dump(memory_files, 1200)}
 
 LOADED RELATIONSHIP PAIRS:
-{_dump(relationship_files, 1200)}
+{_dump(relationship_files, 1600)}
 
 LOADED CONDITIONAL STATE:
 {_dump(state_files, 1200)}
@@ -125,6 +125,15 @@ CHARACTER FIDELITY:
 - If a planned line/reaction contradicts a loaded card, relationship, knowledge boundary, location, or current state, rewrite before sending.
 - If a character is reference-only and not full-loaded, do not give them meaningful new dialogue/action.
 
+BOTTOM UI FORMAT:
+- Use max 3 bottom blocks total, and max 3 bullet/lines inside each block.
+- Allowed bottom blocks only: `✦ Что можно сделать`, `✦ Уровни`, `✦ Отношения`.
+- Do not output `✦ Что Акира могла бы сказать` unless explicitly requested.
+- `✦ Что можно сделать`: max 3 action options, no exact dialogue suggestions.
+- `✦ Уровни`: max 3 compact lines; use only active values/states supported by loaded/current state. Allowed subjects: Сумка, Внимание, Энергия, Усталость, Риск, Позиция.
+- `✦ Отношения`: only if relationship pair file is loaded. Use numeric `surface_dynamic` values only. Preferred line: `Акира ↔ Ливия: привязанность 18 · доверие 14 · напряжение 0`.
+- Never write `Акира ↔ Ливия: без изменений` or `Без изменений` in relationships when a pair file is loaded.
+
 OUTPUT GATE:
 1. The rendered header exactly.
 2. Scene body.
@@ -132,7 +141,7 @@ OUTPUT GATE:
 4. Character fidelity.
 5. Visible-source fidelity.
 6. Witness/knowledge fidelity.
-7. Bottom UI blocks only if the scene format/state expects them.
+7. Bottom UI follows the max-three numeric format above.
 
 FORBIDDEN FINAL OUTPUT IN PLAY MODE:
 - API/debug/contract commentary.
