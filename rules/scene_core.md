@@ -57,85 +57,126 @@ This is the only compact scene rule file for normal play. Do not add new lock fi
 
 - Move at least one meaningful layer: plot, relationship, knowledge, conflict, reputation, state, body, schedule, or hook.
 - Compress empty routine. Do not end on micro-actions when the next step is obvious.
+- Every offered action and every offered phrase must have weight. No filler choices.
 
 ## Bottom UI
 
 - Bottom UI is part of the gameplay format, not prose.
-- Use no more than 3 bottom blocks total.
-- Inside any bottom block, use no more than 3 bullet lines/items.
-- If a block has no useful changed/active information, omit the block.
-- Do not output long suggestion menus. Three options maximum.
+- Use the blocks that are useful for the current beat.
+- Maximum 3 items inside `Что можно сделать`, `Что <POV> могла бы сказать`, and `Мысли <POV>`.
+- Do not output more than 3 options/phrases/thoughts in those blocks.
+- Relationship lines show only characters currently in the scene / loaded relationship pairs.
 
 ### Allowed bottom block order
 
 1. `✦ Что можно сделать`
-2. `✦ Уровни`
-3. `✦ Отношения`
+2. `✦ Что <POV> могла бы сказать`
+3. `✦ Мысли <POV>`
+4. `✦ Уровни`
+5. `✦ Отношения`
 
-Do not add extra bottom blocks such as `Что Акира могла бы сказать`, `Состояние`, `Инвентарь`, `Позиция`, `Варианты реплик`, unless the user explicitly asks in technical mode.
+Use the current POV name in block titles: `Что Акира могла бы сказать`, `Мысли Акиры`, `Что Хару мог бы сказать`, `Мысли Хару`, etc.
 
 ### `✦ Что можно сделать`
 
-- Use only when the scene ends on a real choice point.
-- Maximum 3 options.
-- Options must be actions, not suggested exact dialogue.
-- Do not lead the player into one preferred tone.
+- These are action options only.
+- Add the reminder line exactly when the block is present: `Варианты ниже не считаются действием, пока игрок не выбрал.`
+- Maximum 3 action options.
+- Start each option with `◈`.
+- Do not include speech verbs or dialogue actions here: no `сказать`, `ответить`, `спросить`, `пошутить`, `заметить вслух`, `позвать`, `предложить`.
+- Do not put exact spoken content in this block.
+- Actions must be physical, attention, movement, pause, object, route, observation, or posture choices.
+- Each action must fit the POV's character, goals, body state, and visible situation.
 
 Correct example:
 
 ```text
 ✦ Что можно сделать
-— Ответить Рэю и отпустить его.
-— Пойти к заднему входу через спортплощадки.
-— Остановиться и осмотреть площадку.
+Варианты ниже не считаются действием, пока игрок не выбрал.
+
+◈ Подойти ближе к площадке, не ускоряя шаг, и пройти мимо игроков.
+◈ Остановиться у выхода и наблюдать за игрой Хару и взглядом Райдена.
+◈ Сделать шаг в сторону корта, не вступая в разговор, но давая себя заметить.
+```
+
+Forbidden inside actions:
+
+```text
+◈ Ответить Ливии и пройти к регистрации.
+◈ Сказать Хару, чтобы он забрал мяч.
+◈ Спросить Райдена, почему он смотрит.
+```
+
+### `✦ Что <POV> могла бы сказать`
+
+- These are possible exact spoken lines only.
+- Maximum 3 lines.
+- Start each line with an em dash `—`.
+- Lines must strictly match the POV character, current goals, visible emotion, and current scene pressure.
+- Do not use this block for neutral filler, exposition, lore, or obvious UI instructions.
+- No spoilers and no knowledge the POV does not have.
+- A line must be something the POV could actually choose to say right now.
+
+Correct example:
+
+```text
+✦ Что Акира могла бы сказать
+
+— Мы просто идём дальше или у вас тут обязательная демонстрация внимания?
+— Если это приём, он странный.
+— Скажи, ты специально выбирала этот вход или это сюрприз уровня Академии?
+```
+
+### `✦ Мысли <POV>`
+
+- Thoughts are POV-local hints only.
+- Maximum 3 lines.
+- Start each line with an em dash `—`.
+- They may point at what the POV sees, feels, notices, suspects, or physically registers.
+- No hidden lore, no future spoilers, no author explanation, no facts the POV cannot know.
+- Thoughts must be filtered through the POV personality and current stress.
+
+Correct example:
+
+```text
+✦ Мысли Акиры
+
+— Слишком много глаз для «тихого входа».
+— Один играет. Один смотрит так, будто уже понял что-то не то.
+— Ливия снова в режиме «быть замеченной».
 ```
 
 ### `✦ Уровни`
 
-- Use only active numeric or compact state lines that matter now.
-- Maximum 3 lines.
-- Do not write vague prose like `социальное внимание: умеренное` unless the state source gives that value or the scene visibly changed it.
-- Preferred format: `Название: значение/100 · короткая метка` or `Название: короткое состояние`, only if loaded/current state supports it.
-- For start/court scenes, allowed level subjects are: `Сумка`, `Внимание`, `Энергия`, `Усталость`, `Риск`, `Позиция`.
+- Use compact status rows, not prose.
+- Use only values that exist in loaded state or are explicitly established by the current visible scene.
 - Do not invent unrelated levels.
-
-Correct examples:
-
-```text
-✦ Уровни
-Сумка: тяжёлая · нагрузка на плечо
-Внимание: растёт · спортплощадка заметила новеньких
-Позиция: задний вход · путь через корт
-```
+- Preferred Academy start format:
 
 ```text
 ✦ Уровни
-Энергия: спокойно · без всплесков
-Сумка: тяжёлая · заметно по движению
-Позиция: у корта · до регистрации нужно пройти дальше
+Физика: 40/100 · выносливость: 35/100 · усталость: 15/100
+Энергия: доступ 10/100 · контроль 8/100 · риск: низкий
 ```
+
+- If exact numeric values are not loaded, use only compact visible-state lines that are directly supported by the scene, and keep them to 1–2 lines.
+- Do not write vague expanded lists such as `Социальное внимание: умеренное...` unless a loaded state file gives that value.
 
 ### `✦ Отношения`
 
-- Relationships must use numeric values from loaded `state/relationship_pairs/*.json` only.
-- Never write `без изменений` in the relationships block if an exact relationship pair file is loaded.
-- If an exact pair file is loaded, output up to 3 numeric metrics from `surface_dynamic`.
-- For the pair line, use the pair label from `surface_dynamic.label` if helpful, but keep it short.
-- Preferred metrics in order: `affection`, `trust`, `tension`. If a scene specifically changed another loaded metric, one of the three may be replaced by `jealousy`, `respect`, `curiosity`, or `resentment`.
-- Maximum 3 lines total inside the block.
+- Show only relationships for characters currently in the scene and only if their relationship pair file is loaded.
+- Use display format from relationship pair `surface_dynamic.display_score` and `surface_dynamic.display_label` when available.
+- Format: `<Имя>: +<display_score> · <display_label>`.
+- Maximum 3 relationship lines.
+- Do not show pairs for absent characters.
+- Do not write `без изменений` in this block.
+- If no pair file is loaded, omit the block.
 
-Correct example from `state/relationship_pairs/akira__livia.json`:
-
-```text
-✦ Отношения
-Акира ↔ Ливия: привязанность 18 · доверие 14 · напряжение 0
-```
-
-Alternative if exactly one metric visibly changed:
+Correct example:
 
 ```text
 ✦ Отношения
-Акира ↔ Ливия: привязанность 18 · доверие 14 · напряжение 1
+Ливия: +53 · старые подруги
 ```
 
 Forbidden:
@@ -149,7 +190,5 @@ Forbidden:
 
 ```text
 ✦ Отношения
-Без изменений.
+Акира ↔ Ливия: привязанность 18 · доверие 14 · напряжение 0
 ```
-
-If no relationship pair file is loaded, omit `✦ Отношения` entirely.
