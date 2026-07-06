@@ -78,6 +78,20 @@ PACKET STATUS:
 RENDERED HEADER:
 {scene_packet.get("rendered_header")}
 
+CRITICAL POV / PARENTHETICAL RULES:
+- Text outside parentheses is exact spoken POV dialogue.
+- Text inside parentheses is private POV action/body state/intention/thought. Parenthetical text is NOT spoken.
+- NPCs must never know, quote, answer, paraphrase, or directly react to private parenthetical thoughts.
+- NPCs may react only to visible signs from parentheticals: gaze direction, pause, facial shift, posture, movement, object handling, silence, hesitation, breathing, or energy/body manifestations.
+- NPCs may make imperfect guesses from visible signs, but never a 100% correct read of the thought and never the same wording.
+- Example: if POV thinks `(Рэй вообще снимает форму? или спит в ней)`, Ray must NOT answer about sleeping in uniform. He may only notice a look/pause and ask something vague or ignore it.
+
+CRITICAL AKIRA SPEECH:
+- Akira speaks short, dry, poisonous-calm, and rarely explains herself.
+- If an Akira line sounds neutral/safe/ordinary, rewrite it sharper, drier, and slightly more poisonous.
+- Do not make Akira friendly-explanatory, chatty, soft, or generically sarcastic.
+- Use loaded `characters/akira/main.yaml` speech_profile for all Akira dialogue and suggested lines.
+
 CRITICAL ROUTE RULES:
 - The Academy back entrance path is linear: arrival/dropoff -> back court route -> basketball court/sports площадки -> registration.
 - Do NOT offer an alternate choice like "свернуть вниманием к боковому маршруту" if the route already goes through the court.
@@ -125,13 +139,11 @@ REQUIRED FILES:
 {_dump(required, 800)}
 
 RHYTHM RULES FROM OLD WORKING ACADEMY, KEPT COMPACT:
-- Player outside-parentheses text is exact POV speech.
-- Player parenthetical text is POV action/body state/intention/thought/pause.
 - Keep input segment order. Do not merge speech across parentheticals.
 - If the player gives movement, waiting, following, routine transition, or a chain of actions, resolve to the nearest meaningful point: line, interruption, procedure result, social pressure, visible consequence, or choice.
 - Do not split harmless movement into empty micro-turns.
 - Do not choose a new major goal, answer, consent, attack, trust shift, time skip, or unrelated location for the player-controlled character.
-- The world does not freeze when the POV is silent; NPCs act from their loaded character, knowledge, relationship, role, status, and visible pressure.
+- The world does not freeze when the POV is silent; NPCs act from loaded character, knowledge, relationship, role, status, visible pressure, and visible POV signs only.
 - Good rhythm: POV anchor -> 1-4 meaningful NPC/world reactions -> nearest meaningful beat or choice point.
 - If many NPC lines pass without a new player anchor or player choice, stop earlier.
 - If the player-controlled character is leaving and someone throws a meaningful hook at their back, stop on that hook unless the player explicitly wrote that they ignore it.
@@ -145,10 +157,11 @@ OUTPUT GATE:
 1. The rendered header exactly.
 2. Scene body.
 3. Player-input anchors inserted as POV speech/action in original order.
-4. Character fidelity.
-5. Visible-source fidelity.
-6. Witness/knowledge fidelity.
-7. Bottom UI follows the critical action/speech/thought/levels/relationship format above.
+4. Parenthetical privacy: NPCs do not read or answer thoughts.
+5. Akira poisonous speech fidelity.
+6. Visible-source fidelity.
+7. Witness/knowledge fidelity.
+8. Bottom UI follows the critical action/speech/thought/levels/relationship format above.
 
 FORBIDDEN FINAL OUTPUT IN PLAY MODE:
 - API/debug/contract commentary.
