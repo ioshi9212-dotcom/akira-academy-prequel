@@ -6,7 +6,7 @@ from uuid import uuid4
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.assembler import build_scene_packet
 from app.loader import (
@@ -39,7 +39,12 @@ from app.prompt_builder import build_prompt_preview
 APP_NAME = "Akira Academy Prequel Clean API"
 RESERVED_SESSION_IDS = {"default", "new", "none", "null", "undefined", "session"}
 
-app = FastAPI(title=APP_NAME, version="1.0.0-clean", servers=[{"url": "https://akira-academy-prequel-production.up.railway.app"}])
+app = FastAPI(
+    title=APP_NAME,
+    version="1.0.0-clean",
+    openapi_version="3.0.3",
+    servers=[{"url": "https://akira-academy-prequel-production.up.railway.app"}],
+)
 
 
 def now() -> str:
@@ -51,6 +56,56 @@ def normalize_session_id(raw: str | None) -> str:
     if not value or value.lower() in RESERVED_SESSION_IDS:
         value = f"session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}"
     return safe_session_id(value)
+
+
+class HealthResponse(BaseModel):
+    status: str
+    app: str
+    data_dir: str
+    volume_seeded: bool
+
+
+class RootResponse(BaseModel):
+    app: str
+    health: str
+    createSession: str
+    getSessionContext: str
+    getSessionTurnContract: str
+    getRequiredFilesManifest: str
+    getRequiredFilesChunk: str
+    buildScenePacket: str
+    applyTurnResult: str
+
+
+class SessionContextResponse(BaseModel):
+    session_id: str
+    current_state: dict[str, Any] = Field(default_factory=dict)
+    calendar_runtime: dict[str, Any] = Field(default_factory=dict)
+    state_index: dict[str, Any] = Field(default_factory=dict)
+    character_index: dict[str, Any] = Field(default_factory=dict)
+    location_index: dict[str, Any] = Field(default_factory=dict)
+    assembly_chain: dict[str, Any] = Field(default_factory=dict)
+    note: str
+
+
+class TurnContractResponse(BaseModel):
+    session_id: str
+    mode: str
+    packet_status: str
+    current_frame: dict[str, Any] = Field(default_factory=dict)
+    rendered_header: str
+    player_input: dict[str, Any] = Field(default_factory=dict)
+    required_files: list[str] = Field(default_factory=list)
+    missing_files: list[str] = Field(default_factory=list)
+    full_character_ids: list[str] = Field(default_factory=list)
+    reference_character_ids: list[str] = Field(default_factory=list)
+    location_ids_loaded: list[str] = Field(default_factory=list)
+    relationship_pairs_loaded: list[str] = Field(default_factory=list)
+    rule: str
+
+
+class FilesListResponse(BaseModel):
+    files: list[str] = Field(default_factory=list)
 
 
 class FileResponse(BaseModel):
@@ -68,30 +123,30 @@ def startup() -> None:
     seed_data()
 
 
-@app.get("/health")
-def health() -> dict[str, Any]:
+@app.get("/health", response_model=HealthResponse)
+def health() -> HealthResponse:
     seed_data()
-    return {
-        "status": "ok",
-        "app": APP_NAME,
-        "data_dir": str(DATA),
-        "volume_seeded": (DATA / ".seeded").exists(),
-    }
+    return HealthResponse(
+        status="ok",
+        app=APP_NAME,
+        data_dir=str(DATA),
+        volume_seeded=(DATA / ".seeded").exists(),
+    )
 
 
-@app.get("/")
-def root() -> dict[str, str]:
-    return {
-        "app": APP_NAME,
-        "health": "/health",
-        "createSession": "POST /api/v1/sessions",
-        "getSessionContext": "GET /api/v1/sessions/{session_id}/context",
-        "getSessionTurnContract": "POST /api/v1/sessions/{session_id}/turn-contract",
-        "getRequiredFilesManifest": "POST /api/v1/sessions/{session_id}/required-files-manifest",
-        "getRequiredFilesChunk": "POST /api/v1/sessions/{session_id}/required-files-chunk",
-        "buildScenePacket": "POST /api/v1/sessions/{session_id}/scene-packet",
-        "applyTurnResult": "POST /api/v1/sessions/{session_id}/apply-turn-result",
-    }
+@app.get("/", response_model=RootResponse)
+def root() -> RootResponse:
+    return RootResponse(
+        app=APP_NAME,
+        health="/health",
+        createSession="POST /api/v1/sessions",
+        getSessionContext="GET /api/v1/sessions/{session_id}/context",
+        getSessionTurnContract="POST /api/v1/sessions/{session_id}/turn-contract",
+        getRequiredFilesManifest="POST /api/v1/sessions/{session_id}/required-files-manifest",
+        getRequiredFilesChunk="POST /api/v1/sessions/{session_id}/required-files-chunk",
+        buildScenePacket="POST /api/v1/sessions/{session_id}/scene-packet",
+        applyTurnResult="POST /api/v1/sessions/{session_id}/apply-turn-result",
+    )
 
 
 @app.post("/api/v1/sessions", response_model=SessionInfo)
@@ -108,20 +163,20 @@ def create_session(payload: CreateSessionRequest = CreateSessionRequest()) -> Se
     )
 
 
-@app.get("/api/v1/sessions/{session_id}/context")
-def get_session_context(session_id: str) -> dict[str, Any]:
+@app.get("/api/v1/sessions/{session_id}/context", response_model=SessionContextResponse)
+def get_session_context(session_id: str) -> SessionContextResponse:
     sid = safe_session_id(session_id)
     ensure_session(sid)
-    return {
-        "session_id": sid,
-        "current_state": read_json("state/current_state.json", sid, default={}),
-        "calendar_runtime": read_json("state/calendar_runtime.json", sid, default={}),
-        "state_index": read_yaml("state/index.yaml", sid, default={}),
-        "character_index": read_yaml("characters/index.yaml", sid, default={}),
-        "location_index": read_yaml("locations/index.yaml", sid, default={}),
-        "assembly_chain": read_yaml("assembly/scene_assembly_chain.yaml", sid, default={}),
-        "note": "Context is compact. Use scene-packet/required-files for actual scene rendering.",
-    }
+    return SessionContextResponse(
+        session_id=sid,
+        current_state=read_json("state/current_state.json", sid, default={}) or {},
+        calendar_runtime=read_json("state/calendar_runtime.json", sid, default={}) or {},
+        state_index=read_yaml("state/index.yaml", sid, default={}) or {},
+        character_index=read_yaml("characters/index.yaml", sid, default={}) or {},
+        location_index=read_yaml("locations/index.yaml", sid, default={}) or {},
+        assembly_chain=read_yaml("assembly/scene_assembly_chain.yaml", sid, default={}) or {},
+        note="Context is compact. Use scene-packet/required-files for actual scene rendering.",
+    )
 
 
 @app.post("/api/v1/sessions/{session_id}/scene-packet", response_model=ScenePacket)
@@ -136,26 +191,26 @@ def build_scene_packet_endpoint(session_id: str, request: TurnRequest = TurnRequ
     return ScenePacket(**packet)
 
 
-@app.post("/api/v1/sessions/{session_id}/turn-contract")
-def get_turn_contract(session_id: str, request: TurnRequest = TurnRequest()) -> dict[str, Any]:
+@app.post("/api/v1/sessions/{session_id}/turn-contract", response_model=TurnContractResponse)
+def get_turn_contract(session_id: str, request: TurnRequest = TurnRequest()) -> TurnContractResponse:
     sid = safe_session_id(session_id)
     ensure_session(sid)
     packet = build_scene_packet(sid, request.user_input, request.mode)
-    return {
-        "session_id": sid,
-        "mode": request.mode,
-        "packet_status": packet["packet_status"],
-        "current_frame": packet["current_frame"],
-        "rendered_header": packet["rendered_header"],
-        "player_input": packet["player_input"],
-        "required_files": packet["required_files"],
-        "missing_files": packet["missing_files"],
-        "full_character_ids": packet["full_character_ids"],
-        "reference_character_ids": packet["reference_character_ids"],
-        "location_ids_loaded": packet["location_ids_loaded"],
-        "relationship_pairs_loaded": packet["relationship_pairs_loaded"],
-        "rule": "Load required files before scene. GPT must render from scene_packet and loaded content only.",
-    }
+    return TurnContractResponse(
+        session_id=sid,
+        mode=request.mode,
+        packet_status=packet["packet_status"],
+        current_frame=packet["current_frame"],
+        rendered_header=packet["rendered_header"],
+        player_input=packet["player_input"],
+        required_files=packet["required_files"],
+        missing_files=packet["missing_files"],
+        full_character_ids=packet["full_character_ids"],
+        reference_character_ids=packet["reference_character_ids"],
+        location_ids_loaded=packet["location_ids_loaded"],
+        relationship_pairs_loaded=packet["relationship_pairs_loaded"],
+        rule="Load required files before scene. GPT must render from scene_packet and loaded content only.",
+    )
 
 
 @app.post("/api/v1/sessions/{session_id}/required-files-manifest", response_model=RequiredFilesManifest)
@@ -263,9 +318,9 @@ def apply_turn_result(session_id: str, request: ApplyTurnResultRequest) -> Apply
     )
 
 
-@app.get("/api/v1/files")
-def list_files() -> dict[str, Any]:
-    return {"files": list_data_files()}
+@app.get("/api/v1/files", response_model=FilesListResponse)
+def list_files() -> FilesListResponse:
+    return FilesListResponse(files=list_data_files())
 
 
 @app.get("/api/v1/files/{file_path:path}", response_model=FileResponse)
