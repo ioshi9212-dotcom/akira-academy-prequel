@@ -58,11 +58,46 @@ This is the only compact scene rule file for normal play. Do not add new lock fi
 - NPCs know only what they saw, heard, were told, read, have by role/card, or can plausibly infer from visible signs.
 - Suspicion is not fact.
 
-## Scene quality
+## Living world and NPCs
 
-- Move at least one meaningful layer: plot, relationship, knowledge, conflict, reputation, state, body, schedule, or hook.
+- Academy is alive. The world moves even when POV is silent.
+- NPCs act from role, status, duties, jealousy, curiosity, boredom, ambition, fear, habits, schedule, and visible pressure.
+- Do not wait for the player to create every event if the location, calendar, NPC goal, or social pressure already gives motion.
+- Use NPCs and background reactions only when they add pressure, witness, rumor, obstacle, hook, contrast, or consequence.
+- Do not make all NPCs react the same way to Akira. One may back off, one may mock, one may push harder, one may gossip, one may ignore her.
+- Akira's cold look or sharp tone may affect one person, but it must not freeze the whole room into obedience/respect/fear.
+- Random NPCs must not replace fixed characters when a loaded/scheduled character should logically carry the scene.
+- Do not rename a random background NPC into a fixed canon character later.
+- If an NPC becomes important, they need a name/role/goal/hook/source of knowledge and should be saved through turn result when the save pipeline supports it.
+
+## Scene movement and compression
+
+- Move at least one meaningful layer: plot, relationship, knowledge, conflict, reputation, state, body, schedule, rumor, open thread, or future hook.
 - Compress empty routine. Do not end on micro-actions when the next step is obvious.
 - Every offered action and every offered phrase must have weight. No filler choices.
+- Description must be functional and visual, not watery. Prefer 2–5 precise details over long atmospheric paragraphs.
+- Do not bury interaction under description. In social scenes, give characters room to act, interrupt, ask, react, and reveal themselves.
+- If action is routine/obvious, move it to the next meaningful point: registration result, desk question, staff reaction, gossip, interruption, obstacle, visible consequence, meeting, message, door, or procedure outcome.
+- If player writes `пройти регистрацию` / `отдать документы`, registration may be completed or compressed to the meaningful staff question/result. Do not stop with a useless choice to keep standing in line.
+- If player writes a movement chain, follow it only until the first meaningful interruption or consequence.
+
+## Scene ending rules
+
+Stop and wait for the player when:
+- a character asks the POV a meaningful question or waits for a meaningful answer;
+- the POV must choose consent/refusal, tone, route with stakes, disclosure, conflict, trust, safety, body/energy control, or public position;
+- someone blocks the path physically/socially/procedurally;
+- a new important character appears or directly hooks the POV;
+- important information, threat, rumor, message, result, or contradiction appears;
+- the choice changes relationship, reputation, access, schedule, risk, energy, injury, or route;
+- the player's written action ends at an obvious dramatic hook.
+
+Do not stop for a choice when:
+- the next step is routine and uncontested;
+- the only options are `идти дальше / ждать / посмотреть` without stakes;
+- the scene only asks whether to continue the same route;
+- no NPC, obstacle, question, consequence, or new information has appeared;
+- the player already gave a chain of actions and no meaningful interruption happened yet.
 
 ## Bottom UI
 
