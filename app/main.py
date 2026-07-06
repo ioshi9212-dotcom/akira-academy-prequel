@@ -58,6 +58,97 @@ def normalize_session_id(raw: str | None) -> str:
     return safe_session_id(value)
 
 
+def unique(values: list[str]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        item = str(value).strip() if value else ""
+        if item and item not in result:
+            result.append(item)
+    return result
+
+
+COURT_TEXT_MARKERS = [
+    "корт",
+    "площадк",
+    "спортплощад",
+    "мяч",
+    "баскетбол",
+    "хару",
+    "райден",
+    "рыж",
+    "темноволос",
+    "тёмноволос",
+    "стэрлинг",
+]
+
+REGISTRATION_TEXT_MARKERS = ["регистрац", "документ", "стойк", "заселен", "заселён", "общежит"]
+
+
+def infer_auto_progress_from_scene_text(scene_text: str, current_state: dict[str, Any], calendar_runtime: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
+    """Infer minimal persistent progress when GPT rendered an obvious transition.
+
+    This is a safety net for Actions runs where the renderer wrote the scene but
+    did not send explicit current_state_changes. It prevents the next packet from
+    snapping back to arrival_dropoff after a court beat was already rendered.
+    """
+    text = (scene_text or "").lower().replace("ё", "е")
+    if not text:
+        return {}, {}, []
+
+    current_location_id = str(current_state.get("current_location_id") or "")
+    notes: list[str] = []
+    current_changes: dict[str, Any] = {}
+    runtime_changes: dict[str, Any] = {}
+
+    has_court = any(marker in text for marker in COURT_TEXT_MARKERS)
+    has_haru_or_raiden = any(marker in text for marker in ["хару", "райден", "стэрлинг", "рыж", "темноволос", "тёмноволос"])
+    has_registration = any(marker in text for marker in REGISTRATION_TEXT_MARKERS)
+
+    if current_location_id in {"academy_arrival_dropoff", "arrival_dropoff", "back_court_route"} and has_court:
+        target_location = "basketball_court" if has_haru_or_raiden else "back_court_route"
+        target_text = (
+            "Академия Астрейн, баскетбольные площадки у заднего входа"
+            if target_location == "basketball_court"
+            else "Академия Астрейн, задний маршрут через спортплощадки"
+        )
+        nearby = unique(list(current_state.get("nearby_characters") or []) + (["haru", "raiden"] if has_haru_or_raiden else []))
+        current_changes.update(
+            {
+                "current_location_id": target_location,
+                "current_location_text": target_text,
+                "nearby_characters": nearby,
+                "mentioned_character_ids": unique(list(current_state.get("mentioned_character_ids") or []) + (["haru", "raiden"] if has_haru_or_raiden else [])),
+            }
+        )
+        if has_haru_or_raiden:
+            current_changes["introduced_character_ids"] = unique(list(current_state.get("introduced_character_ids") or []) + ["haru", "raiden"])
+        runtime_changes.update(
+            {
+                "current_beat_id": "court_visible_entry" if has_haru_or_raiden else "entrance_transition",
+                "completed_beat_ids": unique(list(calendar_runtime.get("completed_beat_ids") or []) + ["fixed_car_arrival_with_ray", "entrance_transition"]),
+                "introduced_character_ids": unique(list(calendar_runtime.get("introduced_character_ids") or []) + (["haru", "raiden"] if has_haru_or_raiden else [])),
+            }
+        )
+        notes.append(f"Auto-progressed route from {current_location_id or 'unknown'} to {target_location} based on rendered scene text.")
+
+    if current_location_id in {"basketball_court", "back_court_route"} and has_registration:
+        current_changes.update(
+            {
+                "current_location_id": "registration_area",
+                "current_location_text": "Академия Астрейн, зона регистрации",
+            }
+        )
+        runtime_changes.update(
+            {
+                "current_beat_id": "registration",
+                "completed_beat_ids": unique(list(calendar_runtime.get("completed_beat_ids") or []) + ["fixed_car_arrival_with_ray", "entrance_transition", "court_visible_entry", "court_ball_hook"]),
+            }
+        )
+        notes.append("Auto-progressed route to registration_area based on rendered scene text.")
+
+    return current_changes, runtime_changes, notes
+
+
 class HealthResponse(BaseModel):
     status: str
     app: str
@@ -292,8 +383,20 @@ def apply_turn_result(session_id: str, request: ApplyTurnResultRequest) -> Apply
                 write_yaml(path, new, sid)
             changed.append(path)
 
-    update_json_file("state/current_state.json", request.current_state_changes)
-    update_json_file("state/calendar_runtime.json", request.calendar_runtime_changes)
+    current_state_before = read_json("state/current_state.json", sid, default={}) or {}
+    calendar_runtime_before = read_json("state/calendar_runtime.json", sid, default={}) or {}
+    auto_current, auto_runtime, auto_notes = infer_auto_progress_from_scene_text(
+        request.scene_text,
+        current_state_before,
+        calendar_runtime_before,
+    )
+    notes.extend(auto_notes)
+
+    current_state_changes = deep_merge(auto_current, request.current_state_changes)
+    calendar_runtime_changes = deep_merge(auto_runtime, request.calendar_runtime_changes)
+
+    update_json_file("state/current_state.json", current_state_changes)
+    update_json_file("state/calendar_runtime.json", calendar_runtime_changes)
     update_json_file("state/inventory_state.json", request.inventory_changes)
     update_json_file("state/reputation_state.json", request.reputation_changes)
     update_json_file("state/rumors_state.json", request.rumors_changes)
