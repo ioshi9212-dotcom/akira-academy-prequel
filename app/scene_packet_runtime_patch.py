@@ -1,14 +1,15 @@
 """
-Scene packet runtime patch v5 — slim rendered-header packet + ordered player input.
+Scene packet runtime patch v6 — slim packet + ordered input + strict footer UI.
 
 Main gameplay endpoint:
 POST /api/v1/sessions/{session_id}/build-scene-packet
 
-v5 fixes:
+v5/v6 fixes:
 - buildScenePacket no longer returns duplicated full character/lore/memory content by default;
   required file contents are loaded through required-files-manifest/chunks.
 - player input is parsed into ordered segments, so speech/action/speech order is preserved.
 - relationship panel is exposed as compact UI data, not prose.
+- v6 adds strict footer rules: 3 actions, 3 speech options, 3 thoughts, relationship panel required when items exist.
 """
 from __future__ import annotations
 
@@ -834,8 +835,9 @@ def _relationship_ui_panel(session_id: str, chars: list[str]) -> dict[str, Any]:
     return {
         "format": "compact_numeric_relationship_panel_v1",
         "items": items,
-        "render_rule": "If shown, render only '<pair>: <score> · <label>' or 'Без изменений.' Do not write prose summaries like 'Ливия заботится через шум'.",
-        "omit_rule": "Omit the block when no relationship is relevant and no relationship changed.",
+        "render_rule": "If items is not empty, render ✦ Отношения with up to 3 item.render_line values. Do not write prose summaries like 'Ливия заботится через шум'.",
+        "required_when_items_nonempty": True,
+        "omit_rule": "Omit the block only when items is empty. Do not use 'Без изменений' while render_line items exist.",
     }
 
 
@@ -857,6 +859,39 @@ def _levels_ui_panel(session_id: str) -> dict[str, Any]:
     }
 
 
+def _footer_contract() -> dict[str, Any]:
+    return {
+        "format": "footer_3x3x3_v1",
+        "actions": {
+            "label": "✦ Что можно сделать",
+            "exact_count_if_shown": 3,
+            "rule": "Three concrete player action options, no numbering, no extra fourth/fifth option.",
+        },
+        "say": {
+            "label_template": "✦ Что <POV> могла бы сказать",
+            "exact_count_if_shown": 3,
+            "forbid_speaker_prefix": True,
+            "forbidden_prefix_examples": ["Акира —", "Ливия —", "Райден —", "Хару —", "Кир —"],
+            "forbid_quotes": True,
+            "rule": "Only the candidate line itself. Match current POV voice; for Akira: short, dry, sharp/poisonous, controlled.",
+        },
+        "thoughts": {
+            "label_template": "✦ Мысли <POV>",
+            "exact_count_if_shown": 3,
+            "max_chars_each": 140,
+            "forbid_paragraph": True,
+            "rule": "Three separate short one-line thoughts, current POV only.",
+        },
+        "relationships": {
+            "label": "✦ Отношения",
+            "required_when": "scene_packet.ui_panels.relationships.items is not empty",
+            "max_lines": 3,
+            "format": "Use item.render_line: '<pair>: <score> · <label>'.",
+            "forbid_prose_summary": True,
+        },
+    }
+
+
 def _strict_output_contract(session_id: str) -> dict[str, Any]:
     contract = _read_project_json("gpt/scene_output_contract_1198.json", session_id, {})
     if not isinstance(contract, dict):
@@ -864,7 +899,7 @@ def _strict_output_contract(session_id: str) -> dict[str, Any]:
     return {
         "source": "gpt/scene_output_contract_1198.json",
         "contract_id": contract.get("id", "scene_output_contract_1198"),
-        "version": contract.get("version", "v5-slim-packet-ordered-input"),
+        "version": contract.get("version", "v6-footer-3x3x3"),
         "visible_scene_must_start_with_header": True,
         "rendered_header_source": "scene_packet.current_frame.rendered_header",
         "writer_rule": "Copy scene_packet.current_frame.rendered_header exactly as the first visible block. Do not rebuild the header manually.",
@@ -886,18 +921,21 @@ def _strict_output_contract(session_id: str) -> dict[str, Any]:
         ]),
         "bottom_blocks_rules": contract.get("bottom_blocks_rules", []),
         "relationship_panel_rules": contract.get("relationship_panel_rules", []),
+        "footer_count_rules": contract.get("footer_count_rules", _footer_contract()),
+        "footer_contract": _footer_contract(),
         "fallback_forbidden": "Never invent a loose markdown header if this contract is present. If packet_status is not ready, do not write scene.",
     }
 
 
 def _output_template() -> dict[str, Any]:
     return {
-        "format": "academy_rendered_header_v5",
+        "format": "academy_rendered_header_v6_footer_3x3x3",
         "header": "Copy scene_packet.current_frame.rendered_header exactly; no loose markdown fallback.",
         "dialogue": "**Имя/видимый дескриптор** — реплика.",
         "player_input": "Use scene_packet.player_input.segments in order: speech / parenthetical beat / speech.",
         "bottom_blocks": ["✦ Что можно сделать", "✦ Что [POV] мог(ла) бы сказать", "✦ Мысли [POV]", "✦ Уровни", "✦ Отношения"],
-        "relationships": "Numeric compact panel only, no prose summary.",
+        "footer_contract": _footer_contract(),
+        "relationships": "Required numeric compact panel when ui_panels.relationships.items is not empty; no prose summary.",
         "style": "dense readable paragraphs; no micro-lines of 3-5 words",
     }
 
@@ -933,7 +971,7 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
         segments = _player_input_segments(player_input)
         relationship_panel = _relationship_ui_panel(sid, active)
         packet = {
-            "packet_version": "scene_packet_v5_slim_rendered_header_ordered_input",
+            "packet_version": "scene_packet_v6_slim_ordered_input_footer_3x3x3",
             "packet_status": "ready",
             "mode": req.mode,
             "session_id": sid,
@@ -967,6 +1005,7 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
             "ui_panels": {
                 "relationships": relationship_panel,
                 "levels": _levels_ui_panel(sid),
+                "footer": _footer_contract(),
             },
             "output_contract": _strict_output_contract(sid),
             "output_template": _output_template(),
@@ -979,6 +1018,8 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
                 "Do not complete a movement chain after meaningful NPC interruption; stop at choice.",
                 "Do not render relationship block as prose summary; use compact numeric UI or omit.",
                 "Do not merge speech segments across parenthetical actions/thoughts.",
+                "Do not output more than 3 actions, 3 speech options, or 3 thoughts in footer.",
+                "Do not prefix say-options with speaker names like Акира —.",
             ],
             "source_index": _source_index(files) if req.include_source_index else [],
             "render_guard": {
@@ -993,7 +1034,7 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
         }
         approx_response_chars = len(json.dumps(packet, ensure_ascii=False))
         diagnostics = {
-            "build": "scene_packet_v5_slim_rendered_header_ordered_input",
+            "build": "scene_packet_v6_slim_ordered_input_footer_3x3x3",
             "loaded_file_count": len(loaded),
             "missing_file_count": len(missing),
             "selected_path_count": len(files),
@@ -1012,7 +1053,7 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
         )
     except Exception as exc:  # final safety: never write scene from broken packet
         packet = {
-            "packet_version": "scene_packet_v5_slim_rendered_header_ordered_input",
+            "packet_version": "scene_packet_v6_slim_ordered_input_footer_3x3x3",
             "packet_status": "error_no_scene",
             "session_id": sid,
             "error_rule": "Do not write a gameplay scene from this packet. Fix API or use technical diagnostics.",
@@ -1027,4 +1068,4 @@ def build_scene_packet(session_id: str, request: BuildScenePacketRequest | None 
         )
 
 
-app.version = "0.3.76-scene-packet-slim-ordered-input-v5"
+app.version = "0.3.77-scene-packet-footer-3x3x3-v6"

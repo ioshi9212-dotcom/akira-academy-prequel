@@ -47,7 +47,7 @@ try:
 except Exception:
     scene_packet_patch = None
 
-app.version = "0.3.76-scene-packet-slim-ordered-input-v5"
+app.version = "0.3.77-scene-packet-footer-3x3x3-v6"
 
 rt.MEDIUM_STYLE_FORMAT_DIGEST = """
 ## Medium scene style digest — strict Academy rendered-header format

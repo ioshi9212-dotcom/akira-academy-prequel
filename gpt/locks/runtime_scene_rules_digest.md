@@ -1,4 +1,4 @@
-# Runtime Scene Rules Digest — Academy 1198 compact v5
+# Runtime Scene Rules Digest — Academy 1198 compact v6
 
 This file is the compact always-loaded rule pack. It replaces the old stack of heavy locks for normal gameplay.
 
@@ -81,15 +81,22 @@ Not as one merged line.
 - Do not play empty routine step by step; compress to meaningful beat.
 - If `scene_packet.packet_status` is not `ready`, do not write a gameplay scene.
 
-## Bottom UI blocks
+## Bottom UI blocks — hard 3/3/3 rule
 
 - Bottom blocks are interface support, not author commentary.
 - Use labels from `scene_packet.current_frame.bottom_block_labels` if present.
+- If shown, `✦ Что можно сделать` has exactly 3 action options. No more than 3.
+- If shown, `✦ Что <POV> могла бы сказать` has exactly 3 speech options. No more than 3.
+- Speech options are written without speaker prefix: no `Акира —`, no `Ливия —`, no quotes. Only the candidate line.
+- Speech options must match current POV voice. For Akira: short, dry, sharp/poisonous, controlled; not cute, not theatrical, not explanatory.
+- If shown, `✦ Мысли <POV>` has exactly 3 short one-line thoughts. Not one paragraph.
+- Each thought should be under ~140 characters and belong only to current POV.
 - `✦ Уровни` shows compact current visible numbers only when body/risk/resource/position changed or numbers are useful now.
 - `✦ Отношения` is a compact UI panel only.
-- Relationship line format: `{Пара}: {score} · {label}`.
-- If relationship did not change and is not important now, omit the block.
-- If the block is shown without change, use `Без изменений.`
+- If `scene_packet.ui_panels.relationships.items` is not empty, render `✦ Отношения` every scene.
+- Relationship line format: `{Пара}: {score} · {label}`. Prefer each item's `render_line`.
+- Render at most 3 relationship lines.
+- Do not use `Без изменений.` when relationship items exist.
 - Forbidden relationship prose: “близость стабильна; Ливия заботится через шум...” or any similar narrative summary.
 
 ## NPC and knowledge boundary

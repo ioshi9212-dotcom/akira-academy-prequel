@@ -1,116 +1,40 @@
-# Тесты после patch v5
+# Тест после patch v6
 
-## 1. Технический smoke-test
+## 1. Проверка packet
 
-```txt
-Технический тест. Не продолжай сцену и не пиши художественный ход.
-
-Проверь работу репозитория akira-academy-prequel через Actions.
+Технический тест. Не пиши сцену.
 
 Сделай:
 1. health
-2. createSession с reset=true
-3. getSessionContext
-4. getSessionTurnContract
-5. getRequiredFilesManifest
-6. getRequiredFilesChunk до конца, пока has_more=false
-7. buildScenePacket с include_diagnostics=true, include_source_index=true, include_sources=false
+2. createSession reset=true
+3. buildScenePacket с include_diagnostics=true, include_source_index=false, include_sources=false
 
-Ответь только техническим отчётом:
-
+Покажи:
 - runtime version
-- session_id
-- current_date
-- current_time
-- current_location_id
-- current_location_text
-- active_character_ids
-- nearby_character_ids
-- scheduled_character_ids
-- delayed_character_ids
-- required_files
-- missing_files
-- chunks_total
 - packet_status
 - packet_version
-- rendered_header полностью
 - approx_scene_packet_chars
-- player_input.segments
-- ui_panels.relationships
-- forbidden_context
-- есть ли в loaded/selected путях старые state/knowledge_state.json или state/relationships.json как runtime source
-
-Сцену не писать.
-```
+- player_input.segments, если есть ввод
+- output_contract.footer_contract
+- ui_panels.relationships.items
+- render_guard forbidden_context
 
 Ожидаемо:
+- version: `0.3.77-scene-packet-footer-3x3x3-v6`
+- packet_status: `ready`
+- relationship items не пустой на старте Акира/Ливия
+- footer_contract содержит exact_count_if_shown = 3
 
-- `runtime version`: `0.3.76-scene-packet-slim-ordered-input-v5`
-- `packet_status`: `ready`
-- `packet_version`: `scene_packet_v5_slim_rendered_header_ordered_input`
-- `rendered_header` доступен
-- старые `state/knowledge_state.json` и `state/relationships.json` не используются как runtime source
+## 2. Проверка игрового footer
 
-## 2. Тест порядка реплика / скобка / реплика
+Игровой ход:
 
-```txt
-Технический тест. Не пиши сцену.
+Вы за кого переживаете? (поправить ремень сумки на плече) За меня или академию?
 
-Создай session reset=true и вызови buildScenePacket для player_input:
+Ожидаемо внизу:
 
-Вы за кого переживаете? (поправить сумку на плече, посмотреть сначала на Рэя, потом на Ливию) За меня или академию?
-
-Покажи только:
-- packet_status
-- packet_version
-- rendered_header
-- player_input.raw
-- player_input.speech
-- player_input.actions
-- player_input.segments
-- scene_packet.output_contract.player_input_order_rules
-- diagnostics.approx_scene_packet_chars
-
-Важно: нужно проверить, что порядок сохранился как:
-1 speech: Вы за кого переживаете?
-2 parenthetical/action/pause: поправить сумку...
-3 speech: За меня или академию?
-```
-
-Ожидаемо в `player_input.segments`:
-
-```json
-[
-  {"order": 1, "type": "speech", "text": "Вы за кого переживаете?"},
-  {"order": 2, "type": "parenthetical", "text": "поправить сумку на плече, посмотреть сначала на Рэя, потом на Ливию", "pause": "medium"},
-  {"order": 3, "type": "speech", "text": "За меня или академию?"}
-]
-```
-
-## 3. Тест блока отношений
-
-```txt
-Технический тест. Не пиши сцену.
-
-Вызови buildScenePacket после загрузки required chunks.
-Покажи только:
-- packet_status
-- ui_panels.relationships
-- output_contract.relationship_panel_rules
-
-Проверь, что формат отношений не prose-summary, а UI-панель.
-```
-
-Ожидаемо:
-
-```txt
-Акира ↔ Ливия: 53 · старые школьные подруги
-```
-
-или близкая компактная строка с числом и label.
-
-Запрещённый результат:
-
-```txt
-Акира ↔ Ливия: близость стабильна; Ливия заботится через шум и ворчание...
-```
+- `✦ Что можно сделать` — ровно 3 строки.
+- `✦ Что Акира могла бы сказать` — ровно 3 строки, без `Акира —`.
+- `✦ Мысли Акиры` — ровно 3 короткие строки, не абзац.
+- `✦ Отношения` есть, если ui_panels.relationships.items не пустой.
+- Отношения выглядят примерно так: `Акира ↔ Ливия: 48 · старые школьные подруги`.
