@@ -1,6 +1,6 @@
-# Runtime Scene Rules Digest — Academy 1198 compact v6
+# Runtime Scene Rules Digest — Academy 1198 compact v7
 
-This file is the compact always-loaded rule pack. It replaces the old stack of heavy locks for normal gameplay.
+This file is the compact always-loaded rule pack for normal gameplay. It replaces the old stack of heavy locks in `required_files`.
 
 ## Required loading tiers
 
@@ -9,19 +9,44 @@ This file is the compact always-loaded rule pack. It replaces the old stack of h
 - Load every required chunk before writing gameplay.
 - `buildScenePacket` gives the current rendered header, ordered player input segments, compact UI panel rules and render guards.
 - `load_if_needed_files` are fetched only by explicit trigger: past, hidden-lore audit, style audit, secondary relationship, full calendar audit.
-- `reference_only_files` are not gameplay context. Scheduled/delayed characters stay reference until current_frame promotes them.
+- `reference_only_files` are not gameplay context.
+- If `scene_packet.packet_status` is not `ready`, do not write a gameplay scene.
 
 ## Source priority
 
 1. Latest direct user instruction.
 2. Latest visible scene facts / scene_history.
-3. API current_frame/current_state.
-4. Required files loaded for this turn.
-5. Active character cards + character_memory.
-6. Scene relationship_pairs.
-7. Current day calendar.
+3. API current_frame/current_state for the current session.
+4. Current game-date calendar file: `calendar/days/<current_date>.yaml`.
+5. Required files loaded for this turn.
+6. Character cards + character_memory for full scene characters.
+7. Scene relationship_pairs.
 8. Compact canon/lore policy.
 9. Chat memory only as latest player input, not truth source.
+
+## Current game-date calendar rule
+
+- The calendar file for `current_date` is the authority for today's beats, procedures, room/dorm assignment source, schedule pressure, character entrances and event order.
+- Do not use future day files unless the scene time-skips to that date or the user asks for calendar diagnostics.
+- Do not invent exact room, floor, group, course, schedule, procedure result, route or staff decision if it is not in current_state, current_frame, current calendar day or a loaded source.
+- If a generated scene contradicts current_state/current-day calendar, treat the contradiction as unconfirmed scene drift and correct by the nearest natural in-story clarification.
+- `day_beats` are constraints and hooks, not fixed prose. They guide what can happen now and what is still pending.
+
+## Full character loading and presence
+
+A character must be treated as full and have their card/memory available when any of these is true:
+
+- they are the POV;
+- they are physically present, nearby, entering, leaving, speaking, observing, addressed, looked at, followed, blocked by, or directly interacted with;
+- the current calendar beat activates them now;
+- they remained visibly in the latest played scene and no state/scene fact says they left;
+- the scene will give them a meaningful line, choice pressure, physical action, relationship shift, knowledge update, or consequence.
+
+Scheduled/delayed/reference characters stay reference only until their beat is reached or they enter the visible scene. A character being important later is not enough to full-load them now.
+
+If a named character is not full-loaded, do not give them new meaningful dialogue/action. Use background presence, a visible descriptor, or wait until the state/calendar promotes them.
+
+After a scene where a character enters, leaves, speaks, witnesses something or remains nearby, `applyTurnResult` must update current_state/scene_history/character_memory enough for the next turn to select them correctly.
 
 ## POV and player agency
 
@@ -79,7 +104,6 @@ Not as one merged line.
 - Light dry irony/sarcasm is allowed only when tied to visible action.
 - Scene must move at least one layer: plot, relationship, knowledge, conflict, reputation, state, energy, schedule, thread or hook.
 - Do not play empty routine step by step; compress to meaningful beat.
-- If `scene_packet.packet_status` is not `ready`, do not write a gameplay scene.
 
 ## Bottom UI blocks — hard 3/3/3 rule
 
@@ -104,7 +128,7 @@ Not as one merged line.
 - NPCs know only what they saw, heard, were told, read, can access, or plausibly infer from visible signs.
 - Delayed/absent characters do not know previous scene events unless told on-screen or stored in character_memory.
 - Suspicion is not fact. Let NPCs ask, misread, test, lie, avoid, or infer wrongly.
-- Fixed canon characters may enter only from roster/current location/calendar due state/prior setup/player action.
+- Fixed canon characters may enter only if current roster, current-day calendar, state, explicit player action, or already played setup allows it.
 - Do not rename an invented/background NPC into a fixed character after the fact.
 
 ## Relationships and state
