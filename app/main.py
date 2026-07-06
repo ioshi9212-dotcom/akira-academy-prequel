@@ -39,7 +39,7 @@ from app.prompt_builder import build_prompt_preview
 APP_NAME = "Akira Academy Prequel Clean API"
 RESERVED_SESSION_IDS = {"default", "new", "none", "null", "undefined", "session"}
 
-app = FastAPI(title=APP_NAME, version="1.0.0-clean")
+app = FastAPI(title=APP_NAME, version="1.0.0-clean", servers=[{"url": "https://akira-academy-prequel-production.up.railway.app"}])
 
 
 def now() -> str:
