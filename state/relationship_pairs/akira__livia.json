@@ -5,6 +5,8 @@
   "status": "active",
   "runtime_loading_rule": "Load only if both characters are present, one directly talks/thinks about the other with scene relevance, or scene_goal/current_frame requires this pair.",
   "surface_dynamic": {
+    "display_score": 53,
+    "display_label": "старые подруги",
     "affection": 18,
     "trust": 14,
     "tension": 0,
