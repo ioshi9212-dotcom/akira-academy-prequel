@@ -60,10 +60,96 @@ This is the only compact scene rule file for normal play. Do not add new lock fi
 
 ## Bottom UI
 
-- Bottom UI is optional. Use only blocks that are useful for the current beat.
-- `✦ Что можно сделать` is allowed when the scene ends on a real choice point.
-- `✦ Что <POV> могла бы сказать` is optional and should be omitted if it repeats obvious replies, pushes a tone, or makes the player feel led.
-- `✦ Уровни` is only for meaningful changes or active relevance: body load, fatigue, pain, risk, energy, item state, social attention, or position.
-- `✦ Отношения` must be UI-only, not prose. If no relationship value changed and no exact pair value is available, write exactly: `Без изменений.`
-- Do not write hybrid relationship lines such as `Акира ↔ Ливия: без изменений.` unless an exact numeric/status value is loaded.
-- If an exact pair value is loaded, use compact format: `Акира ↔ Ливия: 53 · старые подруги`.
+- Bottom UI is part of the gameplay format, not prose.
+- Use no more than 3 bottom blocks total.
+- Inside any bottom block, use no more than 3 bullet lines/items.
+- If a block has no useful changed/active information, omit the block.
+- Do not output long suggestion menus. Three options maximum.
+
+### Allowed bottom block order
+
+1. `✦ Что можно сделать`
+2. `✦ Уровни`
+3. `✦ Отношения`
+
+Do not add extra bottom blocks such as `Что Акира могла бы сказать`, `Состояние`, `Инвентарь`, `Позиция`, `Варианты реплик`, unless the user explicitly asks in technical mode.
+
+### `✦ Что можно сделать`
+
+- Use only when the scene ends on a real choice point.
+- Maximum 3 options.
+- Options must be actions, not suggested exact dialogue.
+- Do not lead the player into one preferred tone.
+
+Correct example:
+
+```text
+✦ Что можно сделать
+— Ответить Рэю и отпустить его.
+— Пойти к заднему входу через спортплощадки.
+— Остановиться и осмотреть площадку.
+```
+
+### `✦ Уровни`
+
+- Use only active numeric or compact state lines that matter now.
+- Maximum 3 lines.
+- Do not write vague prose like `социальное внимание: умеренное` unless the state source gives that value or the scene visibly changed it.
+- Preferred format: `Название: значение/100 · короткая метка` or `Название: короткое состояние`, only if loaded/current state supports it.
+- For start/court scenes, allowed level subjects are: `Сумка`, `Внимание`, `Энергия`, `Усталость`, `Риск`, `Позиция`.
+- Do not invent unrelated levels.
+
+Correct examples:
+
+```text
+✦ Уровни
+Сумка: тяжёлая · нагрузка на плечо
+Внимание: растёт · спортплощадка заметила новеньких
+Позиция: задний вход · путь через корт
+```
+
+```text
+✦ Уровни
+Энергия: спокойно · без всплесков
+Сумка: тяжёлая · заметно по движению
+Позиция: у корта · до регистрации нужно пройти дальше
+```
+
+### `✦ Отношения`
+
+- Relationships must use numeric values from loaded `state/relationship_pairs/*.json` only.
+- Never write `без изменений` in the relationships block if an exact relationship pair file is loaded.
+- If an exact pair file is loaded, output up to 3 numeric metrics from `surface_dynamic`.
+- For the pair line, use the pair label from `surface_dynamic.label` if helpful, but keep it short.
+- Preferred metrics in order: `affection`, `trust`, `tension`. If a scene specifically changed another loaded metric, one of the three may be replaced by `jealousy`, `respect`, `curiosity`, or `resentment`.
+- Maximum 3 lines total inside the block.
+
+Correct example from `state/relationship_pairs/akira__livia.json`:
+
+```text
+✦ Отношения
+Акира ↔ Ливия: привязанность 18 · доверие 14 · напряжение 0
+```
+
+Alternative if exactly one metric visibly changed:
+
+```text
+✦ Отношения
+Акира ↔ Ливия: привязанность 18 · доверие 14 · напряжение 1
+```
+
+Forbidden:
+
+```text
+✦ Отношения
+Акира ↔ Ливия: без изменений.
+```
+
+Forbidden:
+
+```text
+✦ Отношения
+Без изменений.
+```
+
+If no relationship pair file is loaded, omit `✦ Отношения` entirely.
