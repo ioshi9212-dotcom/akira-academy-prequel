@@ -3,22 +3,26 @@
   "project_slug": "akira-academy-prequel",
   "story": "academy_prequel_1198",
   "current_date": "1198-08-15",
-  "current_time": "late_morning",
+  "current_time": "позднее утро",
   "current_location_id": "academy_arrival_dropoff",
   "current_location_text": "Академия Астрейн, подъезд к территории / место высадки перед входным маршрутом",
   "akira_behavior_profile": "akira_v2_poisonous",
   "weather": {
-    "summary": "set in first scene",
-    "temperature_feel": null,
-    "details": []
+    "summary": "сухое светлое позднее утро, солнце уже нагрело плитку у входа, в воздухе держится прохлада после ночи",
+    "temperature_feel": "свежо, но уже теплеет",
+    "details": [
+      "без дождя",
+      "светло",
+      "лёгкая прохлада после ночи"
+    ]
   },
   "akira_state": {
-    "visible_state": "calm outside",
-    "internal_state": "alert and focused",
-    "body_state": "after the road, controlled; first-day cheek scratch under Livia plaster; possible training fatigue if scene says so",
+    "visible_state": "внешне спокойна, собрана и насторожена",
+    "internal_state": "держит внимание на людях, выходах, маршрутах и возможных точках давления",
+    "body_state": "после дороги держится ровно; на щеке пластырь от Ливии после ссадины; тяжёлая сумка может давить на плечо",
     "player_defined_state": null,
-    "visible_mark": "scratch on cheek covered by a plaster placed by Livia",
-    "hair_state": "loose white hair by default unless player states braid/wet hair/other style"
+    "visible_mark": "царапина на щеке закрыта пластырем, который наклеила Ливия",
+    "hair_state": "белые волосы распущены по умолчанию, если игрок не задаёт косу, мокрые волосы или другое состояние"
   },
   "current_outfit": "кроссовки, чёрные штаны карго, топ, бордовый худи",
   "uniform_worn": false,
@@ -52,21 +56,21 @@
     "kiara",
     "kael_north"
   ],
-  "current_scene_goal": "Fixed start: Ray drops Akira and Livia at Academy; short bag dialogue before first player choice and route toward back court entrance.",
+  "current_scene_goal": "Стартовый кадр: Рэй привозит Акиру и Ливию к Академии. Короткий разговор у машины, сумка, первый выбор между регистрацией и вниманием к боковому маршруту со звуком мяча.",
   "last_player_input": null,
   "scene_count": 0,
   "rules": [
-    "Use only akira-academy-prequel data.",
-    "Start 1198-08-15 at the Academy arrival dropoff by Ray's car, not directly at court.",
-    "The fixed opening may include Ray asking about the bag and Akira answering: «Минимальный спортивный инвентарь.»",
-    "After the fixed micro-dialogue, player controls Akira completely.",
-    "Akira starts in ordinary pants outfit: sneakers, black cargo pants, top, burgundy hoodie.",
-    "Do not treat Academy uniform as worn until player action or explicit state says uniform_worn=true.",
-    "Do not stretch time without reason.",
-    "Use only visible real items in scene header.",
-    "Do not reveal hidden lore automatically.",
-    "Academy tech is modern-realistic; no super scanners or hidden-lore machines.",
-    "Use Akira v2 poisonous profile as default."
+    "Использовать только данные akira-academy-prequel.",
+    "Старт 15 августа 1198 у машины Рэя в зоне высадки Академии, не сразу у корта.",
+    "Фиксированный старт может включать вопрос Рэя про сумку и ответ Акиры: «Минимальный спортивный инвентарь.»",
+    "После стартового микродиалога игрок полностью управляет Акирой.",
+    "Акира начинает в обычной одежде: кроссовки, чёрные штаны карго, топ, бордовый худи.",
+    "Не считать форму Академии надетой, пока игрок или state явно не задают uniform_worn=true.",
+    "Не растягивать время без причины.",
+    "Использовать только видимые реальные предметы из шапки сцены.",
+    "Не раскрывать hidden lore автоматически.",
+    "Техника Академии современно-реалистичная: без суперсканеров и машин для раскрытия скрытого лора.",
+    "Использовать профиль поведения Акиры v2 poisonous по умолчанию."
   ],
   "outfit": {
     "shoes": "кроссовки",
