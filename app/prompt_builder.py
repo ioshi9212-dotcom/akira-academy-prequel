@@ -22,8 +22,8 @@ def _dump(value: Any, limit: int = 2500) -> str:
 def build_prompt_preview(scene_packet: dict[str, Any]) -> str:
     """Build a compact GPT rendering brief.
 
-    Borrowed from the old working Academy idea: preserve POV anchors, NPC/world rhythm,
-    fidelity checks, and output gate. Removed old global locks and legacy knowledge/relationship files.
+    Keep hard gameplay/render rules before long loaded content so they cannot be
+    cut off by MAX_PROMPT_PREVIEW_CHARS.
     """
     current = scene_packet.get("current_frame", {})
     player = scene_packet.get("player_input", {})
@@ -78,35 +78,51 @@ PACKET STATUS:
 RENDERED HEADER:
 {scene_packet.get("rendered_header")}
 
+CRITICAL ROUTE RULES:
+- The Academy back entrance path is linear: arrival/dropoff -> back court route -> basketball court/sports площадки -> registration.
+- Do NOT offer an alternate choice like "свернуть вниманием к боковому маршруту" if the route already goes through the court.
+- Do NOT offer "пойти по официальному маршруту к регистрации" as if it bypasses the court. Registration is after the court path.
+
+CRITICAL BOTTOM UI FORMAT:
+- Bottom UI may include: `✦ Что можно сделать`, `✦ Что <POV> могла бы сказать`, `✦ Мысли <POV>`, `✦ Уровни`, `✦ Отношения`.
+- In actions, phrases, and thoughts: max 3 items each.
+- `✦ Что можно сделать` must include exactly: `Варианты ниже не считаются действием, пока игрок не выбрал.`
+- Action options start with `◈` and must be ACTIONS ONLY: movement, posture, observation, object handling, pause, route, attention.
+- FORBIDDEN in action options: `сказать`, `ответить`, `спросить`, `позвать`, `предложить`, `пошутить`, exact dialogue, or dialogue intent.
+- `✦ Что <POV> могла бы сказать`: exact speech lines only, max 3, strict POV character/goals, no spoilers.
+- `✦ Мысли <POV>`: POV-local hints only, max 3, only what POV sees/feels/notices/suspects; no hidden lore or future facts.
+- `✦ Уровни`: use compact rows. Preferred start format: `Физика: 40/100 · выносливость: 35/100 · усталость: 15/100` and `Энергия: доступ 10/100 · контроль 8/100 · риск: низкий` when supported.
+- `✦ Отношения`: only characters in current scene with loaded pair file. Use `surface_dynamic.display_score` and `display_label`: `Ливия: +53 · старые подруги`. Never write `без изменений` or pair metrics.
+
 PLAYER INPUT SEGMENTS, ORIGINAL ORDER:
-{_dump(player, 1200)}
+{_dump(player, 1000)}
 
 CURRENT FRAME:
-{_dump(current, 1400)}
+{_dump(current, 1200)}
 
 SCENE CORE RULES:
-{_cut(scene_core, 1800)}
-
-LOADED CALENDAR:
-{_dump(calendar_files, 1200)}
-
-LOADED LOCATION:
-{_dump(location_files, 1400)}
-
-LOADED CHARACTER CARDS:
-{_dump(character_files, 3000)}
-
-LOADED CHARACTER MEMORY:
-{_dump(memory_files, 1200)}
+{_cut(scene_core, 2400)}
 
 LOADED RELATIONSHIP PAIRS:
-{_dump(relationship_files, 1800)}
+{_dump(relationship_files, 1200)}
+
+LOADED CALENDAR:
+{_dump(calendar_files, 1100)}
+
+LOADED LOCATION:
+{_dump(location_files, 1100)}
+
+LOADED CHARACTER CARDS:
+{_dump(character_files, 2200)}
+
+LOADED CHARACTER MEMORY:
+{_dump(memory_files, 900)}
 
 LOADED CONDITIONAL STATE:
-{_dump(state_files, 1200)}
+{_dump(state_files, 900)}
 
 REQUIRED FILES:
-{_dump(required, 1000)}
+{_dump(required, 800)}
 
 RHYTHM RULES FROM OLD WORKING ACADEMY, KEPT COMPACT:
 - Player outside-parentheses text is exact POV speech.
@@ -125,16 +141,6 @@ CHARACTER FIDELITY:
 - If a planned line/reaction contradicts a loaded card, relationship, knowledge boundary, location, or current state, rewrite before sending.
 - If a character is reference-only and not full-loaded, do not give them meaningful new dialogue/action.
 
-BOTTOM UI FORMAT:
-- Allowed bottom block order: `✦ Что можно сделать`, `✦ Что <POV> могла бы сказать`, `✦ Мысли <POV>`, `✦ Уровни`, `✦ Отношения`.
-- In actions, phrases, and thoughts: max 3 items each.
-- `✦ Что можно сделать` must include `Варианты ниже не считаются действием, пока игрок не выбрал.`
-- Action options start with `◈` and must be actions only. Never use: сказать, ответить, спросить, позвать, предложить, пошутить. No exact dialogue in actions.
-- `✦ Что <POV> могла бы сказать`: exact speech lines only, max 3, strict POV character/goals, no spoilers.
-- `✦ Мысли <POV>`: POV-local hints only, max 3, only what POV sees/feels/notices/suspects; no hidden lore or future facts.
-- `✦ Уровни`: prefer `Физика: 40/100 · выносливость: 35/100 · усталость: 15/100` and `Энергия: доступ 10/100 · контроль 8/100 · риск: низкий` when supported by loaded state/current scene.
-- `✦ Отношения`: only characters in current scene with loaded pair file. Use `surface_dynamic.display_score` and `display_label`: `Ливия: +53 · старые подруги`. Never write pair metrics or `без изменений`.
-
 OUTPUT GATE:
 1. The rendered header exactly.
 2. Scene body.
@@ -142,7 +148,7 @@ OUTPUT GATE:
 4. Character fidelity.
 5. Visible-source fidelity.
 6. Witness/knowledge fidelity.
-7. Bottom UI follows the action/speech/thought/levels/relationship format above.
+7. Bottom UI follows the critical action/speech/thought/levels/relationship format above.
 
 FORBIDDEN FINAL OUTPUT IN PLAY MODE:
 - API/debug/contract commentary.
