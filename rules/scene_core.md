@@ -27,6 +27,7 @@ This is the only compact scene rule file for normal play. Do not add new lock fi
 - Do not load all characters, all locations, all memories, all relationship pairs, all calendar days, or all hidden lore.
 - Scheduled/delayed characters are reference-only until the current beat, visible entry, direct address, meaningful observation, or explicit player action promotes them.
 - If a character is not full-loaded, do not give them meaningful new dialogue/action.
+- Reference-only characters may appear only as distant background, sound, silhouette, scheduled name, or route hook. Do not give them personality analysis, skill analysis, inner state, new choices, or meaningful reaction.
 
 ## Player input
 
@@ -56,3 +57,13 @@ This is the only compact scene rule file for normal play. Do not add new lock fi
 
 - Move at least one meaningful layer: plot, relationship, knowledge, conflict, reputation, state, body, schedule, or hook.
 - Compress empty routine. Do not end on micro-actions when the next step is obvious.
+
+## Bottom UI
+
+- Bottom UI is optional. Use only blocks that are useful for the current beat.
+- `✦ Что можно сделать` is allowed when the scene ends on a real choice point.
+- `✦ Что <POV> могла бы сказать` is optional and should be omitted if it repeats obvious replies, pushes a tone, or makes the player feel led.
+- `✦ Уровни` is only for meaningful changes or active relevance: body load, fatigue, pain, risk, energy, item state, social attention, or position.
+- `✦ Отношения` must be UI-only, not prose. If no relationship value changed and no exact pair value is available, write exactly: `Без изменений.`
+- Do not write hybrid relationship lines such as `Акира ↔ Ливия: без изменений.` unless an exact numeric/status value is loaded.
+- If an exact pair value is loaded, use compact format: `Акира ↔ Ливия: 53 · старые подруги`.
