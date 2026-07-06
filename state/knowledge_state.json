@@ -1,9 +1,0 @@
-{
-  "state_id": "knowledge_state_migrated",
-  "status": "disabled_legacy_stub",
-  "runtime_source": "state/character_memory/<id>.json",
-  "relationship_source": "state/relationship_pairs/<a>__<b>.json",
-  "rule": "Do not load one global knowledge_state for normal scenes. Load only selected character_memory files from current_frame/POV/active characters.",
-  "migration_note": "Permanent starting knowledge will be moved later into characters/<id>/knowledge.yaml.",
-  "archive_removed_from_runtime_zip": true
-}
