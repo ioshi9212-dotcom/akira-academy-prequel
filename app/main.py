@@ -81,6 +81,40 @@ COURT_TEXT_MARKERS = [
     "стэрлинг",
 ]
 
+COURT_ARRIVAL_MARKERS = [
+    "у корта",
+    "к корту",
+    "на корт",
+    "через корт",
+    "вдоль края корта",
+    "края корта",
+    "на площадк",
+    "у площадк",
+    "к площадк",
+    "спортплощад",
+    "у сетк",
+    "к сетк",
+    "задний вход",
+    "заднему входу",
+    "задний маршрут",
+    "маршрут через",
+    "проход через",
+    "дошл",
+    "дошла",
+    "дошли",
+    "подошл",
+    "подошла",
+    "подошли",
+    "оказал",
+    "оказалась",
+    "оказались",
+    "прошл",
+    "прошла",
+    "прошли",
+    "идет через",
+    "идёт через",
+]
+
 REGISTRATION_TEXT_MARKERS = ["регистрац", "документ", "стойк", "заселен", "заселён", "общежит"]
 
 
@@ -102,9 +136,10 @@ def infer_auto_progress_from_scene_text(scene_text: str, current_state: dict[str
 
     has_court = any(marker in text for marker in COURT_TEXT_MARKERS)
     has_haru_or_raiden = any(marker in text for marker in ["хару", "райден", "стэрлинг", "рыж", "темноволос", "тёмноволос"])
+    has_court_arrival = has_haru_or_raiden or any(marker in text for marker in COURT_ARRIVAL_MARKERS)
     has_registration = any(marker in text for marker in REGISTRATION_TEXT_MARKERS)
 
-    if current_location_id in {"academy_arrival_dropoff", "arrival_dropoff", "back_court_route"} and has_court:
+    if current_location_id in {"academy_arrival_dropoff", "arrival_dropoff", "back_court_route"} and has_court and has_court_arrival:
         target_location = "basketball_court" if has_haru_or_raiden else "back_court_route"
         target_text = (
             "Академия Астрейн, баскетбольные площадки у заднего входа"
