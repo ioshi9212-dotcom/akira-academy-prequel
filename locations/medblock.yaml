@@ -1,0 +1,23 @@
+location_id: medblock
+file_type: location_slice
+version: academy_1198_location_slice_v1
+status: active
+load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+name: медблок
+type: медицинская зона
+look:
+- чистый свет
+- антисептик
+- кушетки
+- обычные приборы
+- спокойный персонал
+does:
+- осмотр
+- фиксация травм
+- ограничение нагрузки
+- помощь после перегруза
+- минимальный отклик при необходимости
+not:
+- не супер-сканер
+- не раскрывает hidden lore
+- не знает дату травмы без слов/записи

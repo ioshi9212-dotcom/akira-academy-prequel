@@ -1,0 +1,17 @@
+location_id: back_court_route
+file_type: location_slice
+version: academy_1198_location_slice_v1
+status: active
+load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+name: задний маршрут со стороны корта
+type: менее официальный проход
+look:
+- боковые дорожки
+- металлическая сетка
+- спортивный шум
+- меньше официальной толпы
+- живые группы студентов
+scene_use:
+- переход после приезда
+- мягкий ввод территории
+- первое приближение к Хару/корту

@@ -1,0 +1,23 @@
+location_id: room_214
+file_type: location_slice
+version: academy_1198_location_slice_v1
+status: active
+load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+name: комната 214
+type: комната Акиры и Ливии
+room_number: 214
+floor: 2
+residents:
+- akira
+- livia
+facts:
+- Акира и Ливия живут вместе
+- окна не заблокированы
+- вещи и одежда должны помнить state
+- форма не надета без действия игрока
+scene_use:
+- распаковка
+- разговоры
+- переодевание
+- восстановление после публичных сцен
+boundary: не заменять на 4 этаж или другую комнату без явного изменения state/calendar

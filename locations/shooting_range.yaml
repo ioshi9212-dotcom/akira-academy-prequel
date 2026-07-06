@@ -1,0 +1,14 @@
+location_id: shooting_range
+file_type: location_slice
+version: academy_1198_location_slice_v1
+status: active
+load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+name: стрельбище
+type: закрытая зона оружейной дисциплины
+look:
+- линии огня
+- мишени
+- инструкторская зона
+- защитные панели
+- запах металла/смазки
+boundary: оружие — дисциплина, не игрушка; ошибка с оружием не «ой»

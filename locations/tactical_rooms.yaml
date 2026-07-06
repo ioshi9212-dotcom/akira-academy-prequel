@@ -1,0 +1,15 @@
+location_id: tactical_rooms
+file_type: location_slice
+version: academy_1198_location_slice_v1
+status: active
+load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+name: тактические аудитории
+type: обычные учебные/разборные комнаты
+look:
+- доска
+- карты
+- экраны/проектор
+- планы
+- столы
+- усталые студенты после блока
+boundary: не превращать в голографический центр будущего

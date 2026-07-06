@@ -1,0 +1,89 @@
+index_id: academy_character_index
+file_type: character_index
+version: academy_1198_character_index_v1
+status: active
+source_note: Does not replace character cards. It only maps ids/aliases to exact paths for Railway scene assembly.
+loader_rule:
+- Railway, not GPT, resolves characters by id.
+- Full-load POV and every active/nearby/speaking/addressed/looked_at/witnessing character.
+- Scheduled/delayed characters stay reference-only until current beat, visible entry, direct address, meaningful observation, or explicit player action promotes them.
+- Do not load all character cards in a normal scene.
+- If a character is not full-loaded, do not give them meaningful new dialogue/action.
+characters:
+  akira:
+    canonical_id: akira
+    card_path: characters/akira/main.yaml
+    memory_path: state/character_memory/akira.json
+    aliases:
+    - char_akira
+    - akira
+    - Акира
+    - Кира
+    role: pov/default player character
+  livia:
+    canonical_id: livia
+    card_path: characters/livia/main.yaml
+    memory_path: state/character_memory/livia.json
+    aliases:
+    - char_livia
+    - livia
+    - livia_cross
+    - Ливия
+    - Лив
+    role: active стартовая подруга
+  haru:
+    canonical_id: haru
+    card_path: characters/haru/main.yaml
+    memory_path: state/character_memory/haru.json
+    aliases:
+    - char_haru
+    - haru
+    - haru_foster
+    - Хару
+    - Фостер
+    role: scheduled/nearby at court; full-load when scene reaches court or he acts/speaks
+  raiden:
+    canonical_id: raiden
+    card_path: characters/raiden/main.yaml
+    memory_path: state/character_memory/raiden.json
+    aliases:
+    - char_raiden
+    - raiden
+    - raiden_sterling
+    - Райден
+    - Стэрлинг
+    role: scheduled/nearby with Haru; full-load when he acts/speaks/is addressed/observed meaningfully
+  kir:
+    canonical_id: kir
+    card_path: characters/kir/main.yaml
+    memory_path: state/character_memory/kir.json
+    aliases:
+    - char_kir
+    - kir
+    - kir_knox
+    - Кир
+    - Нокс
+    role: delayed old acquaintance after registration/settlement
+  kiara:
+    canonical_id: kiara
+    card_path: characters/kiara/main.yaml
+    memory_path: state/character_memory/kiara.json
+    aliases:
+    - char_kiara
+    - kiara
+    - kiara_volt
+    - Киара
+    - Вольт
+    role: supporting second-year social pressure
+  kael_north:
+    canonical_id: kael_north
+    card_path: characters/kael_north/main.yaml
+    memory_path: state/character_memory/kael_north.json
+    aliases:
+    - char_kael_north
+    - kael
+    - kael_north
+    - Каэл
+    - Норт
+    role: instructor, not active before calendar/state allows
+pair_file_rule: For a scene with characters A and B, resolve state/relationship_pairs/<a>__<b>.json or reversed id if only reversed exists.

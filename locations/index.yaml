@@ -1,0 +1,105 @@
+index_id: academy_locations_index
+file_type: location_index
+version: academy_1198_locations_index_v1
+status: active
+source_note: Split from current compact academy_locations and old working ZIP. Use this index for exact path resolution; do not load all location files.
+loader_rule:
+- Railway resolves current_location_id and target_location_id through aliases first.
+- Load exactly current location file, plus one target/route location if the player is moving there.
+- Do not load all locations for normal scene assembly.
+- If location id is unknown, do not invent exact room/floor/route; keep scene in known current location or ask state/calendar to resolve.
+aliases:
+  academy_arrival_dropoff: arrival_dropoff
+  arrival_dropoff: arrival_dropoff
+  main_courtyard: main_courtyard
+  academy_back_court_exit: back_court_route
+  back_court_route: back_court_route
+  basketball_court: basketball_court
+  court: basketball_court
+  registration_area: registration_area
+  registration_hall: registration_area
+  dorm_block: dorm_block
+  dormitory: dorm_block
+  room_214: room_214
+  dorm_room_214: room_214
+  cafeteria: cafeteria
+  medblock: medblock
+  medical_block: medblock
+  training_blocks: training_blocks
+  training_hall: training_blocks
+  energy_practice_yards: energy_practice_yards
+  shooting_range: shooting_range
+  pool: pool
+  tactical_rooms: tactical_rooms
+  capture_and_restraint_block: capture_and_restraint_block
+  simulation_ranges: simulation_ranges
+  administrative_building: administrative_building
+locations:
+  arrival_dropoff:
+    path: locations/arrival_dropoff.yaml
+    name: подъезд к территории Академии / место высадки
+    type: переходная входная зона
+  back_court_route:
+    path: locations/back_court_route.yaml
+    name: задний маршрут со стороны корта
+    type: менее официальный проход
+  basketball_court:
+    path: locations/basketball_court.yaml
+    name: баскетбольные площадки
+    type: спортзона / социальная сцена
+  registration_area:
+    path: locations/registration_area.yaml
+    name: зона регистрации
+    type: официальная процедурная зона
+  dorm_block:
+    path: locations/dorm_block.yaml
+    name: общежитие
+    type: бытовая зона
+  room_214:
+    path: locations/room_214.yaml
+    name: комната 214
+    type: комната Акиры и Ливии
+  cafeteria:
+    path: locations/cafeteria.yaml
+    name: столовая
+    type: социальное сердце Академии
+  medblock:
+    path: locations/medblock.yaml
+    name: медблок
+    type: медицинская зона
+  training_blocks:
+    path: locations/training_blocks.yaml
+    name: тренировочные блоки
+    type: физическая и практическая подготовка
+  energy_practice_yards:
+    path: locations/energy_practice_yards.yaml
+    name: энергетические площадки
+    type: специальные зоны практики энергии
+  shooting_range:
+    path: locations/shooting_range.yaml
+    name: стрельбище
+    type: закрытая зона оружейной дисциплины
+  pool:
+    path: locations/pool.yaml
+    name: бассейн
+    type: тренировочная зона
+  tactical_rooms:
+    path: locations/tactical_rooms.yaml
+    name: тактические аудитории
+    type: обычные учебные/разборные комнаты
+  main_courtyard:
+    path: locations/main_courtyard.yaml
+    name: Главный двор Академии
+    type: официальная входная зона
+  capture_and_restraint_block:
+    path: locations/capture_and_restraint_block.yaml
+    name: Блок захвата и удержания
+    type: практика задержания, обездвиживания, сопровождения цели
+  simulation_ranges:
+    path: locations/simulation_ranges.yaml
+    name: Симуляционные / полигонные зоны
+    type: контролируемые сценарии
+  administrative_building:
+    path: locations/administrative_building.yaml
+    name: Административный корпус
+    type: документы, кураторы, дисциплина, рейтинги

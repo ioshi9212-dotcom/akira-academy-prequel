@@ -1,0 +1,21 @@
+state_id: room_assignments
+file_type: room_assignment_state
+version: academy_1198_room_assignments_v1
+status: active
+load_rule: Load during registration/dorm_assignment/dorm scenes or when current_location/target_location involves room_214/dorm_block.
+assignments:
+  akira:
+    room_id: room_214
+    room_number: 214
+    floor: 2
+    roommate: livia
+    source: calendar/days/1198-08-15.yaml -> dorm_assignment beat from old working Academy ZIP
+  livia:
+    room_id: room_214
+    room_number: 214
+    floor: 2
+    roommate: akira
+    source: calendar/days/1198-08-15.yaml -> dorm_assignment beat from old working Academy ZIP
+boundaries:
+- Do not move Akira/Livia to another room/floor unless current_state or an explicit new calendar event changes the assignment.
+- Room 214 resolves to locations/room_214.yaml.

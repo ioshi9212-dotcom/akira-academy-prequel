@@ -1,0 +1,20 @@
+location_id: capture_and_restraint_block
+file_type: location_slice
+version: academy_1198_location_slice_v1
+status: active
+load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+name: Блок захвата и удержания
+type: практика задержания, обездвиживания, сопровождения цели
+formats:
+- один на один
+- пара против цели
+- группа против цели
+- защита условного гражданского
+- удержание без лишнего ущерба
+- работа без энергии
+- работа с ограничением энергии
+consequences:
+- грубый захват может дать дисциплинарную отметку
+- не удержал цель — ошибка команды
+- травмировал партнёра без причины — твоя вина
+- перегрузился — неправильно рассчитал нагрузку

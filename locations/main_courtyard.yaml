@@ -1,0 +1,22 @@
+location_id: main_courtyard
+file_type: location_slice
+version: academy_1198_location_slice_v1
+status: active
+load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+name: Главный двор Академии
+type: официальная входная зона
+atmosphere:
+- широкие ступени
+- мокрый камень после дождя
+- стойки регистрации
+- таблички маршрутов
+- персонал с планшетами
+- новички, которые пытаются выглядеть спокойными
+- первые взгляды, шёпот и социальная оценка
+scene_use:
+- официальное прибытие
+- первые публичные комментарии
+- регистрация
+- выдача маршрутов
+- первые слухи
+- сухая работа персонала

@@ -1,0 +1,20 @@
+location_id: basketball_court
+file_type: location_slice
+version: academy_1198_location_slice_v1
+status: active
+load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+name: баскетбольные площадки
+type: спортзона / социальная сцена
+look:
+- разметка
+- мяч
+- бортики
+- скамейки
+- смех
+- публичные взгляды
+- неофициальная конкуренция
+scene_use:
+- Хару может отправить мяч к новичкам
+- Райден может быть рядом фоном
+- репутация и первое впечатление
+boundary: не делать мяч первым кадром дня; до него должен быть приезд и входной переход

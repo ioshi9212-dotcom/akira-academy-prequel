@@ -1,0 +1,15 @@
+location_id: registration_area
+file_type: location_slice
+version: academy_1198_location_slice_v1
+status: active
+load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+name: зона регистрации
+type: официальная процедурная зона
+look:
+- стойки
+- очереди
+- маршрутные листы
+- планшеты/компьютеры
+- временные пропуска
+- выдача формы
+staff: сухо, вежливо, без публичных досье и драм

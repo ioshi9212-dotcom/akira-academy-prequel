@@ -1,0 +1,24 @@
+index_id: academy_state_index
+file_type: state_index
+version: academy_1198_state_index_v1
+status: active
+loader_rule:
+- Always read current_state and calendar_runtime.
+- Read character_memory only for full-loaded characters.
+- Read relationship_pairs only for pairs relevant to current scene.
+- Read reputation/rumors/inventory/power only when scene trigger requires them; do not always-load them.
+always:
+  current_state: state/current_state.json
+  calendar_runtime: state/calendar_runtime.json
+conditional:
+  character_memory: state/character_memory/<character_id>.json
+  relationship_pairs: state/relationship_pairs/<a>__<b>.json
+  room_assignments: state/room_assignments.yaml
+  inventory: state/inventory_state.json
+  reputation: state/reputation_state.json
+  rumors: state/rumors_state.json
+  power: state/power_state.json
+  akira_progress: state/akira_progress_state.json
+forbidden_global_legacy_sources:
+- state/knowledge_state.json
+- state/relationships.json

@@ -1,0 +1,13 @@
+location_id: administrative_building
+file_type: location_slice
+version: academy_1198_location_slice_v1
+status: active
+load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+name: Административный корпус
+type: документы, кураторы, дисциплина, рейтинги
+tone:
+- сухой
+- официальный
+- без лишнего тепла
+- последствия фиксируются
+- я не хотел не отменяет результата

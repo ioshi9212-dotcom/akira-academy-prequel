@@ -1,0 +1,19 @@
+location_id: arrival_dropoff
+file_type: location_slice
+version: academy_1198_location_slice_v1
+status: active
+load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+name: подъезд к территории Академии / место высадки
+type: переходная входная зона
+look:
+- машины у края территории
+- таблички маршрутов
+- поток студентов
+- вид на корпуса и дорожки
+- персонал/охрана без лишней театральности
+scene_use:
+- старт 15 августа
+- Рэй привозит Акиру и Ливию
+- диалог у машины
+- первый взгляд на Академию
+boundary: это не корт; к кортам идут после стартового кадра и входного перехода

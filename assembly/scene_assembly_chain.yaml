@@ -1,0 +1,151 @@
+schema_version: academy_scene_assembly_chain_v1
+owner: Railway/API scene assembler
+purpose: Define the exact context assembly sequence without adding runtime locks or rules-over-rules.
+non_goals:
+- This is not a new GPT lock.
+- This is not a lore file.
+- This does not replace character cards.
+- This does not tell GPT to search files itself.
+hard_architecture_rule:
+- No extra locks, runtime rules, digest rules, patch rules, or duplicate rule files.
+- If a rule already exists but is weak, rewrite that rule in its existing place; do not add another file to override it.
+- Scene bugs are fixed in assembly sequence, state, calendar, indexes, or the concrete card/file that failed to load.
+sequence:
+- step: 1
+  id: read_current_state
+  must_read:
+  - state/current_state.json
+  - state/calendar_runtime.json
+  output:
+  - current_date
+  - current_time
+  - current_location_id
+  - active_characters
+  - nearby_characters
+  - scheduled_character_ids
+  - delayed_character_ids
+  - current_beat_id
+- step: 2
+  id: parse_player_input
+  detect:
+  - speech segments in original order
+  - parenthetical action/thought/body/movement segments
+  - addressed character ids
+  - looked_at/observed character ids
+  - target_location_id or route intent
+  - technical mode
+- step: 3
+  id: read_calendar_day
+  must_read:
+  - calendar/calendar_index.yaml
+  - calendar/days/<current_date>.yaml
+  do_not:
+  - load future day files during normal scene
+- step: 4
+  id: resolve_locations
+  must_read:
+  - locations/index.yaml
+  load:
+  - locations/<current_location_id>.yaml
+  - locations/<target_location_id>.yaml only if movement target exists
+  do_not:
+  - load all locations
+- step: 5
+  id: resolve_character_scope
+  must_read:
+  - characters/index.yaml
+  full_load_if:
+  - POV
+  - active
+  - nearby
+  - speaking
+  - addressed
+  - looked_at/meaningfully observed
+  - current beat character entering now
+  - witnessing meaningful event
+  - will have meaningful dialogue/action/consequence
+  reference_only_if:
+  - scheduled later
+  - delayed later
+  - mentioned without direct scene relevance
+- step: 6
+  id: load_character_files
+  load:
+  - characters/<id>/main.yaml for full_character_ids
+  - state/character_memory/<id>.json for full_character_ids if present
+  do_not:
+  - load all character cards
+  - load a character by semantic search when id is known
+- step: 7
+  id: load_relationship_pairs
+  load:
+  - only pairs among POV/full characters that affect this scene
+  do_not:
+  - load global relationships
+  - load all Akira pairs
+- step: 8
+  id: load_conditional_state
+  load_if_triggered:
+  - state/room_assignments.yaml for dorm/room scenes
+  - state/inventory_state.json for item/header/inventory scenes
+  - state/reputation_state.json for public/social consequence
+  - state/rumors_state.json for rumors
+  - state/power_state.json for energy/power check/training
+  - state/akira_progress_state.json for level panel/training/body progression
+- step: 9
+  id: build_scene_packet
+  must_include:
+  - packet_status
+  - rendered_header
+  - player_input_segments_original_order
+  - current_frame
+  - loaded_file_paths
+  - missing_file_paths
+  - full_character_ids
+  - reference_character_ids
+  - location_ids_loaded
+  - relationship_pairs_loaded
+  ready_condition: packet_status == ready and every must_load_now file is loaded
+- step: 10
+  id: gpt_render_scene
+  rule: GPT writes only from scene_packet and loaded content. GPT does not fetch/search extra gameplay files itself.
+- step: 11
+  id: apply_turn_result
+  save_only:
+  - meaningful state change
+  - location/time/beat change
+  - character entered/left/witnessed/spoke
+  - relationship shift
+  - memory/knowledge update
+  - inventory/body/power/reputation consequence
+  do_not_save:
+  - routine glances
+  - empty walking
+  - banter without consequence
+required_files_policy:
+  always:
+  - state/current_state.json
+  - state/calendar_runtime.json
+  - calendar/days/<current_date>.yaml
+  - characters/index.yaml
+  - locations/index.yaml
+  - rules/scene_core.md
+  by_current_location:
+  - locations/<resolved_current_location>.yaml
+  by_target_location:
+  - locations/<resolved_target_location>.yaml
+  by_full_character:
+  - characters/<id>/main.yaml
+  - state/character_memory/<id>.json
+  by_relationship_relevance:
+  - state/relationship_pairs/<a>__<b>.json
+  never_always_load:
+  - all characters
+  - all locations
+  - all relationship pairs
+  - all character memories
+  - all calendar days
+  - all hidden lore
+  - state/power_state.json
+  - state/rumors_state.json
+  - state/reputation_state.json
