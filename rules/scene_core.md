@@ -32,9 +32,14 @@ This is the only compact scene rule file for normal play. Do not add new lock fi
 ## Player input
 
 - Text outside parentheses is exact POV speech.
-- Text inside parentheses is POV action, pause, movement, body state, intention, or thought.
+- Text inside parentheses is private POV action, pause, movement, body state, intention, or thought.
+- Parenthetical text is not spoken unless the player explicitly puts spoken words outside parentheses.
 - Keep input segments in original order. Do not merge speech across parentheticals.
+- NPCs must never know, quote, answer, paraphrase, or directly react to private parenthetical thoughts.
 - NPCs react only to visible speech/action/body signs and known facts; they do not read hidden thoughts.
+- From parentheticals, NPCs may react only to visible signs: gaze direction, pause, facial shift, posture, movement, object handling, silence, hesitation, breathing, or energy/body manifestations.
+- NPCs may make imperfect guesses from visible signs, but never a 100% correct read of the thought and never the same wording.
+- If POV thinks `(Рэй вообще снимает форму? или спит в ней)`, Рэй must not answer about sleeping in uniform. He may only notice a look/pause and ask something vague or ignore it.
 
 ## Scene packet gate
 
@@ -116,6 +121,7 @@ Forbidden inside actions:
 - Do not use this block for neutral filler, exposition, lore, or obvious UI instructions.
 - No spoilers and no knowledge the POV does not have.
 - A line must be something the POV could actually choose to say right now.
+- For Akira, lines must follow `characters/akira/main.yaml` speech_profile: short, dry, poisonous-calm, not friendly-explanatory.
 
 Correct example:
 
@@ -135,6 +141,7 @@ Correct example:
 - They may point at what the POV sees, feels, notices, suspects, or physically registers.
 - No hidden lore, no future spoilers, no author explanation, no facts the POV cannot know.
 - Thoughts must be filtered through the POV personality and current stress.
+- NPCs never know or answer these thoughts unless the player later says them out loud.
 
 Correct example:
 
