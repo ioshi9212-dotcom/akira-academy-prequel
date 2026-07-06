@@ -71,9 +71,82 @@ def detect_addressed_characters(user_input: str, character_index: dict[str, Any]
     return unique(found)
 
 
+OBSERVATION_WORDS = [
+    "посмотреть",
+    "смотреть",
+    "взглянуть",
+    "взгляд",
+    "осмотреть",
+    "заметить",
+    "увидеть",
+    "задержаться",
+    "присмотреться",
+    "проморгаться",
+]
+
+
+def detect_observed_characters(
+    user_input: str,
+    character_index: dict[str, Any],
+    *,
+    current_location_id: str | None = None,
+    target_location_id: str | None = None,
+    scheduled: list[str] | None = None,
+    active_or_nearby: list[str] | None = None,
+) -> list[str]:
+    """Detect characters the POV meaningfully observes.
+
+    This is assembly logic, not a new GPT rule: observed characters must be
+    full-loaded before GPT can give them meaningful reactions. It covers exact
+    aliases and stable visual descriptors in the first court introduction.
+    """
+    text = (user_input or "").lower().replace("ё", "е")
+    if not text:
+        return []
+
+    has_observation = any(word in text for word in OBSERVATION_WORDS)
+    if not has_observation:
+        return []
+
+    scheduled_set = set(scheduled or [])
+    scene_people = set(active_or_nearby or []) | scheduled_set
+    found: list[str] = []
+
+    # Exact alias/name observed in the same input.
+    for cid, data in (character_index.get("characters") or {}).items():
+        aliases = data.get("aliases", []) if isinstance(data, dict) else []
+        for alias in aliases + [cid]:
+            alias_s = str(alias).strip()
+            if not alias_s:
+                continue
+            pattern = r"(?<![\wА-Яа-я])" + re.escape(alias_s.lower().replace("ё", "е")) + r"(?![\wА-Яа-я])"
+            if re.search(pattern, text):
+                found.append(data.get("canonical_id") or cid)
+                break
+
+    # Stable visual descriptors for the first court beat.
+    court_context = (
+        current_location_id in {"back_court_route", "basketball_court"}
+        or target_location_id in {"back_court_route", "basketball_court"}
+        or "корт" in text
+        or "мяч" in text
+        or "площадк" in text
+    )
+
+    if court_context:
+        if "haru" in scene_people or "haru" in scheduled_set:
+            if any(word in text for word in ["рыж", "конопат", "улыб", "мяч"]):
+                found.append("haru")
+        if "raiden" in scene_people or "raiden" in scheduled_set:
+            if any(word in text for word in ["темн", "тёмн", "черноволос", "высок", "рядом с хару", "рядом с рыж"]):
+                found.append("raiden")
+
+    return unique(found)
+
+
 LOCATION_KEYWORDS = {
-    "basketball_court": ["корт", "мяч", "баскетбол", "площадк"],
-    "back_court_route": ["задн", "маршрут", "со стороны корта"],
+    "basketball_court": ["корт", "баскетбол", "площадк"],
+    "back_court_route": ["задн", "маршрут", "со стороны корта", "мяч"],
     "registration_area": ["регистрац", "документ", "стойк"],
     "dorm_block": ["общежит", "коридор", "лифт", "лестниц"],
     "room_214": ["214", "комнат"],
@@ -88,8 +161,22 @@ LOCATION_KEYWORDS = {
 }
 
 
-def detect_target_location(user_input: str, location_index: dict[str, Any]) -> str | None:
+def detect_target_location(
+    user_input: str,
+    location_index: dict[str, Any],
+    *,
+    current_location_id: str | None = None,
+) -> str | None:
     text = (user_input or "").lower().replace("ё", "е")
+
+    # The first day must not jump from Ray's dropoff straight to the court.
+    # Even if the player hears the ball or mentions the court, the next resolved
+    # location from arrival is the back-court route/transition.
+    if current_location_id == "arrival_dropoff" and any(
+        word in text for word in ["мяч", "корт", "баскетбол", "площадк", "задн", "маршрут"]
+    ):
+        return resolve_location_id("back_court_route", location_index)
+
     for loc_id, words in LOCATION_KEYWORDS.items():
         if any(word in text for word in words):
             return resolve_location_id(loc_id, location_index)
@@ -135,22 +222,31 @@ def resolve_character_scope(
 ) -> tuple[list[str], list[str]]:
     active = [canonicalize_character(x, character_index) or x for x in current_state.get("active_characters", []) or []]
     nearby = [canonicalize_character(x, character_index) or x for x in current_state.get("nearby_characters", []) or []]
+    scheduled = [canonicalize_character(x, character_index) or x for x in current_state.get("scheduled_character_ids", []) or []]
+    delayed = [canonicalize_character(x, character_index) or x for x in current_state.get("delayed_character_ids", []) or []]
+
     addressed = detect_addressed_characters(player_input, character_index)
 
     beat = current_calendar_beat(calendar_day, calendar_runtime)
     beat_chars = [canonicalize_character(x, character_index) or x for x in beat.get("character_ids", []) or []]
 
-    full = unique(["akira"] + active + nearby + addressed + beat_chars)
+    observed = detect_observed_characters(
+        player_input,
+        character_index,
+        current_location_id=current_location_id,
+        target_location_id=target_location_id,
+        scheduled=scheduled,
+        active_or_nearby=active + nearby + beat_chars,
+    )
 
-    scheduled = [canonicalize_character(x, character_index) or x for x in current_state.get("scheduled_character_ids", []) or []]
-    delayed = [canonicalize_character(x, character_index) or x for x in current_state.get("delayed_character_ids", []) or []]
+    full = unique(["akira"] + active + nearby + addressed + observed + beat_chars)
 
     # Important scene-specific promotions. These are assembly decisions, not GPT locks.
     if target_location_id == "basketball_court" or current_location_id == "basketball_court":
         if "haru" in scheduled:
             full.append("haru")
-        # Raiden stays reference until he speaks/is observed/addressed/nearby in state.
-    if "raiden" in addressed:
+        # Raiden becomes full only through address/meaningful observation/nearby/beat.
+    if "raiden" in addressed or "raiden" in observed:
         full.append("raiden")
 
     full = unique([x for x in full if x])
@@ -158,14 +254,14 @@ def resolve_character_scope(
     return full, reference
 
 
-def relationship_pair_paths(full_character_ids: list[str]) -> list[str]:
+def relationship_pair_paths(full_character_ids: list[str], session_id: str | None = None) -> list[str]:
     paths: list[str] = []
     for a, b in combinations(full_character_ids, 2):
         direct = f"state/relationship_pairs/{a}__{b}.json"
         reverse = f"state/relationship_pairs/{b}__{a}.json"
-        if exists(direct):
+        if exists(direct, session_id):
             paths.append(direct)
-        elif exists(reverse):
+        elif exists(reverse, session_id):
             paths.append(reverse)
     return unique(paths)
 
@@ -175,6 +271,7 @@ def conditional_state_paths(
     player_input: str,
     current_location_id: str | None,
     target_location_id: str | None,
+    session_id: str | None = None,
 ) -> list[str]:
     text = (player_input or "").lower().replace("ё", "е")
     locs = {current_location_id, target_location_id}
@@ -190,7 +287,24 @@ def conditional_state_paths(
     if any(w in text for w in ["энерг", "перегруз", "датчик", "трен", "сила", "контроль"]):
         paths.append("state/power_state.json")
         paths.append("state/akira_progress_state.json")
-    return [p for p in unique(paths) if exists(p)]
+    return [p for p in unique(paths) if exists(p, session_id)]
+
+
+def temporary_scene_npcs(current_state: dict[str, Any], current_location_id: str | None) -> list[dict[str, str]]:
+    scene_count = current_state.get("scene_count")
+    if current_location_id == "arrival_dropoff" and scene_count in {0, None}:
+        notes = " ".join(str(x) for x in current_state.get("start_day_notes", []) or [])
+        goal = str(current_state.get("current_scene_goal") or "")
+        if "Рэй" in notes or "Ray" in goal or "Рэй" in goal:
+            return [
+                {
+                    "id": "ray_temporary",
+                    "name": "Рэй",
+                    "role": "temporary start NPC: dropoff by car, bag question, leaves after handoff",
+                    "source": "state/current_state.json start_day_notes/current_scene_goal",
+                }
+            ]
+    return []
 
 
 def render_header(current_state: dict[str, Any], calendar_day: dict[str, Any], location_content: dict[str, Any] | None = None) -> str:
@@ -230,7 +344,7 @@ def build_scene_packet(session_id: str, user_input: str = "", mode: str = "play"
 
     raw_current_location = current_state.get("current_location_id")
     current_location_id = resolve_location_id(raw_current_location, location_index)
-    target_location_id = detect_target_location(user_input, location_index)
+    target_location_id = detect_target_location(user_input, location_index, current_location_id=current_location_id)
 
     location_ids = unique([x for x in [current_location_id, target_location_id] if x])
     location_paths = [p for p in (location_path(x, location_index) for x in location_ids) if p]
@@ -255,11 +369,12 @@ def build_scene_packet(session_id: str, user_input: str = "", mode: str = "play"
         if entry.get("memory_path") and exists(entry["memory_path"], session_id):
             memory_paths.append(entry["memory_path"])
 
-    relationship_paths = relationship_pair_paths(full_characters)
+    relationship_paths = relationship_pair_paths(full_characters, session_id)
     conditional_paths = conditional_state_paths(
         player_input=user_input,
         current_location_id=current_location_id,
         target_location_id=target_location_id,
+        session_id=session_id,
     )
 
     required_files = unique([
@@ -309,6 +424,7 @@ def build_scene_packet(session_id: str, user_input: str = "", mode: str = "play"
             "nearby_characters": current_state.get("nearby_characters", []),
             "scheduled_character_ids": current_state.get("scheduled_character_ids", []),
             "delayed_character_ids": current_state.get("delayed_character_ids", []),
+            "temporary_scene_npcs": temporary_scene_npcs(current_state, current_location_id),
         },
         "required_files": required_files,
         "loaded_files": loaded,
