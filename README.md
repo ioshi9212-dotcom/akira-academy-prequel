@@ -59,6 +59,20 @@ The play flow is:
 
 If a character is full-loaded, their `display.unknown_name`, appearance anchor, speech profile, and forbidden facts must reach the renderer.
 
+### Background NPCs and persistence
+
+Background NPCs are allowed in public scenes, but they must stay brief and useful: pressure, witness, rumor, obstacle, contrast, or consequence.
+
+Do not save ordinary background noise.
+
+Save a background/temporary NPC only when they create a future hook:
+- identifiable role or repeated presence
+- promise, threat, favor, debt, conflict
+- rumor source or witness to a meaningful event
+- access gate, discipline issue, injury, or relationship pressure
+
+Save important uncarded NPCs as compact `background_npc_threads`, `open_threads`, or `saved_scene_hooks` inside current state. Do not create a full character card unless there are repeated meaningful appearances or an explicit author decision.
+
 ### State writes
 
 Do not infer state transitions from rendered prose.
