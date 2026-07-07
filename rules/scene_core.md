@@ -76,6 +76,16 @@ This is the only compact scene rule file for normal play. Do not add lock files,
 - Random NPCs must not replace fixed characters when a loaded/scheduled character should logically carry the scene.
 - Do not name or promote a background NPC unless the current scene creates a real recurring hook.
 
+## NPC persistence
+
+- Ordinary background NPCs are not saved. A laugh, whisper, glance, one-off line, or passing student remains unsaved background.
+- Save an NPC/thread only if it creates a future hook: named/identifiable role, repeated presence, promise, threat, conflict, favor, debt, rumor source, witness to a meaningful event, access gate, injury, discipline issue, or direct relationship pressure.
+- Important but not-yet-carded NPCs should be saved as a compact thread in state, not as a new full character card during play.
+- Use stable temporary ids when saving such hooks: `npc_<role>_<short_hint>` or `thread_<location>_<topic>`.
+- Save only visible facts and consequences: what happened, who saw it, who may remember it, what pressure it creates, when/where it can return.
+- Do not save hidden motives, private thoughts, or facts the NPC could not know.
+- Promote a temporary/background NPC to a real character card only after repeated meaningful appearances or an explicit author decision.
+
 ## Scene movement and compression
 
 - Move at least one meaningful layer: plot, relationship, knowledge, conflict, reputation, state, body, schedule, rumor, open thread, or hook.
