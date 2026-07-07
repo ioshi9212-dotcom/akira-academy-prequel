@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import yaml
+
 MAX_PROMPT_PREVIEW_CHARS = 8000
 
 
@@ -19,11 +21,61 @@ def _dump(value: Any, limit: int = 2500) -> str:
     return _cut(text, limit)
 
 
-def build_prompt_preview(scene_packet: dict[str, Any]) -> str:
-    """Build a compact GPT rendering brief.
+def _load_yaml_text(text: str) -> dict[str, Any]:
+    try:
+        data = yaml.safe_load(text) or {}
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
 
-    Keep hard gameplay/render rules before long loaded content so they cannot be
-    cut off by MAX_PROMPT_PREVIEW_CHARS.
+
+def _first_text(value: Any, max_len: int = 150) -> str:
+    if isinstance(value, list):
+        value = "; ".join(str(x).strip() for x in value if str(x).strip())
+    elif isinstance(value, dict):
+        value = "; ".join(f"{k}:{v}" for k, v in value.items())
+    value = str(value or "").strip()
+    return value[:max_len].rstrip()
+
+
+def _character_brief_from_yaml(path: str, text: str) -> str:
+    data = _load_yaml_text(text)
+    if not data:
+        return f"{path}: unreadable"
+
+    cid = str(data.get("slug") or data.get("id") or path).replace("char_", "")
+    display = data.get("display") or {}
+    appearance = data.get("appearance") or {}
+    speech = data.get("speech_profile") or {}
+
+    known = display.get("known_name") or (data.get("name") or {}).get("first") or cid
+    unknown = display.get("unknown_name") or display.get("unknown_formal") or known
+    overall = _first_text(appearance.get("overall"), 120)
+    hair = _first_text((appearance.get("hair") or {}).get("color") if isinstance(appearance.get("hair"), dict) else appearance.get("hair"), 80)
+    voice_label = speech.get("label") or ""
+    voice_core = _first_text(speech.get("core"), 170)
+
+    hard = []
+    hard.extend(appearance.get("forbidden") or [])
+    hard.extend(speech.get("forbidden_speech") or [])
+    forbidden = _first_text(hard, 170)
+
+    return (
+        f"- {cid}: known={known}; unknown={unknown}; "
+        f"appearance={overall}; hair={hair}; "
+        f"voice={voice_label}: {voice_core}; forbidden={forbidden}"
+    )
+
+
+def _character_briefs(character_files: dict[str, str]) -> str:
+    return "\n".join(_character_brief_from_yaml(path, text) for path, text in sorted(character_files.items()))
+
+
+def build_prompt_preview(scene_packet: dict[str, Any]) -> str:
+    """Build a compact render brief.
+
+    Full file contents are retrieved through required-files-chunk. This preview
+    carries only critical non-negotiable rules and compact character anchors.
     """
     current = scene_packet.get("current_frame", {})
     player = scene_packet.get("player_input", {})
@@ -31,16 +83,10 @@ def build_prompt_preview(scene_packet: dict[str, Any]) -> str:
     required = scene_packet.get("required_files", [])
 
     scene_core = loaded.get("rules/scene_core.md", "")
-
     character_files = {
         path: content
         for path, content in loaded.items()
         if path.startswith("characters/") and path.endswith("/main.yaml")
-    }
-    memory_files = {
-        path: content
-        for path, content in loaded.items()
-        if path.startswith("state/character_memory/")
     }
     relationship_files = {
         path: content
@@ -60,17 +106,23 @@ def build_prompt_preview(scene_packet: dict[str, Any]) -> str:
     state_files = {
         path: content
         for path, content in loaded.items()
-        if path.startswith("state/") and path not in memory_files and path not in relationship_files
+        if path.startswith("state/") and "character_memory" not in path and "relationship_pairs" not in path
     }
 
     brief = f"""
-ACADEMY 1198 SCENE RENDER BRIEF
+ACADEMY 1198 RENDER BRIEF
+
+CHUNK PROTOCOL REQUIRED:
+- scene_packet/prompt_preview is not enough for gameplay rendering.
+- Before writing a gameplay scene, load every required file through `/required-files-chunk`.
+- Keep calling chunks with next_chunk_index until has_more=false.
+- If required chunks were not loaded, do not write gameplay prose; return a technical missing-context message.
+- Never substitute guesses for unloaded full character cards, location slices, calendar beat, or relationship files.
 
 ROLE SPLIT:
-- Railway/API has already assembled the scene packet and loaded files internally.
-- GPT renders the scene from this packet only.
-- Do not search for extra gameplay files during normal play.
-- Do not invent exact room, floor, route, group, schedule, procedure result, or staff decision.
+- Railway/API assembles scene_packet and required_files.
+- GPT renders only from scene_packet plus loaded required chunks.
+- applyTurnResult must save only explicit structured state changes. Do not infer state from prose.
 
 PACKET STATUS:
 {scene_packet.get("packet_status")}
@@ -78,104 +130,62 @@ PACKET STATUS:
 RENDERED HEADER:
 {scene_packet.get("rendered_header")}
 
-CRITICAL POV / PARENTHETICAL RULES:
-- Text outside parentheses is exact spoken POV dialogue.
-- Text inside parentheses is private POV action/body state/intention/thought. Parenthetical text is NOT spoken.
-- NPCs must never know, quote, answer, paraphrase, or directly react to private parenthetical thoughts.
-- NPCs may react only to visible signs from parentheticals: gaze direction, pause, facial shift, posture, movement, object handling, silence, hesitation, breathing, or energy/body manifestations.
-- NPCs may make imperfect guesses from visible signs, but never a 100% correct read of the thought and never the same wording.
-- Example: if POV thinks `(Рэй вообще снимает форму? или спит в ней)`, Ray must NOT answer about sleeping in uniform. He may only notice a look/pause and ask something vague or ignore it.
+CHARACTER ANCHORS FROM LOADED FULL CARDS:
+{_character_briefs(character_files)}
 
-CRITICAL LIVING WORLD / SCENE MOTION:
-- The world does not freeze when POV is silent. NPCs act from role, status, duties, jealousy, curiosity, boredom, ambition, fear, habits, schedule, and visible pressure.
-- Use NPC/background only when it adds pressure, witness, rumor, obstacle, hook, contrast, or consequence.
-- Do not write watery description. Use precise visual details and let characters act/react/speak when the scene is social.
-- Routine actions should compress to the next meaningful point: registration result, staff question, staff reaction, gossip, interruption, obstacle, visible consequence, meeting, message, door, or procedure outcome.
-- Do not stop on empty continuation choices like `идти дальше`, `ждать`, `посмотреть` if no stakes changed.
-- Stop when someone asks the POV a meaningful question, blocks the path, reveals important information, creates risk, introduces an important character, or forces consent/refusal/tone/disclosure/conflict/control.
-- If player writes `пройти регистрацию` / `отдать документы`, compress registration to result or meaningful interruption; do not ask whether to keep standing in line.
+POV / PARENTHETICAL PRIVACY:
+- Outside parentheses = exact spoken POV dialogue.
+- Inside parentheses = private POV action/body state/intention/thought, not spoken.
+- NPCs never know, quote, answer, paraphrase, or directly react to private parenthetical thoughts.
+- NPCs may react only to visible signs: gaze, pause, posture, movement, silence, object handling, body/energy manifestation.
+- NPC guesses must be imperfect and based on visible signs only.
 
-CRITICAL AKIRA SPEECH:
-- Akira speaks short, dry, poisonous-calm, and rarely explains herself.
-- If an Akira line sounds neutral/safe/ordinary, rewrite it sharper, drier, and slightly more poisonous.
-- Do not make Akira friendly-explanatory, chatty, soft, or generically sarcastic.
-- Use loaded `characters/akira/main.yaml` speech_profile for all Akira dialogue and suggested lines.
+ROUTE:
+- 15 August route is linear: arrival/dropoff -> back court route -> basketball court/sports area -> registration.
+- Do not offer a side route or a registration bypass when the route already passes the court.
+- Haru and Raiden are at the court only when the court/sports area is visible or reached.
+- If one of the court pair is full-visible, keep both anchored: Haru is red-haired; Raiden is dark-haired.
 
-CRITICAL ROUTE RULES:
-- The Academy back entrance path is linear: arrival/dropoff -> back court route -> basketball court/sports площадки -> registration.
-- Do NOT offer an alternate choice like "свернуть вниманием к боковому маршруту" if the route already goes through the court.
-- Do NOT offer "пойти по официальному маршруту к регистрации" as if it bypasses the court. Registration is after the court path.
+SCENE MOTION:
+- Academy is alive; NPCs act from role, duty, curiosity, pressure, schedule, habit, and visible scene facts.
+- Compress routine movement/procedures to the next meaningful point.
+- Stop for meaningful NPC questions, blocked path, risk, important information, new important character, consent/refusal, disclosure, conflict, or control choice.
+- Do not stop for empty continuation choices when nothing changed.
 
-CRITICAL BOTTOM UI FORMAT:
-- Bottom UI may include: `✦ Что можно сделать`, `✦ Что <POV> могла бы сказать`, `✦ Мысли <POV>`, `✦ Уровни`, `✦ Отношения`.
-- In actions, phrases, and thoughts: max 3 items each.
-- `✦ Что можно сделать` must include exactly: `Варианты ниже не считаются действием, пока игрок не выбрал.`
-- Action options start with `◈` and must be ACTIONS ONLY: movement, posture, observation, object handling, pause, route, attention.
-- FORBIDDEN in action options: `сказать`, `ответить`, `спросить`, `позвать`, `предложить`, `пошутить`, exact dialogue, or dialogue intent.
-- `✦ Что <POV> могла бы сказать`: exact speech lines only, max 3, strict POV character/goals, no spoilers.
-- `✦ Мысли <POV>`: POV-local hints only, max 3, only what POV sees/feels/notices/suspects; no hidden lore or future facts.
-- `✦ Уровни`: use compact rows. Preferred start format: `Физика: 40/100 · выносливость: 35/100 · усталость: 15/100` and `Энергия: доступ 10/100 · контроль 8/100 · риск: низкий` when supported.
-- `✦ Отношения`: only characters in current scene with loaded pair file. Use `surface_dynamic.display_score` and `display_label`: `Ливия: +53 · старые подруги`. Never write `без изменений` or pair metrics.
+BOTTOM UI:
+- Use only useful blocks: `✦ Что можно сделать`, `✦ Что <POV> могла бы сказать`, `✦ Мысли <POV>`, `✦ Уровни`, `✦ Отношения`.
+- Max 3 items in actions, speech, and thoughts.
+- Actions are physical/attention/movement/object/pause/route/observation/posture only.
+- No speech verbs in actions: no сказать, ответить, спросить, позвать, предложить, пошутить.
+- Speech block contains exact possible spoken lines only.
+- Thoughts are POV-local only and invisible to NPCs.
+- Levels use loaded numeric state when available.
+- Relationships show only loaded scene relationships; no absent characters, no `без изменений`.
 
-PLAYER INPUT SEGMENTS, ORIGINAL ORDER:
-{_dump(player, 1000)}
+PLAYER INPUT SEGMENTS:
+{_dump(player, 900)}
 
 CURRENT FRAME:
-{_dump(current, 1200)}
+{_dump(current, 1000)}
 
-SCENE CORE RULES:
-{_cut(scene_core, 2600)}
+COMPACT SCENE CORE:
+{_cut(scene_core, 1200)}
 
-LOADED RELATIONSHIP PAIRS:
-{_dump(relationship_files, 1200)}
-
-LOADED CALENDAR:
-{_dump(calendar_files, 1100)}
-
-LOADED LOCATION:
-{_dump(location_files, 1100)}
-
-LOADED CHARACTER CARDS:
-{_dump(character_files, 2200)}
-
-LOADED CHARACTER MEMORY:
-{_dump(memory_files, 900)}
-
-LOADED CONDITIONAL STATE:
-{_dump(state_files, 900)}
+CALENDAR / LOCATION / STATE DIGEST:
+calendar={_dump(calendar_files, 700)}
+location={_dump(location_files, 700)}
+state={_dump(state_files, 650)}
+relationships={_dump(relationship_files, 700)}
 
 REQUIRED FILES:
 {_dump(required, 800)}
 
-RHYTHM RULES FROM OLD WORKING ACADEMY, KEPT COMPACT:
-- Keep input segment order. Do not merge speech across parentheticals.
-- If the player gives movement, waiting, following, routine transition, or a chain of actions, resolve to the nearest meaningful point: line, interruption, procedure result, social pressure, visible consequence, or choice.
-- Do not split harmless movement into empty micro-turns.
-- Do not choose a new major goal, answer, consent, attack, trust shift, time skip, or unrelated location for the player-controlled character.
-- Good rhythm: POV anchor -> 1-4 meaningful NPC/world reactions -> nearest meaningful beat or choice point.
-- If many NPC lines pass without a new player anchor or player choice, stop earlier.
-- If the player-controlled character is leaving and someone throws a meaningful hook at their back, stop on that hook unless the player explicitly wrote that they ignore it.
-
-CHARACTER FIDELITY:
-- Characters must act according to loaded character files, loaded memories, relationship files, visible state, goals, limits and scene pressure.
-- If a planned line/reaction contradicts a loaded card, relationship, knowledge boundary, location, or current state, rewrite before sending.
-- If a character is reference-only and not full-loaded, do not give them meaningful new dialogue/action.
-
 OUTPUT GATE:
-1. The rendered header exactly.
-2. Scene body.
-3. Player-input anchors inserted as POV speech/action in original order.
-4. Parenthetical privacy: NPCs do not read or answer thoughts.
-5. Character speech-profile fidelity.
-6. Living world and no-empty-scene motion.
-7. Visible-source fidelity.
-8. Witness/knowledge fidelity.
-9. Bottom UI follows the critical action/speech/thought/levels/relationship format above.
-
-FORBIDDEN FINAL OUTPUT IN PLAY MODE:
-- API/debug/contract commentary.
-- Renaming a described invented NPC into a fixed canon character.
-- Letting absent/delayed/reference characters know or act on scenes they missed.
-- Letting NPCs/staff/procedure react as if the POV's unspoken thoughts were spoken or visible.
+1. Use rendered_header exactly.
+2. Preserve player input order.
+3. Respect loaded character anchors and speech profiles.
+4. Keep NPC knowledge visible-source only.
+5. Keep scene moving to meaningful beats.
+6. Do not output API/debug commentary in play mode.
 """
     return brief[:MAX_PROMPT_PREVIEW_CHARS]

@@ -194,14 +194,17 @@ def detect_target_location(
     text = (user_input or "").lower().replace("ё", "е")
 
     # The first day route is linear: arrival -> back court route -> basketball court -> registration.
-    # Even if the player says "registration/documents", the entrance path still passes through the sports courts.
-    if current_location_id == "arrival_dropoff" and any(
-        word in text for word in [*REGISTRATION_WORDS, "мяч", "корт", "баскетбол", "площадк", "задн", "маршрут"]
-    ):
-        return resolve_location_id("back_court_route", location_index)
+    # Explicit court/sports wording should load the court beat and its visible pair.
+    court_words = ["мяч", "корт", "баскетбол", "площадк", "сетк", "игр", "спорт"]
+    route_words = ["задн", "маршрут", "вход"]
+    if current_location_id == "arrival_dropoff":
+        if any(word in text for word in court_words):
+            return resolve_location_id("basketball_court", location_index)
+        if any(word in text for word in [*REGISTRATION_WORDS, *route_words]):
+            return resolve_location_id("back_court_route", location_index)
 
     if current_location_id == "back_court_route" and any(
-        word in text for word in [*REGISTRATION_WORDS, "корт", "баскетбол", "площадк", "игр", "мяч"]
+        word in text for word in [*REGISTRATION_WORDS, *court_words]
     ):
         return resolve_location_id("basketball_court", location_index)
 
