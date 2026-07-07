@@ -2,7 +2,8 @@ location_id: arrival_dropoff
 file_type: location_slice
 version: academy_1198_location_slice_v1
 status: active
-load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+load_rule: Load only when current_location_id/target_location_id/route_location_id
+  resolves to this location id.
 name: подъезд к территории Академии / место высадки
 type: переходная входная зона
 look:
@@ -17,3 +18,8 @@ scene_use:
 - диалог у машины
 - первый взгляд на Академию
 boundary: это не корт; к кортам идут после стартового кадра и входного перехода
+route_boundary:
+- Это зона высадки, не корт.
+- Рэй временный стартовый NPC и уезжает после передачи.
+- Переход к регистрации начинается через back_court_route; не перескакивать сразу
+  к стойкам.

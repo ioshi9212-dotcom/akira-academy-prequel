@@ -2,7 +2,8 @@ location_id: basketball_court
 file_type: location_slice
 version: academy_1198_location_slice_v1
 status: active
-load_rule: Load only when current_location_id/target_location_id/route_location_id resolves to this location id.
+load_rule: Load only when current_location_id/target_location_id/route_location_id
+  resolves to this location id.
 name: баскетбольные площадки
 type: спортзона / социальная сцена
 look:
@@ -18,3 +19,11 @@ scene_use:
 - Райден может быть рядом фоном
 - репутация и первое впечатление
 boundary: не делать мяч первым кадром дня; до него должен быть приезд и входной переход
+character_anchors:
+  haru: высокий рыжий курсант; мяч; живая тёплая наглость; не беловолосый
+  raiden: очень высокий тёмноволосый курсант рядом с Хару; сухой контроль; не светловолосый
+route_boundary:
+- Корт обязателен перед регистрацией на заднем маршруте.
+- Если Хару показан как meaningful участник, Райден рядом не должен исчезать.
+- Акира не знает их имён без сценического источника; использовать unknown_name из
+  карточек.
