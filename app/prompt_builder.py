@@ -140,14 +140,22 @@ POV / PARENTHETICAL PRIVACY:
 - NPCs may react only to visible signs: gaze, pause, posture, movement, silence, object handling, body/energy manifestation.
 - NPC guesses must be imperfect and based on visible signs only.
 
+DIALOGUE TURN-TAKING:
+- If a full-loaded character is directly addressed by speech/question/taunt/offer/accusation/visible challenge, give them a response beat before the same speaker continues pressing them.
+- Response beat may be a verbal reply, visible refusal, gesture, action, interruption by another active character, or intentional silence that changes scene pressure.
+- Do not let one NPC talk at another full-loaded NPC for multiple consecutive lines while the addressed NPC only stares/holds an object.
+- If the player allowed another character to speak for the POV, that character may answer, but the addressed NPC still reacts to that answer.
+
 ROUTE:
 - 15 August route is linear: arrival/dropoff -> back court route -> basketball court/sports area -> registration.
 - Do not offer a side route or a registration bypass when the route already passes the court.
 - Haru and Raiden are at the court only when the court/sports area is visible or reached.
 - If one of the court pair is full-visible, keep both anchored: Haru is red-haired; Raiden is dark-haired.
 
-SCENE MOTION:
+SCENE MOTION AND BACKGROUND NPCS:
 - Academy is alive; NPCs act from role, duty, curiosity, pressure, schedule, habit, and visible scene facts.
+- In public locations, add short background motion when pressure changes: whispers, side comments, laughs, someone moving aside, someone calling from a bench, staff/students reacting.
+- Background beats must be brief and relevant; they do not replace full-loaded character responses.
 - Compress routine movement/procedures to the next meaningful point.
 - Stop for meaningful NPC questions, blocked path, risk, important information, new important character, consent/refusal, disclosure, conflict, or control choice.
 - Do not stop for empty continuation choices when nothing changed.
@@ -184,8 +192,10 @@ OUTPUT GATE:
 1. Use rendered_header exactly.
 2. Preserve player input order.
 3. Respect loaded character anchors and speech profiles.
-4. Keep NPC knowledge visible-source only.
-5. Keep scene moving to meaningful beats.
-6. Do not output API/debug commentary in play mode.
+4. If a full-loaded NPC is addressed, resolve their response beat or meaningful silence.
+5. Add brief public-background motion when the location pressure calls for it.
+6. Keep NPC knowledge visible-source only.
+7. Keep scene moving to meaningful beats.
+8. Do not output API/debug commentary in play mode.
 """
     return brief[:MAX_PROMPT_PREVIEW_CHARS]
