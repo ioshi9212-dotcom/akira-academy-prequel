@@ -72,10 +72,11 @@ def _character_briefs(character_files: dict[str, str]) -> str:
 
 
 def build_prompt_preview(scene_packet: dict[str, Any]) -> str:
-    """Build a compact render brief.
+    """Build a compact render brief in canonical processing order.
 
     Full file contents are retrieved through required-files-chunk. This preview
-    carries only critical non-negotiable rules and compact character anchors.
+    summarizes rule blocks in logical order; earlier blocks are not more
+    important than later blocks.
     """
     current = scene_packet.get("current_frame", {})
     player = scene_packet.get("player_input", {})
@@ -112,47 +113,59 @@ def build_prompt_preview(scene_packet: dict[str, Any]) -> str:
     brief = f"""
 ACADEMY 1198 RENDER BRIEF
 
-CHUNK PROTOCOL REQUIRED:
+ORDER NOTE:
+- Rule blocks below are arranged in the scene-processing order.
+- No block is optional and no block is more important because it appears earlier.
+- Do not move rules to the top as a priority hack; fix the canonical source instead.
+
+1) CONTEXT ASSEMBLY:
+- Railway/API assembles scene_packet and required_files.
 - scene_packet/prompt_preview is not enough for gameplay rendering.
 - Before writing a gameplay scene, load every required file through `/required-files-chunk`.
 - Keep calling chunks with next_chunk_index until has_more=false.
 - If required chunks were not loaded, do not write gameplay prose; return a technical missing-context message.
 - Never substitute guesses for unloaded full character cards, location slices, calendar beat, or relationship files.
+- applyTurnResult saves only explicit structured state changes. Do not infer state from prose.
 
-ROLE SPLIT:
-- Railway/API assembles scene_packet and required_files.
-- GPT renders only from scene_packet plus loaded required chunks.
-- applyTurnResult must save only explicit structured state changes. Do not infer state from prose.
+2) PACKET STATUS AND HEADER:
+packet_status={scene_packet.get("packet_status")}
+rendered_header={scene_packet.get("rendered_header")}
 
-PACKET STATUS:
-{scene_packet.get("packet_status")}
-
-RENDERED HEADER:
-{scene_packet.get("rendered_header")}
-
-CHARACTER ANCHORS FROM LOADED FULL CARDS:
-{_character_briefs(character_files)}
-
-POV / PARENTHETICAL PRIVACY:
+3) PLAYER INPUT / POV PRIVACY:
+{_dump(player, 900)}
 - Outside parentheses = exact spoken POV dialogue.
 - Inside parentheses = private POV action/body state/intention/thought, not spoken.
+- Preserve the original order of player input segments.
 - NPCs never know, quote, answer, paraphrase, or directly react to private parenthetical thoughts.
 - NPCs may react only to visible signs: gaze, pause, posture, movement, silence, object handling, body/energy manifestation.
 - NPC guesses must be imperfect and based on visible signs only.
 
-DIALOGUE TURN-TAKING:
+4) CURRENT FRAME:
+{_dump(current, 1000)}
+
+5) LOADED CHARACTER ANCHORS:
+{_character_briefs(character_files)}
+- Respect loaded appearance anchors, unknown descriptors, speech profiles, and forbidden facts.
+- If one of the court pair is full-visible, keep both anchored: Haru is red-haired; Raiden is dark-haired.
+
+6) CALENDAR / LOCATION / STATE / RELATIONSHIPS:
+calendar={_dump(calendar_files, 700)}
+location={_dump(location_files, 700)}
+state={_dump(state_files, 650)}
+relationships={_dump(relationship_files, 700)}
+
+7) ROUTE AND SCENE POSITION:
+- 15 August route is linear: arrival/dropoff -> back court route -> basketball court/sports area -> registration.
+- Do not offer a side route or a registration bypass when the route already passes the court.
+- Haru and Raiden are at the court only when the court/sports area is visible or reached.
+
+8) DIALOGUE TURN-TAKING:
 - If a full-loaded character is directly addressed by speech/question/taunt/offer/accusation/visible challenge, give them a response beat before the same speaker continues pressing them.
 - Response beat may be a verbal reply, visible refusal, gesture, action, interruption by another active character, or intentional silence that changes scene pressure.
 - Do not let one NPC talk at another full-loaded NPC for multiple consecutive lines while the addressed NPC only stares/holds an object.
 - If the player allowed another character to speak for the POV, that character may answer, but the addressed NPC still reacts to that answer.
 
-ROUTE:
-- 15 August route is linear: arrival/dropoff -> back court route -> basketball court/sports area -> registration.
-- Do not offer a side route or a registration bypass when the route already passes the court.
-- Haru and Raiden are at the court only when the court/sports area is visible or reached.
-- If one of the court pair is full-visible, keep both anchored: Haru is red-haired; Raiden is dark-haired.
-
-SCENE MOTION AND BACKGROUND NPCS:
+9) SCENE MOTION AND BACKGROUND NPCS:
 - Academy is alive; NPCs act from role, duty, curiosity, pressure, schedule, habit, and visible scene facts.
 - In public locations, add short background motion when pressure changes: whispers, side comments, laughs, someone moving aside, someone calling from a bench, staff/students reacting.
 - Background beats must be brief and relevant; they do not replace full-loaded character responses.
@@ -160,14 +173,14 @@ SCENE MOTION AND BACKGROUND NPCS:
 - Stop for meaningful NPC questions, blocked path, risk, important information, new important character, consent/refusal, disclosure, conflict, or control choice.
 - Do not stop for empty continuation choices when nothing changed.
 
-NPC PERSISTENCE:
+10) NPC PERSISTENCE:
 - Ordinary background NPCs are not saved: one laugh, whisper, glance, or passing line remains background.
 - Save a background/temporary NPC only if they create a future hook: named/identifiable role, repeated presence, threat, promise, conflict, favor, debt, rumor source, witness, access gate, injury, discipline issue, or direct relationship pressure.
 - Save important uncarded NPCs as compact state threads/open hooks, not as full character cards during play.
 - Save only visible facts and consequences: what happened, who saw it, who may remember it, what pressure it creates, where/when it can return.
 - Do not save hidden motives or private thoughts.
 
-BOTTOM UI:
+11) BOTTOM UI:
 - Use only useful blocks: `✦ Что можно сделать`, `✦ Что <POV> могла бы сказать`, `✦ Мысли <POV>`, `✦ Уровни`, `✦ Отношения`.
 - Max 3 items in actions, speech, and thoughts.
 - Actions are physical/attention/movement/object/pause/route/observation/posture only.
@@ -177,33 +190,21 @@ BOTTOM UI:
 - Levels use loaded numeric state when available.
 - Relationships show only loaded scene relationships; no absent characters, no `без изменений`.
 
-PLAYER INPUT SEGMENTS:
-{_dump(player, 900)}
-
-CURRENT FRAME:
-{_dump(current, 1000)}
-
-COMPACT SCENE CORE:
+12) FULL SCENE CORE DIGEST:
 {_cut(scene_core, 1200)}
 
-CALENDAR / LOCATION / STATE DIGEST:
-calendar={_dump(calendar_files, 700)}
-location={_dump(location_files, 700)}
-state={_dump(state_files, 650)}
-relationships={_dump(relationship_files, 700)}
-
-REQUIRED FILES:
+13) REQUIRED FILES:
 {_dump(required, 800)}
 
-OUTPUT GATE:
-1. Use rendered_header exactly.
-2. Preserve player input order.
-3. Respect loaded character anchors and speech profiles.
-4. If a full-loaded NPC is addressed, resolve their response beat or meaningful silence.
-5. Add brief public-background motion when the location pressure calls for it.
-6. Save only important background NPC hooks, never ordinary one-off noise.
-7. Keep NPC knowledge visible-source only.
-8. Keep scene moving to meaningful beats.
-9. Do not output API/debug commentary in play mode.
+14) OUTPUT CHECK:
+- Use rendered_header exactly.
+- Preserve player input order.
+- Respect loaded character anchors and speech profiles.
+- If a full-loaded NPC is addressed, resolve their response beat or meaningful silence.
+- Add brief public-background motion when the location pressure calls for it.
+- Save only important background NPC hooks, never ordinary one-off noise.
+- Keep NPC knowledge visible-source only.
+- Keep scene moving to meaningful beats.
+- Do not output API/debug commentary in play mode.
 """
     return brief[:MAX_PROMPT_PREVIEW_CHARS]
