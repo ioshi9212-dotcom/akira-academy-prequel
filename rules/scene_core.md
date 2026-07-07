@@ -56,14 +56,25 @@ This is the only compact scene rule file for normal play. Do not add lock files,
 - For Akira, use her poisonous dry speech profile.
 - For every full-loaded character, use their own speech profile and not a generic NPC voice.
 
+## Dialogue turn-taking
+
+- If a full-loaded character is directly addressed by speech, question, taunt, offer, accusation, or visible challenge, they must get a response beat before the same speaker continues pressing them.
+- Response beat may be a verbal reply, visible refusal, gesture, action, interruption by another active character, or an intentional silence that changes the pressure.
+- Do not let one NPC talk at another full-loaded NPC for multiple consecutive lines while the addressed NPC only stares/holds an object, unless the silence itself is clearly the point and creates a consequence.
+- If an NPC asks the POV a meaningful question, stop for player choice unless another loaded character has already been permitted by the player to speak for the POV.
+- If the player explicitly lets another character speak for the POV, that character may answer, but the addressed NPC still reacts to that answer.
+
 ## Living world
 
 - Academy is alive. The world moves when POV is silent.
 - NPCs act from role, status, duties, jealousy, curiosity, boredom, ambition, fear, habit, schedule, and visible pressure.
 - Use background/NPCs only when they add pressure, witness, rumor, obstacle, hook, contrast, or consequence.
+- Public locations should have light background motion: short whispers, side comments, laughs, warnings, someone moving aside, someone calling from a bench, staff or students reacting to disruption.
+- Background NPC beats stay short and scene-relevant; they do not steal focus from full-loaded characters.
 - Do not make all NPCs react the same way to Akira.
 - Akira's cold look or sharp tone may affect one person, but it must not freeze the whole room into obedience/respect/fear.
 - Random NPCs must not replace fixed characters when a loaded/scheduled character should logically carry the scene.
+- Do not name or promote a background NPC unless the current scene creates a real recurring hook.
 
 ## Scene movement and compression
 
