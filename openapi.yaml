@@ -72,7 +72,7 @@ paths:
   /api/v1/sessions/{session_id}/required-files-manifest:
     post:
       operationId: getRequiredFilesManifest
-      summary: Get required files manifest for diagnostics
+      summary: Get required files manifest for gameplay context loading
       parameters:
         - $ref: "#/components/parameters/session_id"
       requestBody:
@@ -91,7 +91,7 @@ paths:
   /api/v1/sessions/{session_id}/required-files-chunk:
     post:
       operationId: getRequiredFilesChunk
-      summary: Get required file contents by chunks for diagnostics
+      summary: Get required file contents by chunks for gameplay context loading
       parameters:
         - $ref: "#/components/parameters/session_id"
         - name: chunk_index

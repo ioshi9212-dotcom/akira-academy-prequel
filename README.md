@@ -59,6 +59,31 @@ The play flow is:
 
 If a character is full-loaded, their `display.unknown_name`, appearance anchor, speech profile, and forbidden facts must reach the renderer.
 
+
+### Rule order and prompt preview
+
+All rules are important. Do not move a rule upward as if it is more important than the others.
+
+Prompt and instruction blocks must follow the scene-processing order:
+1. context assembly
+2. packet/header
+3. player input and POV privacy
+4. current frame
+5. character anchors
+6. calendar/location/state/relationships
+7. route and scene position
+8. dialogue turn-taking
+9. scene motion and background NPCs
+10. NPC persistence
+11. bottom UI
+12. scene core digest
+13. required files
+14. output check
+
+If a rule is being lost because of preview size, make the block shorter or increase the preview limit. Do not create a new priority layer or duplicate lock file.
+
+Bottom UI must always be validated before output: actions use `◈`, speech/thought lines use `—`, actions have no speech verbs, levels use loaded numeric state, and relationships use `<Имя>: +score · label`.
+
 ### Background NPCs and persistence
 
 Background NPCs are allowed in public scenes, but they must stay brief and useful: pressure, witness, rumor, obstacle, contrast, or consequence.
