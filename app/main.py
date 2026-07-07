@@ -185,8 +185,8 @@ def build_scene_packet_endpoint(session_id: str, request: TurnRequest = TurnRequ
     ensure_session(sid)
     packet = build_scene_packet(sid, request.user_input, request.mode)
     packet["prompt_preview"] = build_prompt_preview(packet)
-    # Keep gameplay Action responses compact: full file contents are available
-    # through required-files-chunk for technical/diagnostic mode only.
+    # Keep gameplay Action responses compact: full file contents are loaded
+    # through required-files-chunk when rendering, including normal play mode.
     packet["loaded_files"] = {}
     return ScenePacket(**packet)
 

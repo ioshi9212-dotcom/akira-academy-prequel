@@ -5,7 +5,7 @@ from typing import Any
 
 import yaml
 
-MAX_PROMPT_PREVIEW_CHARS = 8000
+MAX_PROMPT_PREVIEW_CHARS = 9000
 
 
 def _cut(text: Any, limit: int = 2000) -> str:
@@ -114,97 +114,92 @@ def build_prompt_preview(scene_packet: dict[str, Any]) -> str:
 ACADEMY 1198 RENDER BRIEF
 
 ORDER NOTE:
-- Rule blocks below are arranged in the scene-processing order.
-- No block is optional and no block is more important because it appears earlier.
-- Do not move rules to the top as a priority hack; fix the canonical source instead.
+- Blocks follow scene-processing order, not priority order.
+- Every block is required. Earlier does not mean more important.
+- Do not create priority hacks or duplicate rule layers.
 
-1) CONTEXT ASSEMBLY:
-- Railway/API assembles scene_packet and required_files.
-- scene_packet/prompt_preview is not enough for gameplay rendering.
-- Before writing a gameplay scene, load every required file through `/required-files-chunk`.
-- Keep calling chunks with next_chunk_index until has_more=false.
-- If required chunks were not loaded, do not write gameplay prose; return a technical missing-context message.
-- Never substitute guesses for unloaded full character cards, location slices, calendar beat, or relationship files.
-- applyTurnResult saves only explicit structured state changes. Do not infer state from prose.
+1) CONTEXT ASSEMBLY
+- Railway/API builds scene_packet and required_files.
+- prompt_preview alone is not enough for gameplay.
+- Load required files through /required-files-chunk until has_more=false.
+- If chunks are missing, stop with a short technical missing-context message.
+- applyTurnResult saves only explicit structured changes, never inferred prose/UI options.
 
-2) PACKET STATUS AND HEADER:
+2) PACKET STATUS AND HEADER
 packet_status={scene_packet.get("packet_status")}
 rendered_header={scene_packet.get("rendered_header")}
 
-3) PLAYER INPUT / POV PRIVACY:
-{_dump(player, 900)}
-- Outside parentheses = exact spoken POV dialogue.
-- Inside parentheses = private POV action/body state/intention/thought, not spoken.
-- Preserve the original order of player input segments.
-- NPCs never know, quote, answer, paraphrase, or directly react to private parenthetical thoughts.
-- NPCs may react only to visible signs: gaze, pause, posture, movement, silence, object handling, body/energy manifestation.
-- NPC guesses must be imperfect and based on visible signs only.
+3) PLAYER INPUT / POV PRIVACY
+{_dump(player, 600)}
+- Outside parentheses = exact spoken POV dialogue; preserve it literally.
+- Inside parentheses = private POV action/body/intention/thought, not spoken.
+- Preserve input segment order.
+- NPCs react only to visible signs and known facts, never to private thoughts.
 
-4) CURRENT FRAME:
-{_dump(current, 1000)}
+4) CURRENT FRAME
+{_dump(current, 600)}
 
-5) LOADED CHARACTER ANCHORS:
-{_character_briefs(character_files)}
-- Respect loaded appearance anchors, unknown descriptors, speech profiles, and forbidden facts.
-- If one of the court pair is full-visible, keep both anchored: Haru is red-haired; Raiden is dark-haired.
+5) LOADED CHARACTER ANCHORS
+{_cut(_character_briefs(character_files), 1200)}
+- Use loaded unknown_name, appearance, voice and forbidden facts.
+- If one court pair member is full-visible, keep both anchored: Haru red-haired, Raiden dark-haired.
 
-6) CALENDAR / LOCATION / STATE / RELATIONSHIPS:
-calendar={_dump(calendar_files, 700)}
-location={_dump(location_files, 700)}
-state={_dump(state_files, 650)}
-relationships={_dump(relationship_files, 700)}
+6) CALENDAR / LOCATION / STATE / RELATIONSHIPS
+calendar={_dump(calendar_files, 350)}
+location={_dump(location_files, 400)}
+state={_dump(state_files, 350)}
+relationships={_dump(relationship_files, 350)}
 
-7) ROUTE AND SCENE POSITION:
-- 15 August route is linear: arrival/dropoff -> back court route -> basketball court/sports area -> registration.
-- Do not offer a side route or a registration bypass when the route already passes the court.
-- Haru and Raiden are at the court only when the court/sports area is visible or reached.
+7) ROUTE AND SCENE POSITION
+- 15 Aug route: arrival/dropoff -> back court route -> basketball court/sports area -> registration.
+- Do not offer route bypass if the route already passes court.
+- Haru/Raiden appear at court only when court/sports area is visible or reached.
 
-8) DIALOGUE TURN-TAKING:
-- If a full-loaded character is directly addressed by speech/question/taunt/offer/accusation/visible challenge, give them a response beat before the same speaker continues pressing them.
-- Response beat may be a verbal reply, visible refusal, gesture, action, interruption by another active character, or intentional silence that changes scene pressure.
-- Do not let one NPC talk at another full-loaded NPC for multiple consecutive lines while the addressed NPC only stares/holds an object.
-- If the player allowed another character to speak for the POV, that character may answer, but the addressed NPC still reacts to that answer.
+8) DIALOGUE TURN-TAKING
+- If a full-loaded character is addressed by question/taunt/offer/accusation/challenge, give them a response beat before the same speaker continues.
+- Response beat = reply, refusal, gesture, action, interruption, or meaningful silence with pressure.
+- Do not let one NPC speak at another full-loaded NPC for multiple lines while they only stare/hold an object.
+- If player let another character speak for POV, that character may answer, but the addressed NPC still reacts.
 
-9) SCENE MOTION AND BACKGROUND NPCS:
-- Academy is alive; NPCs act from role, duty, curiosity, pressure, schedule, habit, and visible scene facts.
-- In public locations, add short background motion when pressure changes: whispers, side comments, laughs, someone moving aside, someone calling from a bench, staff/students reacting.
-- Background beats must be brief and relevant; they do not replace full-loaded character responses.
-- Compress routine movement/procedures to the next meaningful point.
-- Stop for meaningful NPC questions, blocked path, risk, important information, new important character, consent/refusal, disclosure, conflict, or control choice.
-- Do not stop for empty continuation choices when nothing changed.
+9) SCENE MOTION AND BACKGROUND NPCS
+- Academy is alive; NPCs act from role, duty, curiosity, schedule, habit and visible pressure.
+- Public locations need brief background motion when pressure changes: whispers, side comments, laughs, movement, bench calls, staff/student reactions.
+- Background beats stay short and never replace full-loaded character responses.
+- Compress routine to the next meaningful beat.
+- Stop for meaningful questions, blocked path, risk, new info/character, consent/refusal, disclosure, conflict, or control choice.
 
-10) NPC PERSISTENCE:
-- Ordinary background NPCs are not saved: one laugh, whisper, glance, or passing line remains background.
-- Save a background/temporary NPC only if they create a future hook: named/identifiable role, repeated presence, threat, promise, conflict, favor, debt, rumor source, witness, access gate, injury, discipline issue, or direct relationship pressure.
-- Save important uncarded NPCs as compact state threads/open hooks, not as full character cards during play.
-- Save only visible facts and consequences: what happened, who saw it, who may remember it, what pressure it creates, where/when it can return.
-- Do not save hidden motives or private thoughts.
+10) NPC PERSISTENCE
+- Ordinary background noise is not saved.
+- Save background/temporary NPCs only if they create a future hook: identifiable role, repeated presence, threat, promise, conflict, favor, debt, rumor source, witness, access gate, injury, discipline issue, relationship pressure.
+- Save uncarded NPCs as compact state threads/open hooks, not full character cards during play.
+- Save visible facts/consequences only; no hidden motives/private thoughts.
 
-11) BOTTOM UI:
-- Use only useful blocks: `✦ Что можно сделать`, `✦ Что <POV> могла бы сказать`, `✦ Мысли <POV>`, `✦ Уровни`, `✦ Отношения`.
-- Max 3 items in actions, speech, and thoughts.
-- Actions are physical/attention/movement/object/pause/route/observation/posture only.
-- No speech verbs in actions: no сказать, ответить, спросить, позвать, предложить, пошутить.
-- Speech block contains exact possible spoken lines only.
-- Thoughts are POV-local only and invisible to NPCs.
-- Levels use loaded numeric state when available.
-- Relationships show only loaded scene relationships; no absent characters, no `без изменений`.
+11) BOTTOM UI
+- Blocks order: `✦ Что можно сделать`, `✦ Что <POV> могла бы сказать`, `✦ Мысли <POV>`, `✦ Уровни`, `✦ Отношения`.
+- Max 3 items in actions/speech/thoughts.
+- If actions exist, add exactly: `Варианты ниже не считаются действием, пока игрок не выбрал.`
+- Every action starts with `◈`; actions are physical/attention/movement/object/pause/route/observation/posture only.
+- No speech verbs or dialogue intent in actions: no сказать, ответить, спросить, позвать, предложить, пошутить, заметить вслух.
+- Speech options start with `—`, are exact possible POV lines, no quotes.
+- Thought options start with `—`, POV-local only, invisible to NPCs.
+- Levels use loaded numeric state; no prose status/narration.
+- Relationships only loaded scene pairs: `<Имя>: +<display_score> · <display_label>`; no absent characters, no `без изменений`, no `Акира ↔ Ливия` arrows.
 
-12) FULL SCENE CORE DIGEST:
-{_cut(scene_core, 1200)}
+12) SCENE CORE DIGEST
+{_cut(scene_core, 300)}
 
-13) REQUIRED FILES:
-{_dump(required, 800)}
+13) REQUIRED FILES
+{_dump(required, 400)}
 
-14) OUTPUT CHECK:
+14) OUTPUT CHECK
 - Use rendered_header exactly.
 - Preserve player input order.
-- Respect loaded character anchors and speech profiles.
-- If a full-loaded NPC is addressed, resolve their response beat or meaningful silence.
-- Add brief public-background motion when the location pressure calls for it.
-- Save only important background NPC hooks, never ordinary one-off noise.
+- Apply character anchors and speech profiles.
+- Resolve addressed full-loaded NPC response beats.
+- Add brief public background motion when scene pressure calls for it.
+- Save only important background NPC hooks.
 - Keep NPC knowledge visible-source only.
-- Keep scene moving to meaningful beats.
-- Do not output API/debug commentary in play mode.
+- Keep scene moving.
+- No API/debug commentary in play mode.
 """
     return brief[:MAX_PROMPT_PREVIEW_CHARS]
