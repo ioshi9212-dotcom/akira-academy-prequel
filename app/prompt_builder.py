@@ -160,6 +160,13 @@ SCENE MOTION AND BACKGROUND NPCS:
 - Stop for meaningful NPC questions, blocked path, risk, important information, new important character, consent/refusal, disclosure, conflict, or control choice.
 - Do not stop for empty continuation choices when nothing changed.
 
+NPC PERSISTENCE:
+- Ordinary background NPCs are not saved: one laugh, whisper, glance, or passing line remains background.
+- Save a background/temporary NPC only if they create a future hook: named/identifiable role, repeated presence, threat, promise, conflict, favor, debt, rumor source, witness, access gate, injury, discipline issue, or direct relationship pressure.
+- Save important uncarded NPCs as compact state threads/open hooks, not as full character cards during play.
+- Save only visible facts and consequences: what happened, who saw it, who may remember it, what pressure it creates, where/when it can return.
+- Do not save hidden motives or private thoughts.
+
 BOTTOM UI:
 - Use only useful blocks: `✦ Что можно сделать`, `✦ Что <POV> могла бы сказать`, `✦ Мысли <POV>`, `✦ Уровни`, `✦ Отношения`.
 - Max 3 items in actions, speech, and thoughts.
@@ -194,8 +201,9 @@ OUTPUT GATE:
 3. Respect loaded character anchors and speech profiles.
 4. If a full-loaded NPC is addressed, resolve their response beat or meaningful silence.
 5. Add brief public-background motion when the location pressure calls for it.
-6. Keep NPC knowledge visible-source only.
-7. Keep scene moving to meaningful beats.
-8. Do not output API/debug commentary in play mode.
+6. Save only important background NPC hooks, never ordinary one-off noise.
+7. Keep NPC knowledge visible-source only.
+8. Keep scene moving to meaningful beats.
+9. Do not output API/debug commentary in play mode.
 """
     return brief[:MAX_PROMPT_PREVIEW_CHARS]
